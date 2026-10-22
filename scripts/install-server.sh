@@ -53,9 +53,14 @@ fi
 
 # ───────────── System packages ─────────────
 say "Installing system packages"
-apt-get update -y
-apt-get install -y ca-certificates curl git sudo nginx postgresql postgresql-contrib ufw fail2ban cron xz-utils
-if [[ -n "${DOMAIN:-}" ]]; then apt-get install -y certbot python3-certbot-nginx; fi
+# A fresh server often runs automatic updates for a few minutes and holds the package lock.
+# Make every apt-get (also inside the NodeSource setup) wait for the lock instead of failing.
+echo 'DPkg::Lock::Timeout "1200";' > /etc/apt/apt.conf.d/99atom-wait-for-lock
+APT=(apt-get)
+echo "(If the server is still installing its automatic updates, this step waits for them.)"
+"${APT[@]}" update -y
+"${APT[@]}" install -y ca-certificates curl git sudo nginx postgresql postgresql-contrib ufw fail2ban cron xz-utils
+if [[ -n "${DOMAIN:-}" ]]; then "${APT[@]}" install -y certbot python3-certbot-nginx; fi
 
 # Building needs ~2 GB of memory: add swap on small servers.
 if [[ $NO_SYSTEMD != 1 ]] && [[ "$(free -m | awk '/^Mem:/{print $2}')" -lt 3500 ]] && ! swapon --show | grep -q .; then
@@ -75,7 +80,7 @@ install_node_tarball() {
 }
 if ! node_ok; then
   say "Installing Node.js $NODE_MAJOR"
-  if curl -fsSL --max-time 60 "https://deb.nodesource.com/setup_$NODE_MAJOR.x" -o /tmp/nodesource.sh && bash /tmp/nodesource.sh && apt-get install -y nodejs; then :; fi
+  if curl -fsSL --max-time 60 "https://deb.nodesource.com/setup_$NODE_MAJOR.x" -o /tmp/nodesource.sh && bash /tmp/nodesource.sh && "${APT[@]}" install -y nodejs; then :; fi
   node_ok || install_node_tarball "https://nodejs.org/dist" || install_node_tarball "https://registry.npmmirror.com/-/binary/node" || true
   hash -r
   node_ok || die "Could not install Node.js $NODE_MAJOR (downloads blocked?). Enable international traffic on the server and run again."
