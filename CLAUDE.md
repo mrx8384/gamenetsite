@@ -22,7 +22,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 
 - Phase 1 (analysis): **done** — see `docs/GAME_CATALOG_ANALYSIS.md`. Original catalog preserved in `services/game-catalog/`; logo in `public/brand/`.
 - Phase 2 (architecture + schema): **approved** (2026-10-22). Schema implemented in `prisma/schema.prisma`, first migration applied.
-- Phase 3 (project init + design system): **done**. Next: Phase 4 (homepage + public layout).
+- Phase 3 (project init + design system): **done**.
+- Phase 4 (homepage + public layout): **done**. Next: Phase 5 (authentication & authorization).
 
 ### Owner decisions (2026-10-22)
 - Game Catalog: **option C approved** (port into Next.js + PostgreSQL). Catalog admin must require login with password (ADMIN role).
@@ -31,6 +32,9 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Prices displayed in **Toman** (stored as Rial).
 - Login and password recovery via **both email and SMS**.
 - Hosting: **Iranian host** → no external CDNs/fonts at runtime, Iranian SMS + payment providers.
+- SMS API key received and stored **only** in `.env` (provider not yet confirmed; key format suggests SMS.ir). `SMS_PROVIDER` stays `log` until verified from a network that can reach the provider.
+- Email: recommended the host's SMTP mailbox on the site domain (see ARCHITECTURE §6). Awaiting domain/mailbox.
+- Catalog games named "images": imported as-is and flagged in the catalog admin for renaming (owner left the choice to us).
 
 Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 
@@ -65,7 +69,7 @@ Do not add dependencies beyond this list without a stated reason.
 │  └─ game-catalog/     Original Python catalog — DO NOT EDIT (reference + local LAN tool)
 ├─ src/
 │  ├─ app/
-│  │  ├─ (public)/      Home, shop, news, about, contact, game-catalog shell, tournaments
+│  │  ├─ (public)/      Public pages with header + footer (route group, URL has no prefix)
 │  │  ├─ (auth)/        login, register, forgot-password, reset-password
 │  │  ├─ account/       Profile, orders, addresses (USER+)
 │  │  ├─ partner/       Partner dashboard (PARTNER)
@@ -73,7 +77,10 @@ Do not add dependencies beyond this list without a stated reason.
 │  │  └─ api/           Route handlers (auth, uploads, webhooks/payment callbacks)
 │  ├─ components/
 │  │  ├─ ui/            Design-system primitives (shadcn-based)
-│  │  └─ <feature>/     Feature components
+│  │  ├─ layout/        Header, desktop/mobile nav, footer, container
+│  │  ├─ home/          Homepage sections
+│  │  └─ <feature>/     Feature components (store/, news/, ...)
+│  ├─ content/          Static copy (home.ts) until editable via site settings (Phase 8)
 │  ├─ features/         Per-module server logic: actions, queries, zod schemas
 │  │  ├─ auth/ store/ orders/ news/ contact/ partners/ subscriptions/ settings/ tournaments/ game-catalog/
 │  ├─ lib/              db, auth, rbac, rate-limit, uploads, money, format (fa digits/dates), logger
@@ -97,6 +104,9 @@ Full rationale in `docs/ARCHITECTURE.md`.
 ## 6. Coding conventions
 
 - **Next.js 16 specifics** (read `node_modules/next/dist/docs/` before using an API): request APIs (`cookies`, `headers`, `params`, `searchParams`) are async; `middleware` is now **`proxy.ts`**; Cache Components is on, so data is dynamic by default — use `"use cache"` + `cacheTag` for cacheable reads and `await connection()` for request-time work; no `runtime` segment config.
+- **Data reads on public pages:** `src/features/<module>/queries.ts` functions use `"use cache"` + `cacheLife` + `cacheTag(CACHE_TAGS.x)`. Components that call them start with `await connection()` and are wrapped in `<Suspense>` with a skeleton. Result: static shell, no DB needed at build time, and admin mutations refresh via `updateTag`/`revalidateTag` with the same tag (`src/lib/cache-tags.ts`).
+- Values crossing into client components must be serializable: pass money as string (bigint → `.toString()`).
+- Under Cache Components `dynamicParams` is unavailable; unknown dynamic params render the 404 UI with HTTP 200 (+ noindex). Use a `proxy.ts` check if a real 404 status is needed.
 - shadcn's online registry is blocked in the dev environment, so UI components are written by hand in shadcn style under `src/components/ui` (same structure, `radix-ui` package).
 - Text colors: never white on atomic green. Use black on green (`bg-primary`), `text-link` (deep green `#00703C`) for links. Enforced by `tests/unit/brand-contrast.test.ts`.
 - Mark LTR snippets (emails, phones, codes, URLs) with the `ltr` class or `dir="ltr"`.
@@ -114,6 +124,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 4: public layout (sticky header, desktop nav with active state, RTL slide-in mobile menu, footer, skip link), homepage sections (hero with atom orbits, featured products, catalog stats per platform, tournament band, partner services, latest news, about) reading real DB data with empty states; `/tournaments` placeholder with the required text; interim pages for /shop, /news, /about, /contact, /partners, /game-catalog(/ps4|/ps5), /tournaments/gamepad-tester.
 - Phase 3: project setup, design tokens, Vazirmatn, UI primitives (Button, Card, Input, Textarea, NativeSelect, Label, Badge, Separator, Skeleton, Spinner, Dialog, ConfirmDialog, Table, Alert, Empty/Error/Loading states, Toaster, Form), env validation, Prisma client, full DB schema + migration, `/api/health`, security headers, 404/error pages, `/design-system` (dev only).
 
 ## 8. Pending features

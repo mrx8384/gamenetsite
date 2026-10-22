@@ -136,6 +136,13 @@ Tokens (CSS variables → Tailwind theme):
 - `Mailer` and `SmsSender` interfaces for login codes, password reset and notifications. In development both write to the server log (`MAIL_PROVIDER=log`, `SMS_PROVIDER=log`). Production: SMTP + an Iranian SMS provider (Kavenegar / SMS.ir), chosen by the owner.
 - Login and password recovery work with **email or mobile number** (owner decision). Codes are stored only as hashes in `VerificationCode`, with expiry and attempt limits.
 
+### Email provider recommendation
+
+- Use an **SMTP mailbox on the site's own domain from the Iranian host** (most Iranian hosting plans include email), e.g. `no-reply@<domain>`, sent via `nodemailer` (added in Phase 5 behind the `Mailer` interface).
+- Avoid foreign transactional services (SendGrid, Mailgun, Resend, ...): account approval and delivery from Iran are unreliable because of sanctions.
+- Configure SPF, DKIM and DMARC on the domain so emails don't land in spam.
+- SMS is the primary channel for Iranian users (login codes, recovery); email is the secondary channel.
+
 ## 6b. Iranian hosting constraints
 
 - No runtime dependency on foreign CDNs: fonts, icons and scripts are bundled/self-hosted.

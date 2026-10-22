@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-10-22 (4) — Phase 4 completed (homepage + public layout)
+
+### Owner input
+- GitHub: owner agreed, but no GitHub account is connected to this session yet → still no remote. Work committed locally only.
+- SMS API key received → stored only in `.env` (git-ignored, not in docs). Could not verify: Iranian SMS APIs are blocked from this environment.
+- Email: recommended host SMTP mailbox (see ARCHITECTURE §6). "images" games: keep as-is, flag for renaming in catalog admin.
+
+### Done
+- Public layout via `(public)` route group: sticky header (brand, desktop nav with active state), RTL slide-in mobile menu (Radix Dialog), dark footer with Jalali copyright year, skip-to-content link; 404 page also uses header/footer.
+- Homepage: hero (unmodified logo + animated atom orbits, reduced-motion safe), featured products, catalog preview (game count + recent covers per platform), tournament band, partner services, latest news, about teaser.
+- Data layer: `getFeaturedProducts`, `getLatestNews`, `getCatalogStats` (`"use cache"` + tags), reusable `ProductCard` and `NewsCard`.
+- `/tournaments` placeholder with the exact required text; interim pages for routes of later phases.
+- Unit tests for navigation helpers (21 tests total).
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 21/21 tests) · `pnpm build` ✓ (home = partial prerender; others static).
+- Production server: all public routes 200, `/design-system` 404, image optimizer 200.
+- Empty DB: sections show Persian empty states. With temporary `[DEV]` rows: featured products, prices in Toman, discount and out-of-stock badges, published news and catalog count render; drafts are **not** shown. Dev rows deleted afterwards (0 remaining).
+- Browser (1366px / 390px): no horizontal overflow, no JS errors; mobile menu opens, navigates, closes and releases scroll lock; active nav item marked with `aria-current`.
+- Fixed during verification: discount percentage shown with Latin digits.
+
+### Known limitations
+- `/game-catalog/<unknown>` shows the 404 page with HTTP 200 (Cache Components streaming); interim page, fixed in Phase 9.
+- Header account/cart actions arrive in Phases 5 and 7.
+
 ## 2026-10-22 (3) — Owner decisions, Phase 2 approved, Phase 3 completed
 
 ### Decisions recorded
