@@ -32,7 +32,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 10 (partners & subscriptions, purchasing disabled): **done**.
 - Manual (free) subscription grants by admin: **done** (owner approved 2026-10-22).
 - Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**.
-- Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete. Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
+- Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
+- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install via `pnpm setup:local` + `start-atom.bat`. Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

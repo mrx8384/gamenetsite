@@ -19,7 +19,8 @@
     "postinstall": "prisma generate",
     "admin:create": "tsx scripts/create-admin.ts",
     "catalog:import": "tsx --conditions=react-server scripts/import-catalog.ts",
-    "maintenance": "tsx --conditions=react-server scripts/maintenance.ts"
+    "maintenance": "tsx --conditions=react-server scripts/maintenance.ts",
+    "setup:local": "node scripts/setup-local.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",

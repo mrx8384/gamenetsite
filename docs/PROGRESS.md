@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-10-22 (14) — Hosting check + local install
+
+### Owner's cPanel host
+- Offers only MySQL (no PostgreSQL); Node.js version unknown. Not deployed there. Recommended: ask the host for PostgreSQL ≥ 14 + Node.js ≥ 22 + Terminal; otherwise an Iranian VPS or a PaaS with PostgreSQL (e.g. Liara). Porting to MySQL is possible but touches stock reservation, rate limiting, search and plan features → only on explicit request.
+- The owner sent a cPanel session URL; it was not opened. Advised to log out to invalidate it.
+
+### Local install
+- `pnpm setup:local` (`scripts/setup-local.mjs`): checks Node ≥ 22.12, writes `.env` (generated AUTH_SECRET, LAN-IP hint), creates the database, applies migrations (falls back to applying the SQL files directly with Prisma-compatible `_prisma_migrations` rows if Prisma's engine can't be downloaded), builds, creates the first admin, optionally imports `catalog.db`. Re-runnable.
+- `start-atom.bat` for Windows (CRLF via `.gitattributes`), binds 0.0.0.0:3000 for LAN access.
+- Tested end to end with fresh databases: normal path (85 catalog games imported, admin login, catalog page) and fallback path (engine unavailable → 6 migrations applied directly → `prisma migrate status`: up to date). Test databases and files removed; dev data intact.
+
 ## 2026-10-22 (13) — Phase 12 completed (QA, hardening, deployment)
 
 ### Security review
