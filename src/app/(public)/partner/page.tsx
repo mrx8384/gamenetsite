@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
 import { BUSINESS_TYPE_LABELS } from "@/features/partners/constants";
-import { currentSubscription, getMyPartnerProfile, getVisiblePlans, type MyPartnerProfile } from "@/features/partners/queries";
+import { currentSubscription, getMyPartnerProfile, upcomingSubscription, getVisiblePlans, type MyPartnerProfile } from "@/features/partners/queries";
 import { getSiteSettings } from "@/features/settings/site";
 import { hasEntitlement } from "@/features/subscriptions/entitlements";
 import { requireUser } from "@/lib/auth/dal";
@@ -99,6 +99,7 @@ async function PartnerContent() {
 
   const [plans, gamepad] = await Promise.all([getVisiblePlans(), hasEntitlement(user.id, "GAMEPAD_TESTER")]);
   const sub = currentSubscription(profile);
+  const next = upcomingSubscription(profile);
 
   return (
     <div className="space-y-6">
@@ -123,6 +124,7 @@ async function PartnerContent() {
                 <p className="text-muted-foreground">{t.plansNote}</p>
               </>
             )}
+            {next ? <p className="text-muted-foreground">بعدی: {next.plan.name} از {formatDate(next.startsAt!)}</p> : null}
           </CardContent>
         </Card>
         <Card>

@@ -84,6 +84,8 @@ export const SITE_GROUPS = {
       { key: "comingSoon", label: "پیام صفحهٔ تورنومنت", type: "text", max: 120, default: "بخش تورنومنت به‌زودی فعال می‌شود." },
       { key: "badge", label: "برچسب بازی‌ها", type: "text", max: 60, default: "FIFA · EA SPORTS FC" },
       { key: "gamepadTesterText", label: "متن صفحهٔ تست دسته", type: "textarea", max: 300, default: "ابزار تست دسته برای همکاران دارای اشتراک فعال، به‌زودی در دسترس قرار می‌گیرد." },
+      { key: "gamepadLockedText", label: "تست دسته — پیام برای کاربران بدون دسترسی", type: "textarea", max: 300, default: "این ابزار ویژهٔ همکاران تأییدشدهٔ آتم با اشتراک فعال است." },
+      { key: "gamepadGrantedText", label: "تست دسته — پیام برای همکاران دارای اشتراک", type: "textarea", max: 300, default: "اشتراک شما فعال است. ابزار تست دسته به‌زودی در همین صفحه برای شما فعال می‌شود." },
     ],
   },
   partners: {

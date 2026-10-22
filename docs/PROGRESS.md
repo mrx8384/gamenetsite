@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-10-22 (12) — Manual subscription grants + Phase 11 (tournament & Gamepad Tester placeholders)
+
+### Owner decision
+- Admins may grant a free (manual) subscription to approved partners while online purchase is disabled.
+
+### Done — manual grants
+- `grantSubscription` / `cancelSubscription` (ADMIN, Zod, audit). Only for APPROVED partners; partner row locked (`FOR UPDATE`) so parallel grants can't overlap; a renewal queues right after the latest active period (`nextGrantStart`); the note records "اعطای دستی توسط <admin>" + optional note. No payment rows are created.
+- Admin partner detail: subscription list with derived phase (فعال / شروع در آینده / منقضی / لغوشده), «اعطای اشتراک رایگان» dialog (plan, days prefilled from plan, note), cancel with confirmation. Subscriptions page uses the same phases. Partner dashboard shows the upcoming period.
+- Suspension keeps subscription rows but `hasEntitlement` denies access; re-activation restores it.
+
+### Done — Phase 11
+- `/tournaments` unchanged (required text, editable). `src/features/tournaments/index.ts`: `TOURNAMENTS_ENABLED = false` + scope note; no tables, no bracket/result logic.
+- `/tournaments/gamepad-tester`: editable page text + access panel decided on the server by `getGamepadAccess()` → `hasEntitlement(userId, "GAMEPAD_TESTER")`: anonymous (login), admin (not auto-entitled), no application, pending, rejected, suspended, no subscription, granted. Granted partners see «دسترسی شما فعال است» and a disabled «ابزار تست به‌زودی» area; `GAMEPAD_TESTER_ENABLED = false`, no tester code.
+- New editable texts (Admin → تنظیمات سایت → تورنومنت): locked message, granted message.
+- Admin `/admin/tournaments` placeholder (nav enabled) linking to the tournament texts.
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 101 unit tests incl. phase/renewal rules) · `pnpm build` ✓.
+- E2E on the production build (30 checks, all pass on first run): every access state of the Gamepad Tester page, grant hidden before approval, duration validation, grant stored with admin name, plan without the feature keeps access locked, renewal queued after the current period, upcoming shown to partner, cancel, entitled partner sees the disabled tool area (no controls), dashboard access, suspension locks and re-activation restores, expiry locks, admin placeholder, editable locked text, user gets 404 on admin.
+- Test data removed afterwards (users, partners, plans, subscriptions, settings). Catalog untouched (85 games).
+
 ## 2026-10-22 (11) — Phase 10 completed (partners & subscriptions, purchasing disabled)
 
 ### Done

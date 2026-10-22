@@ -24,3 +24,10 @@ export const planSchema = z.object({
 });
 
 export type PlanInput = z.input<typeof planSchema>;
+
+/** Manual (free) grant by an admin — owner approved 2026-10-22. No payment is involved. */
+export const grantSchema = z.object({
+  planId: z.string().min(1, "اشتراک را انتخاب کنید").max(50),
+  durationDays: z.preprocess((v) => (typeof v === "string" ? toEnglishDigits(v) : v), z.coerce.number("مدت معتبر نیست").int("مدت باید عدد صحیح باشد").min(1, "حداقل ۱ روز").max(3650, "حداکثر ۳۶۵۰ روز")),
+  note: z.string().trim().max(400, "حداکثر ۴۰۰ کاراکتر").default(""),
+});

@@ -29,3 +29,10 @@ export async function getVisiblePlans() {
 }
 
 export type VisiblePlan = Awaited<ReturnType<typeof getVisiblePlans>>[number];
+
+/** Next queued period (e.g. a renewal granted before the current one ends). */
+export function upcomingSubscription(profile: MyPartnerProfile, now = new Date()) {
+  return profile.subscriptions
+    .filter((s) => s.status === "ACTIVE" && s.startsAt && s.startsAt > now)
+    .sort((a, b) => a.startsAt!.getTime() - b.startsAt!.getTime())[0] ?? null;
+}

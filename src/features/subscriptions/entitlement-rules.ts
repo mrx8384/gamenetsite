@@ -28,3 +28,27 @@ export function evaluateEntitlement(subject: EntitlementSubject | null, key: Ent
   if (!p || p.status !== "APPROVED") return false;
   return p.subscriptions.some((s) => isSubscriptionCurrent(s, now) && s.features.includes(key));
 }
+
+export type SubscriptionPhase = "current" | "scheduled" | "expired" | "cancelled" | "inactive";
+
+/** Display state derived from status + dates (an ACTIVE row past its end date is "expired"). */
+export function subscriptionPhase(s: Omit<SubscriptionPeriod, "features">, now: Date = new Date()): SubscriptionPhase {
+  if (s.status === "CANCELLED") return "cancelled";
+  if (s.status === "EXPIRED") return "expired";
+  if (s.status !== "ACTIVE" || !s.startsAt || !s.endsAt) return "inactive";
+  if (now < s.startsAt) return "scheduled";
+  if (now >= s.endsAt) return "expired";
+  return "current";
+}
+
+/**
+ * Start of a new manual grant: right after the latest ACTIVE period that has not ended yet
+ * (so a renewal queues behind the current one), otherwise now.
+ */
+export function nextGrantStart(existing: Omit<SubscriptionPeriod, "features">[], now: Date = new Date()): Date {
+  let start = now;
+  for (const s of existing) {
+    if (s.status === "ACTIVE" && s.endsAt && s.endsAt > start) start = s.endsAt;
+  }
+  return start;
+}

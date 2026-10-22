@@ -29,7 +29,9 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 7 (cart, checkout, orders) + shipping methods: **done**.
 - Phase 8 (news, contact, about, editable site texts): **done**.
 - Phase 9 (Game Catalog port + import): **done**. Real catalog (85 games) imported.
-- Phase 10 (partners & subscriptions, purchasing disabled): **done**. Next: Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary).
+- Phase 10 (partners & subscriptions, purchasing disabled): **done**.
+- Manual (free) subscription grants by admin: **done** (owner approved 2026-10-22).
+- Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**. Next: Phase 12 (QA, hardening, CSP, maintenance, deployment).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -43,6 +45,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Commerce (owner decisions, Phase 7): online sales **closed** by default; admin opens them from Admin → تنظیمات فروش, but only when a real payment gateway is configured. Shipping = **shipping methods** managed in Admin → روش‌های ارسال: `COLLECT` («پس‌کرایه»: carrier sets the fee and collects it on delivery, not via the site gateway) or `PREPAID` (fixed fee paid online with the order). Customer picks one at checkout; orders snapshot name/type and get a tracking code (+ optional carrier tracking URL template with `{code}`). Categories can be marked **«جهت استعلام قیمت تماس بگیرید»** (inherited by sub-categories): price hidden, phone shown, not purchasable. Gateway API details will be supplied by the owner → implement a `PaymentProvider` in `src/features/payments/providers/` and register it in `index.ts`.
 - **All site text must be editable from the admin panel** (owner request) → Phase 8 site settings cover homepage, footer, about, contact and tournament texts.
 - Email: recommended the host's SMTP mailbox on the site domain (see ARCHITECTURE §6). Awaiting domain/mailbox.
+- Admins may grant free subscriptions to approved partners (Admin → همکاران → partner → «اعطای اشتراک رایگان»); online purchase stays disabled.
 - Catalog games with placeholder names (49 × `images (N)` + 1 with dimensions): imported as-is and flagged «نیاز به تغییر نام» in the catalog admin; owner to rename.
 
 Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
@@ -141,6 +144,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 11 + grants: `/tournaments/gamepad-tester` access panel via `getGamepadAccess()` (`src/features/gamepad-tester/access.ts`, `GAMEPAD_TESTER_ENABLED = false`), `src/features/tournaments` placeholder (`TOURNAMENTS_ENABLED = false`), `/admin/tournaments` placeholder; manual grants/cancel in `src/features/subscriptions/admin-actions.ts` (renewals queue via `nextGrantStart`, phases via `subscriptionPhase`).
 - Phase 10: partners (`src/features/partners`): public `/partners`, applicant/partner area `/partner` (apply → pending → rejected/resubmit → approved dashboard; suspended), admin `/admin/partners` (review with reasons; PARTNER role mirrors APPROVED, changed only there), admin `/admin/subscriptions` (plans; purchase disabled via `SUBSCRIPTION_PURCHASE_ENABLED = false`, `isActive` never set), `hasEntitlement()` in `src/features/subscriptions/entitlements.ts` — the only gate for partner features.
 - Phase 9: Game Catalog module (`src/features/game-catalog`): importer (UI + `pnpm catalog:import`), public `/game-catalog` + `/game-catalog/ps4|ps5` (search, chips, grouped grid, lightbox with keys/swipe, 30 s live refresh via `/api/catalog/version`), admin `/admin/game-catalog` (tabs, bulk upload, edit/replace/move/delete, rename flag, categories with merge/reorder, QR, ZIP export, `.db` restore via `POST /api/admin/catalog/import` with ADMIN + same-origin check). Restoring a `.db` **replaces** the whole catalog.
 - Phase 8: site settings groups (home, contact & social, general/footer, tournaments) defined once in `site-schema.ts` → admin tabbed forms + validation + defaults; homepage, footer, meta description and tournament pages read them; editable About page (rich text); news categories + posts (rich-text editor with image upload, cover, draft/publish, featured, public list with featured/category filter/pagination, article page with NewsArticle JSON-LD, related news); contact page + form (honeypot, min-time check, rate limits, hashed IP) and admin inbox (auto-read, archive, delete); dashboard cards for unread messages and drafts.

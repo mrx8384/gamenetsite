@@ -90,7 +90,7 @@ Money columns are `BigInt` Rials.
 
 - **PartnerProfile**: `userId` (unique), `businessName`, `businessType` (e.g. `GAME_NET | SHOP | OTHER`), `province`, `city`, `address`, `phone`, `website?`, `description`, `status` (`PENDING | APPROVED | REJECTED | SUSPENDED`), `reviewedById?`, `reviewedAt?`, `rejectionReason?`. Approval sets `User.role = PARTNER` in the same transaction
 - **SubscriptionPlan**: `code` (unique), `name`, `price`, `durationDays`, `features` (Json array of entitlement keys, e.g. `["GAMEPAD_TESTER"]`), `isActive` (default **false**)
-- **PartnerSubscription**: `partnerId`, `planId`, `status` (`INACTIVE | ACTIVE | EXPIRED | CANCELLED`), `startsAt?`, `endsAt?`, `paymentId?`. Admin can see; no purchase or manual-grant flow yet (Phase 10)
+- **PartnerSubscription**: `partnerId`, `planId`, `status` (`INACTIVE | ACTIVE | EXPIRED | CANCELLED`), `startsAt?`, `endsAt?`, `paymentId?`. No purchase flow; admins can grant free subscriptions to APPROVED partners (renewals start when the current period ends) and cancel them
 - `PartnerProfile.submittedAt` orders the review queue; `SubscriptionPlan.isVisible` shows a plan as «به‌زودی» on public/partner pages
 
 ### Tournaments (future — no tables created yet)
@@ -119,7 +119,7 @@ hasEntitlement(userId, "GAMEPAD_TESTER")   // src/features/subscriptions/entitle
                                        && s.plan.features.includes("GAMEPAD_TESTER"))
 ```
 
-`/tournaments/gamepad-tester` renders the placeholder for everyone; the (disabled) tool area is behind this check on the server.
+`/tournaments/gamepad-tester` renders the placeholder for everyone; `getGamepadAccess()` explains the visitor's state and only entitled partners see the (still disabled) tool area. Admins are not auto-entitled.
 
 ## 5. Design system
 

@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, LoadingRows } from "@/components/ui/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deletePlan } from "@/features/subscriptions/admin-actions";
-import { ENTITLEMENTS, SUBSCRIPTION_STATUS_LABELS, type EntitlementKey } from "@/features/subscriptions/constants";
+import { ENTITLEMENTS, SUBSCRIPTION_PHASE_LABELS, type EntitlementKey } from "@/features/subscriptions/constants";
+import { subscriptionPhase } from "@/features/subscriptions/entitlement-rules";
 import { requireRole } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { formatDate, formatNumber, formatToman } from "@/lib/format";
@@ -28,7 +29,7 @@ export default function SubscriptionsPage() {
         actions={<PlanDialog trigger={<Button><Plus /> اشتراک جدید</Button>} />}
       />
       <Alert variant="warning" className="mb-6">
-        خرید اشتراک فعلاً غیرفعال است. اشتراک‌ها فقط تعریف و (در صورت انتخاب) با برچسب «به‌زودی» نمایش داده می‌شوند. فعال‌سازی خرید پس از تأیید شما و راه‌اندازی درگاه پرداخت انجام می‌شود.
+        خرید آنلاین اشتراک فعلاً غیرفعال است و اشتراک‌ها (در صورت انتخاب) با برچسب «به‌زودی» نمایش داده می‌شوند. برای فعال کردن اشتراک یک همکار، از صفحهٔ همان همکار «اعطای اشتراک رایگان» را بزنید.
       </Alert>
       <Suspense fallback={<LoadingRows rows={5} />}>
         <SubscriptionsContent />
@@ -100,7 +101,7 @@ async function SubscriptionsContent() {
                   <span className="flex items-center gap-2 text-muted-foreground">
                     {s.plan.name}
                     {s.endsAt ? ` · تا ${formatDate(s.endsAt)}` : null}
-                    <Badge variant={s.status === "ACTIVE" ? "success" : "outline"}>{SUBSCRIPTION_STATUS_LABELS[s.status]}</Badge>
+                    <Badge variant={subscriptionPhase(s) === "current" ? "success" : "outline"}>{SUBSCRIPTION_PHASE_LABELS[subscriptionPhase(s)]}</Badge>
                   </span>
                 </li>
               ))}

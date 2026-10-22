@@ -11,9 +11,11 @@ export const ENTITLEMENTS = {
 export type EntitlementKey = keyof typeof ENTITLEMENTS;
 export const ENTITLEMENT_KEYS = Object.keys(ENTITLEMENTS) as EntitlementKey[];
 
-export const SUBSCRIPTION_STATUS_LABELS = {
-  INACTIVE: "غیرفعال",
-  ACTIVE: "فعال",
-  EXPIRED: "منقضی",
-  CANCELLED: "لغوشده",
+
+export const SUBSCRIPTION_PHASE_LABELS = {
+  current: "فعال",
+  scheduled: "شروع در آینده",
+  expired: "منقضی",
+  cancelled: "لغوشده",
+  inactive: "غیرفعال",
 } as const;

@@ -4,13 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ReviewActions } from "@/components/admin/partners/review-actions";
+import { SubscriptionPanel } from "@/components/admin/partners/subscription-panel";
 import { PartnerStatusBadge } from "@/components/partners/partner-status";
 import { Alert } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
 import { BUSINESS_TYPE_LABELS } from "@/features/partners/constants";
-import { SUBSCRIPTION_STATUS_LABELS } from "@/features/subscriptions/constants";
+import { subscriptionPhase } from "@/features/subscriptions/entitlement-rules";
 import { requireRole } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -51,6 +51,8 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
     },
   });
   if (!p) notFound();
+  const plans = await db.subscriptionPlan.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, name: true, durationDays: true } });
+  const now = new Date();
 
   return (
     <div className="space-y-6">
@@ -91,20 +93,13 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
           </Card>
           <Card>
             <CardHeader><CardTitle>اشتراک‌ها</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {p.subscriptions.length === 0 ? (
-                <p className="text-muted-foreground">بدون اشتراک. خرید اشتراک فعلاً غیرفعال است.</p>
-              ) : (
-                p.subscriptions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between gap-2">
-                    <span>{s.plan.name}</span>
-                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {s.endsAt ? `تا ${formatDate(s.endsAt)}` : null}
-                      <Badge variant={s.status === "ACTIVE" ? "success" : "outline"}>{SUBSCRIPTION_STATUS_LABELS[s.status]}</Badge>
-                    </span>
-                  </div>
-                ))
-              )}
+            <CardContent>
+              <SubscriptionPanel
+                partnerId={p.id}
+                approved={p.status === "APPROVED"}
+                plans={plans}
+                rows={p.subscriptions.map((s) => ({ id: s.id, planName: s.plan.name, phase: subscriptionPhase(s, now), startsAt: s.startsAt?.toISOString() ?? null, endsAt: s.endsAt?.toISOString() ?? null, note: s.note }))}
+              />
             </CardContent>
           </Card>
         </div>

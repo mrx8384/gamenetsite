@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeInstagram, normalizeIranPhone, partnerApplicationSchema } from "@/features/partners/schemas";
-import { evaluateEntitlement, type EntitlementSubject, type SubscriptionPeriod } from "@/features/subscriptions/entitlement-rules";
+import { evaluateEntitlement, nextGrantStart, subscriptionPhase, type EntitlementSubject, type SubscriptionPeriod } from "@/features/subscriptions/entitlement-rules";
 import { SUBSCRIPTION_PURCHASE_ENABLED } from "@/features/subscriptions/constants";
 import { planSchema } from "@/features/subscriptions/schemas";
 
@@ -90,5 +90,24 @@ describe("plan schema", () => {
   it("rejects unknown features and bad codes", () => {
     expect(planSchema.safeParse({ code: "bad code", name: "x1", priceToman: "0", durationDays: "30", features: [] }).success).toBe(false);
     expect(planSchema.safeParse({ code: "ok", name: "x1", priceToman: "0", durationDays: "30", features: ["ROOT"] }).success).toBe(false);
+  });
+});
+
+describe("manual grants", () => {
+  it("derives display phase from status and dates", () => {
+    expect(subscriptionPhase(sub(), now)).toBe("current");
+    expect(subscriptionPhase(sub({ startsAt: new Date(now.getTime() + day) }), now)).toBe("scheduled");
+    expect(subscriptionPhase(sub({ endsAt: now }), now)).toBe("expired");
+    expect(subscriptionPhase(sub({ status: "CANCELLED" }), now)).toBe("cancelled");
+  });
+  it("starts now without an active period", () => {
+    expect(nextGrantStart([], now)).toEqual(now);
+    expect(nextGrantStart([sub({ endsAt: new Date(now.getTime() - day) })], now)).toEqual(now);
+    expect(nextGrantStart([sub({ status: "CANCELLED", endsAt: new Date(now.getTime() + 9 * day) })], now)).toEqual(now);
+  });
+  it("queues a renewal after the latest active end", () => {
+    const end1 = new Date(now.getTime() + 5 * day);
+    const end2 = new Date(now.getTime() + 40 * day);
+    expect(nextGrantStart([sub({ endsAt: end1 }), sub({ startsAt: end1, endsAt: end2 })], now)).toEqual(end2);
   });
 });
