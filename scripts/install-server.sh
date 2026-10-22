@@ -128,6 +128,8 @@ fi
 # ───────────── nginx (+ HTTPS) ─────────────
 SERVER_NAME="${DOMAIN:-_}"
 write_nginx() {
+  local listen6=""
+  [[ -s /proc/net/if_inet6 ]] && listen6="listen [::]:80 default_server;"
   cat > /etc/nginx/snippets/atom-proxy.conf <<EOF
 proxy_pass http://127.0.0.1:$PORT;
 proxy_http_version 1.1;
@@ -139,7 +141,7 @@ EOF
   cat > /etc/nginx/sites-available/atom <<EOF
 server {
     listen 80 default_server;
-    listen [::]:80 default_server;
+    $listen6
     server_name $SERVER_NAME;
     client_max_body_size 8m;
 
