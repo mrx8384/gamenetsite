@@ -1,5 +1,10 @@
 # Progress Log
 
+## 2026-10-22 (15) — Local install cancelled
+
+- Owner cancelled the local (PC) install and wants the site on a server. Removed `scripts/setup-local.mjs`, `start-atom.bat` and the README section.
+- Kept what servers in Iran also need: `scripts/prisma-generate.mjs` and the direct-SQL migration fallback, now `scripts/migrate.mjs` behind `pnpm db:deploy`.
+
 ## 2026-10-22 (14) — Hosting check + local install
 
 ### Owner's cPanel host

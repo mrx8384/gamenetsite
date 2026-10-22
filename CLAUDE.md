@@ -33,7 +33,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Manual (free) subscription grants by admin: **done** (owner approved 2026-10-22).
 - Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**.
 - Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
-- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install via `pnpm setup:local` + `start-atom.bat`. Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
+- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -133,6 +133,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 - Text colors: never white on atomic green. Use black on green (`bg-primary`), `text-link` (deep green `#00703C`) for links. Enforced by `tests/unit/brand-contrast.test.ts`.
 - Mark LTR snippets (emails, phones, codes, URLs) with the `ltr` class or `dir="ltr"`.
 - Scripts: `pnpm check` (typecheck + lint + tests), `pnpm build`, `pnpm db:migrate`, `pnpm maintenance`, `pnpm test:e2e`.
+- Iranian servers can't reach binaries.prisma.sh: `scripts/prisma-generate.mjs` (postinstall/build) and `scripts/migrate.mjs` (`pnpm db:deploy`, direct-SQL fallback recorded in `_prisma_migrations`) work without Prisma's engine download.
 - CSP: no external origins. A new third-party script/style/frame/form target (e.g. a payment gateway that needs a browser POST) must be added to `csp` in `next.config.ts` deliberately.
 
 - TypeScript strict, no `any` without a comment explaining why.
