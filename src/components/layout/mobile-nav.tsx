@@ -12,6 +12,15 @@ import { siteConfig } from "@/lib/brand";
 import { isActivePath, mainNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
+/** Static placeholder shown until the client knows the current path. */
+export function MobileNavFallback() {
+  return (
+    <Button variant="ghost" size="icon" className="lg:hidden" aria-label="باز کردن منو" disabled>
+      <Menu className="size-5!" />
+    </Button>
+  );
+}
+
 /** Slide-in menu from the start (right) edge for screens below `lg`. */
 export function MobileNav() {
   const pathname = usePathname();

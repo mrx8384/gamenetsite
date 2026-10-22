@@ -6,12 +6,16 @@ import { isActivePath, mainNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function DesktopNav() {
-  const pathname = usePathname();
+  return <DesktopNavLinks pathname={usePathname()} />;
+}
+
+/** Presentational links; `pathname = null` renders without an active item (static fallback). */
+export function DesktopNavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="منوی اصلی" className="hidden lg:block">
       <ul className="flex items-center gap-1">
         {mainNav.map((item) => {
-          const active = isActivePath(pathname, item.href);
+          const active = pathname !== null && isActivePath(pathname, item.href);
           return (
             <li key={item.href}>
               <Link

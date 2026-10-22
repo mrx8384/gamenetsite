@@ -16,7 +16,7 @@ import { logout } from "@/features/auth/actions";
 const roleLabel = { ADMIN: "مدیر", USER: "کاربر", PARTNER: "همکار" } as const;
 
 export function AccountDropdown({ name, role }: { name: string; role: keyof typeof roleLabel }) {
-  const initial = name.trim().charAt(0) || "؟";
+  const initial = name.match(/\p{L}/u)?.[0] ?? "؟";
   return (
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger asChild>

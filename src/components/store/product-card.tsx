@@ -13,7 +13,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <Link
-      href={`/shop/${product.slug}`}
+      href={`/shop/${encodeURIComponent(product.slug)}`}
       className="group flex flex-col overflow-hidden rounded-xl border bg-surface shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative aspect-square bg-secondary">

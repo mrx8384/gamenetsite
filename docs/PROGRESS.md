@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-10-22 (6) — Phase 6 completed (store & product management)
+
+### Owner input
+- SMS.ir verify template ID received (490537) → `.env`; production switch documented in `docs/DEPLOYMENT.md`.
+
+### Done
+- Media pipeline: `storeImage()` (sharp decode → validate format → EXIF rotate → resize ≤1600px → WebP), `uploadImages` Server Action (ADMIN only, rate-limited, one file/request, 6 MB global body limit), `/media/[...key]` route.
+- Admin: categories page + dialog; products list (search, status/category/low-stock filters, pagination), create/edit form (auto Persian slug, Toman price hints, image manager with ordering/alt), stock dialog + movement history, delete (blocked if used in orders → archive).
+- Public: `/shop` listing and `/shop/[slug]` detail (replacing the interim page); homepage featured products now link to real pages.
+- Helpers + tests: `slugify`, `normalizePersian`, `parseTomanToRial`, unique-violation helpers (67 unit tests).
+- `docs/DEPLOYMENT.md` draft (env, nginx headers, backups).
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 67/67) · `pnpm build` ✓.
+- E2E in Chromium (36 checks, all passing after one fix): Persian slug generation; parent/child categories; fake image (HTML in .png) rejected; 2400px PNG + JPEG uploaded and served as WebP with nosniff/immutable; 4 path-traversal URLs → 404; discount validation; duplicate SKU field error; draft hidden from listing and direct URL; search, category (incl. sub-category) and in-stock filters; featured on homepage; product page (price, discount, "only 3 left", gallery, text-only description, JSON-LD IRR); stock can't go negative; out-of-stock visible immediately after admin change; category with products not deletable; USER gets 404 on admin store pages.
+- Bugs found and fixed during verification: (1) header nav `usePathname()` broke the build on dynamic routes → Suspense boundaries; (2) duplicate SKU showed the wrong message because Prisma 7 reports constraints differently → `uniqueViolationTarget()`; (3) avatar initial used "[" → first letter.
+- All test data, uploaded files and audit rows removed.
+
+### Next
+- Phase 7: cart (guest + user), checkout with addresses, orders with stock reservation, order history, admin order management, payment provider interface (disabled).
+
 ## 2026-10-22 (5) — GitHub connected, Phase 5 completed (auth & authorization)
 
 ### Owner input

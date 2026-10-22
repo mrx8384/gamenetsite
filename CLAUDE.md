@@ -24,7 +24,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 2 (architecture + schema): **approved** (2026-10-22). Schema implemented in `prisma/schema.prisma`, first migration applied.
 - Phase 3 (project init + design system): **done**.
 - Phase 4 (homepage + public layout): **done**.
-- Phase 5 (authentication & authorization): **done**. Next: Phase 6 (store & product management).
+- Phase 5 (authentication & authorization): **done**.
+- Phase 6 (store & product management): **done**. Next: Phase 7 (cart, checkout, orders).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -34,7 +35,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Prices displayed in **Toman** (stored as Rial).
 - Login and password recovery via **both email and SMS**.
 - Hosting: **Iranian host** → no external CDNs/fonts at runtime, Iranian SMS + payment providers.
-- SMS provider: **SMS.ir** (confirmed). API key stored **only** in `.env`. `SMS_PROVIDER` stays `log` until a verify template ID exists (`SMS_TEMPLATE_ID`) and the key is tested from the Iranian server (SMS.ir is unreachable from the dev environment).
+- SMS provider: **SMS.ir** (confirmed), verify template ID `490537` (not secret; stored in `.env`). API key stored **only** in `.env`. `SMS_PROVIDER` stays `log` until a verify template ID exists (`SMS_TEMPLATE_ID`) and the key is tested from the Iranian server (SMS.ir is unreachable from the dev environment).
 - **All site text must be editable from the admin panel** (owner request) → Phase 8 site settings cover homepage, footer, about, contact and tournament texts.
 - Email: recommended the host's SMTP mailbox on the site domain (see ARCHITECTURE §6). Awaiting domain/mailbox.
 - Catalog games named "images": imported as-is and flagged in the catalog admin for renaming (owner left the choice to us).
@@ -107,6 +108,9 @@ Full rationale in `docs/ARCHITECTURE.md`.
 ## 6. Coding conventions
 
 - **Next.js 16 specifics** (read `node_modules/next/dist/docs/` before using an API): request APIs (`cookies`, `headers`, `params`, `searchParams`) are async; `middleware` is now **`proxy.ts`**; Cache Components is on, so data is dynamic by default — use `"use cache"` + `cacheTag` for cacheable reads and `await connection()` for request-time work; no `runtime` segment config.
+- Admin forms with transforming Zod schemas: `useForm<z.input<S>, unknown, z.output<S>>` and send `form.getValues()` (raw input) — the server parses again.
+- Prisma 7 unique errors: use `uniqueViolationTarget()` (constraint name lives in `meta.driverAdapterError`).
+- Client components using `usePathname()` in shared layouts must be wrapped in `<Suspense>` (dynamic routes fail the build otherwise).
 - **Data reads on public pages:** `src/features/<module>/queries.ts` functions use `"use cache"` + `cacheLife` + `cacheTag(CACHE_TAGS.x)`. Components that call them start with `await connection()` and are wrapped in `<Suspense>` with a skeleton. Result: static shell, no DB needed at build time, and admin mutations refresh via `updateTag`/`revalidateTag` with the same tag (`src/lib/cache-tags.ts`).
 - Values crossing into client components must be serializable: pass money as string (bigint → `.toString()`).
 - Under Cache Components `dynamicParams` is unavailable; unknown dynamic params render the 404 UI with HTTP 200 (+ noindex). Use a `proxy.ts` check if a real 404 status is needed.
@@ -127,6 +131,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 6: image uploads (Server Action, one image per request, decoded + re-encoded to WebP by `sharp`, max 5 MB / 40 MP, random keys, served by `/media/[...key]` with traversal checks, nosniff, sandbox CSP, immutable cache), admin categories (2-level tree, cycle check, delete only when empty), admin products (create/edit/delete-or-archive, Persian slugs, SKU, Toman prices with discount validation, featured flag, ordered images with alt text, status), inventory adjustments with history (atomic, never negative), public `/shop` (search incl. Persian normalization, category filter incl. sub-categories, sort, in-stock filter, pagination) and `/shop/[slug]` (gallery, discount, stock note, plain-text description, related products, Product JSON-LD in IRR).
 - Phase 5: registration (mobile or email, verified by 6-digit code), login with password or one-time code, logout, password recovery by SMS/email code, profile (name, change mobile/email with verification), change password, active sessions list with revoke / log out other devices, DB sessions (`Session` table, hashed tokens, httpOnly SameSite=Lax cookie, `__Host-` prefix on HTTPS), DAL (`src/lib/auth/dal.ts`), optimistic `proxy.ts`, PostgreSQL rate limiting, audit log, SMS.ir sender, admin panel shell + dashboard + users management (search/filter/paginate, change role, activate/deactivate, revoke sessions; self and last-admin protection), `pnpm admin:create` CLI.
 - Phase 4: public layout (sticky header, desktop nav with active state, RTL slide-in mobile menu, footer, skip link), homepage sections (hero with atom orbits, featured products, catalog stats per platform, tournament band, partner services, latest news, about) reading real DB data with empty states; `/tournaments` placeholder with the required text; interim pages for /shop, /news, /about, /contact, /partners, /game-catalog(/ps4|/ps5), /tournaments/gamepad-tester.
 - Phase 3: project setup, design tokens, Vazirmatn, UI primitives (Button, Card, Input, Textarea, NativeSelect, Label, Badge, Separator, Skeleton, Spinner, Dialog, ConfirmDialog, Table, Alert, Empty/Error/Loading states, Toaster, Form), env validation, Prisma client, full DB schema + migration, `/api/health`, security headers, 404/error pages, `/design-system` (dev only).

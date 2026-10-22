@@ -24,5 +24,14 @@ export function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
 }
 
+/**
+ * Which unique constraint failed. Prisma 7 with driver adapters reports it under
+ * meta.driverAdapterError.cause.constraint.index (e.g. "products_sku_key"); older shapes use meta.target.
+ */
+export function uniqueViolationTarget(error: unknown): string {
+  const meta = (error as { meta?: unknown })?.meta;
+  return meta ? JSON.stringify(meta) : "";
+}
+
 export const GENERIC_ERROR = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
 export const RATE_LIMIT_ERROR = "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً کمی بعد دوباره تلاش کنید.";

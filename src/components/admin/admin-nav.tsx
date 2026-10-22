@@ -30,8 +30,8 @@ interface AdminNavItem {
 export const adminNav: AdminNavItem[] = [
   { href: "/admin", label: "داشبورد", icon: LayoutDashboard, available: true },
   { href: "/admin/users", label: "کاربران", icon: Users, available: true },
-  { href: "/admin/products", label: "محصولات", icon: Package, available: false },
-  { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree, available: false },
+  { href: "/admin/products", label: "محصولات", icon: Package, available: true },
+  { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree, available: true },
   { href: "/admin/orders", label: "سفارش‌ها", icon: Receipt, available: false },
   { href: "/admin/partners", label: "همکاران", icon: Handshake, available: false },
   { href: "/admin/subscriptions", label: "اشتراک‌ها", icon: Repeat, available: false },

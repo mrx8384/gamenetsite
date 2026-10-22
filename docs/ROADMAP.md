@@ -9,7 +9,7 @@ Each phase: plan (scope, files, dependencies, risks) → owner approval when it 
 | 3 | Project init & design system | Next.js + TS + Tailwind + shadcn-style (RTL), Vazirmatn, tokens, primitives, env validation, Prisma connected, lint/test setup | **Done** |
 | 4 | Homepage & public layout | Header, footer, mobile nav, hero, shop highlights, catalog preview, tournament intro, partners intro, latest news, about | **Done** |
 | 5 | Auth & authorization | Register, login, logout, password reset, profile, session invalidation, RBAC helpers, rate limiting, admin route protection | **Done** |
-| 6 | Store & product management | Categories, products, images/uploads, search/filter, product pages, admin CRUD, inventory | Not started |
+| 6 | Store & product management | Categories, products, images/uploads, search/filter, product pages, admin CRUD, inventory | **Done** |
 | 7 | Cart, checkout, orders | Cart (guest + user), checkout with addresses, order creation with stock reservation, order history, admin order management, payment provider interface (disabled) | Not started |
 | 8 | News & contact | News CRUD with Tiptap, drafts/published, categories, cover images; About page editor; contact form + admin inbox; site settings — **incl. editing all site texts** (homepage, footer, about, contact, tournament page) | Not started |
 | 9 | Game Catalog integration | Recommended option C: port module, lossless `catalog.db` importer, `/game-catalog`, `/admin/game-catalog`, ZIP (and optional .db) export | Not started |
@@ -33,4 +33,4 @@ Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), P
 3. Email: site domain + an SMTP mailbox from the host (e.g. `no-reply@<domain>`).
 4. Payment gateway (e.g. Zarinpal) — later; not needed to start.
 
-Interim pages (replace when their phase ships): /shop (P6), /news, /about, /contact (P8), /game-catalog + /game-catalog/[platform] (P9), /partners (P10), /tournaments/gamepad-tester (P11).
+Interim pages (replace when their phase ships): /news, /about, /contact (P8), /game-catalog + /game-catalog/[platform] (P9), /partners (P10), /tournaments/gamepad-tester (P11).
