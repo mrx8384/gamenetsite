@@ -23,7 +23,9 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 1 (analysis): **done** — see `docs/GAME_CATALOG_ANALYSIS.md`. Original catalog preserved in `services/game-catalog/`; logo in `public/brand/`.
 - Phase 2 (architecture + schema): **approved** (2026-10-22). Schema implemented in `prisma/schema.prisma`, first migration applied.
 - Phase 3 (project init + design system): **done**.
-- Phase 4 (homepage + public layout): **done**. Next: Phase 5 (authentication & authorization).
+- Phase 4 (homepage + public layout): **done**.
+- Phase 5 (authentication & authorization): **done**. Next: Phase 6 (store & product management).
+- Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
 - Game Catalog: **option C approved** (port into Next.js + PostgreSQL). Catalog admin must require login with password (ADMIN role).
@@ -32,7 +34,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Prices displayed in **Toman** (stored as Rial).
 - Login and password recovery via **both email and SMS**.
 - Hosting: **Iranian host** → no external CDNs/fonts at runtime, Iranian SMS + payment providers.
-- SMS API key received and stored **only** in `.env` (provider not yet confirmed; key format suggests SMS.ir). `SMS_PROVIDER` stays `log` until verified from a network that can reach the provider.
+- SMS provider: **SMS.ir** (confirmed). API key stored **only** in `.env`. `SMS_PROVIDER` stays `log` until a verify template ID exists (`SMS_TEMPLATE_ID`) and the key is tested from the Iranian server (SMS.ir is unreachable from the dev environment).
+- **All site text must be editable from the admin panel** (owner request) → Phase 8 site settings cover homepage, footer, about, contact and tournament texts.
 - Email: recommended the host's SMTP mailbox on the site domain (see ARCHITECTURE §6). Awaiting domain/mailbox.
 - Catalog games named "images": imported as-is and flagged in the catalog admin for renaming (owner left the choice to us).
 
@@ -45,7 +48,7 @@ Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 | Framework | Next.js 16.4 (App Router, Turbopack, **Cache Components on**), React 19.3, TypeScript 5.9 (strict) |
 | Styling | Tailwind CSS 4.3, shadcn/ui pattern on `radix-ui` 1.8 (RTL via `Direction.Provider`), Lucide icons, Vazirmatn variable font (self-hosted in `src/app/fonts`) |
 | Data | PostgreSQL 16, Prisma 7.10 (`prisma-client` generator → `src/generated/prisma`, `@prisma/adapter-pg`, config in `prisma.config.ts`) |
-| Auth | Auth.js (decided in Phase 5), argon2id hashing |
+| Auth | **Custom database sessions** (per the official Next.js auth guide) instead of Auth.js — see ARCHITECTURE §2. argon2id (`@node-rs/argon2`) |
 | Validation / forms | Zod 4, React Hook Form 7 + `@hookform/resolvers` |
 | Toasts | sonner |
 | Rich text | Tiptap (Phase 8; stores JSON + sanitized HTML) |
@@ -124,6 +127,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 5: registration (mobile or email, verified by 6-digit code), login with password or one-time code, logout, password recovery by SMS/email code, profile (name, change mobile/email with verification), change password, active sessions list with revoke / log out other devices, DB sessions (`Session` table, hashed tokens, httpOnly SameSite=Lax cookie, `__Host-` prefix on HTTPS), DAL (`src/lib/auth/dal.ts`), optimistic `proxy.ts`, PostgreSQL rate limiting, audit log, SMS.ir sender, admin panel shell + dashboard + users management (search/filter/paginate, change role, activate/deactivate, revoke sessions; self and last-admin protection), `pnpm admin:create` CLI.
 - Phase 4: public layout (sticky header, desktop nav with active state, RTL slide-in mobile menu, footer, skip link), homepage sections (hero with atom orbits, featured products, catalog stats per platform, tournament band, partner services, latest news, about) reading real DB data with empty states; `/tournaments` placeholder with the required text; interim pages for /shop, /news, /about, /contact, /partners, /game-catalog(/ps4|/ps5), /tournaments/gamepad-tester.
 - Phase 3: project setup, design tokens, Vazirmatn, UI primitives (Button, Card, Input, Textarea, NativeSelect, Label, Badge, Separator, Skeleton, Spinner, Dialog, ConfirmDialog, Table, Alert, Empty/Error/Loading states, Toaster, Form), env validation, Prisma client, full DB schema + migration, `/api/health`, security headers, 404/error pages, `/design-system` (dev only).
 
@@ -134,6 +138,8 @@ See `docs/ROADMAP.md` (Phases 3–12).
 ## 9. Important restrictions
 
 - Do **not** rewrite or delete the existing Game Catalog or its data without explicit approval. Never edit files in `services/game-catalog/`. Never write to an imported `catalog.db`; open it read-only.
+- Never create default admin accounts or passwords; use `pnpm admin:create`.
+- Authorization: every admin page/action calls `requireRole`/`assertRole` itself — the admin layout and `proxy.ts` are not security boundaries.
 - Do **not** reverse-proxy the original catalog to the public internet (its admin is protected only by a localhost check).
 - Do **not** modify the ATOM GAME CLUB logo.
 - Do **not** enable real payments or paid subscriptions until the owner supplies provider details.

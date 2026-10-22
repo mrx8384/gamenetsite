@@ -39,6 +39,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  sessions           Session[]
   addresses          Address[]
   verificationCodes  VerificationCode[]
   cart               Cart?
@@ -55,6 +56,24 @@ model User {
 
   @@index([role])
   @@map("users")
+}
+
+/// Database session. The cookie holds a random token; only its SHA-256 hash is stored.
+model Session {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique @db.Char(64)
+  userId     String
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  ip         String?   @db.VarChar(45)
+  userAgent  String?   @db.VarChar(300)
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 enum VerificationChannel {

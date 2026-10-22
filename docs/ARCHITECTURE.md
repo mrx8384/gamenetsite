@@ -31,16 +31,23 @@ Uploads storage (local disk now → S3-compatible later)
 
 | Concern | Approach |
 |---|---|
-| Passwords | argon2id (`@node-rs/argon2`), min length 8, breached-pattern checks kept simple |
-| Sessions | Auth.js JWT in httpOnly, Secure, SameSite=Lax cookie. `User.sessionVersion` is embedded in the token and checked server-side so logout-all, password change and role change invalidate old sessions |
+| Passwords | argon2id (`@node-rs/argon2`, 19 MiB / t=2 / p=1), min 8 chars with a letter and a digit; constant-time dummy check for unknown accounts |
+| Sessions | **Database sessions** (decided in Phase 5, replacing the Auth.js proposal): random 256-bit token in an httpOnly, SameSite=Lax cookie (`__Host-atom_session` + Secure on HTTPS); only its SHA-256 hash is stored in `sessions`. 30-day absolute expiry. Revocation = delete rows: logout, "log out other devices", password change/reset, role change and deactivation all revoke sessions immediately |
+| One-time codes | 6 digits, HMAC-SHA256(AUTH_SECRET) hash only, 2 min (SMS) / 15 min (email) validity, 5 wrong attempts max, 60 s resend cooldown, single use, older codes invalidated |
 | CSRF | Server Actions have built-in origin checks; Auth.js has CSRF tokens; custom route handlers check `Origin` header |
 | Authorization | Central `rbac.ts`: `requireRole`, `requireOwnership`, `hasEntitlement`. Middleware only redirects; real checks in every action/handler |
-| Rate limiting | PostgreSQL-backed fixed-window counter (no extra infrastructure). Can switch to Redis later behind the same interface |
+| Rate limiting | PostgreSQL-backed fixed-window counter, atomic upsert (`src/lib/rate-limit.ts`). Login: 30/15 min per IP, 8/15 min per account; codes: 10/h per IP, 5/h per target; registration 10/h per IP; code verification 30/15 min per IP |
+| Account enumeration | Login-by-code and password reset answer the same whether the account exists or not; login errors don't say which part was wrong |
+| Client IP | `X-Real-IP` / last `X-Forwarded-For` hop — nginx must set these (see deployment notes) |
 | Input | Zod everywhere; rich text sanitized on save (allow-list) |
 | Uploads | Size limit, MIME by magic bytes, image re-encode (`sharp`), random names, served with correct `Content-Type`, no SVG uploads |
 | Secrets | `.env` (git-ignored), validated by Zod env schema at boot; `.env.example` with names only |
 | Headers | CSP, HSTS, X-Content-Type-Options, Referrer-Policy, frame-ancestors |
 | Password reset | Random token, only SHA-256 hash stored, 30-minute expiry, single use, same response whether or not the email exists |
+
+### Why not Auth.js
+
+Auth.js v5 has never left beta, and its Credentials provider (password / code login) only supports JWT sessions. That rules out listing and revoking individual devices, which session management requires. The custom layer is ~300 lines following the official Next.js authentication guide (Data Access Layer + database sessions), has no extra dependencies and is covered by e2e tests.
 
 ## 3. Database schema (draft)
 

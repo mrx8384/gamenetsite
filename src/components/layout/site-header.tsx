@@ -1,9 +1,12 @@
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AccountMenu } from "./account-menu";
 import { Container } from "./container";
 import { BrandLink } from "./brand-link";
 import { DesktopNav } from "./desktop-nav";
 import { MobileNav } from "./mobile-nav";
 
-/** Sticky public header. Account and cart actions are added in Phases 5 and 7. */
+/** Sticky public header. Cart action is added in Phase 7. */
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
@@ -13,8 +16,11 @@ export function SiteHeader() {
           <BrandLink />
         </div>
         <DesktopNav />
-        {/* Reserved for account / cart actions (Phases 5 & 7). Keeps the nav centered on desktop. */}
-        <div className="hidden w-[132px] lg:block" aria-hidden />
+        <div className="flex min-w-[132px] items-center justify-end gap-2">
+          <Suspense fallback={<Skeleton className="h-9 w-28" />}>
+            <AccountMenu />
+          </Suspense>
+        </div>
       </Container>
     </header>
   );

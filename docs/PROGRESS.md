@@ -1,5 +1,32 @@
 # Progress Log
 
+## 2026-10-22 (5) — GitHub connected, Phase 5 completed (auth & authorization)
+
+### Owner input
+- GitHub repo `mrx8384/gamenetsite` → full history pushed to `main`.
+- SMS provider confirmed: SMS.ir. Email mailbox later. Request: all site texts editable from admin (added to Phase 8).
+
+### Decision
+- Custom database sessions instead of Auth.js (reasons in ARCHITECTURE §2). New `sessions` table (migration `sessions`).
+
+### Done
+- Auth core: argon2id passwords, DB sessions, DAL (`getCurrentUser`, `requireUser`, `requireRole`, `assertUser`, `assertRole`), one-time codes, PostgreSQL rate limiter, audit log, Iranian mobile/email normalization (Persian digits accepted), safe redirects.
+- Senders: SMS.ir verify API (inactive until template ID is set) + log mode; email log mode.
+- Pages: `/login` (password or code), `/register` (2 steps with code), `/forgot-password`, `/account` (name, mobile/email change with code), `/account/security` (password change, devices list, revoke).
+- Header account menu (login button or dropdown with admin link for admins).
+- Admin: protected shell with module sidebar (future modules shown disabled), dashboard with user counts, users management with confirmations and toasts.
+- `proxy.ts` optimistic redirects; `pnpm admin:create` (interactive or env-driven, no default password).
+- Unit tests: identifiers, crypto, password policy, user-agent (50 tests).
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 50/50 unit tests) · `pnpm build` ✓.
+- End-to-end in Chromium against the production build (27 checks): proxy redirect; registration with code (wrong code rejected, Persian digits normalized); cookie httpOnly + SameSite=Lax; logout; wrong password rejected; USER gets 404 on `/admin`; code login on mobile; sessions list + revoking another device; password reset logs out other devices; admin login with `next`; dashboard; role change (logs user out); deactivation (blocks login); admin can't modify self; rate limit triggers. One check initially failed because of a wrong test value; re-verified manually (search works).
+- All test accounts, codes, sessions and audit rows deleted afterwards.
+
+### Known limitations
+- SMS.ir and SMTP not testable from the dev environment (network policy); verify on the Iranian server.
+- Redirects inside streamed pages happen client-side (after the shell); security is unaffected because content renders only after the server check.
+
 ## 2026-10-22 (4) — Phase 4 completed (homepage + public layout)
 
 ### Owner input
