@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated
+/src/generated/
+
+# local storage (uploads)
+/storage/
+
+# allow env template
+!.env.example

@@ -1,26 +1,213 @@
 @import "tailwindcss";
 
+/* Dark tokens apply under .dark (no toggle yet; light theme is the default). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────── Design tokens (keep in sync with src/lib/brand.ts) ───────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --brand-green: #00c96b;
+  --brand-green-dark: #008f4c;
+  --brand-green-deep: #00703c;
+  --brand-cream: #faf9f3;
+  --brand-yellow: #ffdf00;
+  --brand-black: #111111;
+
+  --background: var(--brand-cream);
+  --foreground: var(--brand-black);
+  --surface: #ffffff;
+  --surface-foreground: var(--brand-black);
+
+  /* Primary action: atomic green with black text (≈9:1 contrast). */
+  --primary: var(--brand-green);
+  --primary-hover: #00b25f;
+  --primary-foreground: var(--brand-black);
+
+  /* Strong / inverse action: black with cream text. */
+  --strong: var(--brand-black);
+  --strong-hover: #2a2a2a;
+  --strong-foreground: var(--brand-cream);
+
+  --secondary: #f0eee3;
+  --secondary-hover: #e6e3d5;
+  --secondary-foreground: var(--brand-black);
+
+  --accent: var(--brand-yellow);
+  --accent-foreground: var(--brand-black);
+
+  --muted: #efede3;
+  --muted-foreground: #5b5a52;
+
+  --link: var(--brand-green-deep);
+  --success: var(--brand-green-deep);
+  --success-soft: #e3f8ec;
+  --warning: #9a4a00;
+  --warning-soft: #fff6cc;
+  --destructive: #b42318;
+  --destructive-hover: #9b1d14;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #fdecea;
+  --info: #175cd3;
+  --info-soft: #e8f0fd;
+
+  --border: #e4e1d3;
+  --input: #d9d5c4;
+  --ring: var(--brand-green);
+  --overlay: rgb(17 17 17 / 0.55);
+
+  --radius: 0.875rem;
+  --shadow-card: 0 1px 2px rgb(17 17 17 / 0.04), 0 8px 24px -12px rgb(17 17 17 / 0.12);
+}
+
+.dark {
+  --background: #0f1110;
+  --foreground: #f2f1ea;
+  --surface: #171a18;
+  --surface-foreground: #f2f1ea;
+  --primary-hover: #19d47b;
+  --strong: var(--brand-cream);
+  --strong-hover: #e9e7dc;
+  --strong-foreground: var(--brand-black);
+  --secondary: #222623;
+  --secondary-hover: #2b302c;
+  --secondary-foreground: #f2f1ea;
+  --muted: #1d201e;
+  --muted-foreground: #a9aaa0;
+  --link: var(--brand-green);
+  --success: var(--brand-green);
+  --success-soft: #0f2a1c;
+  --warning-soft: #2b2400;
+  --destructive-soft: #2f1210;
+  --info-soft: #0f1d33;
+  --border: #2a2e2b;
+  --input: #343935;
 }
 
 @theme inline {
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-dark: var(--brand-green-dark);
+  --color-brand-green-deep: var(--brand-green-deep);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-black: var(--brand-black);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-strong: var(--strong);
+  --color-strong-hover: var(--strong-hover);
+  --color-strong-foreground: var(--strong-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  --shadow-card: var(--shadow-card);
+
+  --animate-fade-in: fade-in 180ms ease-out;
+  --animate-fade-out: fade-out 150ms ease-in;
+  --animate-pop-in: pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pop-out: pop-out 150ms ease-in;
+  --animate-rise: rise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+/* Uses the standalone `scale` property so it never conflicts with Tailwind's `translate` centering. */
+@keyframes pop-in {
+  from { opacity: 0; scale: 0.96; }
+}
+@keyframes pop-out {
+  to { opacity: 0; scale: 0.96; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+/* ───────────── Base ───────────── */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4 {
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--brand-yellow);
+    color: var(--brand-black);
+  }
+
+  /* LTR islands inside RTL text (emails, phone numbers, codes, URLs). */
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

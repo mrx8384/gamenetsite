@@ -1,0 +1,645 @@
+// ATOM GAME CLUB — database schema
+// Conventions:
+// - Money columns are BigInt Rials (displayed as Toman in the UI).
+// - Table names are snake_case plural via @@map; columns keep camelCase.
+// - CHECK constraints that Prisma cannot express live in the migration SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Identity & access ─────────────────────────
+
+enum Role {
+  ADMIN
+  USER
+  PARTNER
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String    @db.VarChar(100)
+  /// Stored lowercased. At least one of email/phone is required (CHECK).
+  email           String?   @unique @db.VarChar(254)
+  /// Normalized Iranian mobile, e.g. 09121234567.
+  phone           String?   @unique @db.VarChar(11)
+  passwordHash    String
+  role            Role      @default(USER)
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  /// Bumped on logout-all, password change or role change to invalidate sessions.
+  sessionVersion  Int       @default(0)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  addresses          Address[]
+  verificationCodes  VerificationCode[]
+  cart               Cart?
+  orders             Order[]
+  newsPosts          NewsPost[]
+  partnerProfile     PartnerProfile?   @relation("PartnerOwner")
+  reviewedPartners   PartnerProfile[]  @relation("PartnerReviewer")
+  auditLogs          AuditLog[]
+  uploadedMedia      Media[]
+  inventoryMovements InventoryMovement[]
+  statusChanges      OrderStatusHistory[]
+  catalogImports     CatalogImportRun[]
+  pagesUpdated       Page[]
+
+  @@index([role])
+  @@map("users")
+}
+
+enum VerificationChannel {
+  EMAIL
+  SMS
+}
+
+enum VerificationPurpose {
+  PASSWORD_RESET
+  VERIFY_EMAIL
+  VERIFY_PHONE
+  LOGIN
+}
+
+/// One-time codes / links for email and SMS flows. Only a hash is stored.
+model VerificationCode {
+  id        String              @id @default(cuid())
+  userId    String?
+  channel   VerificationChannel
+  /// Email address or phone number the code was sent to.
+  target    String              @db.VarChar(254)
+  purpose   VerificationPurpose
+  codeHash  String
+  attempts  Int                 @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([target, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String?  @db.VarChar(50)
+  recipientName String   @db.VarChar(100)
+  phone         String   @db.VarChar(11)
+  province      String   @db.VarChar(50)
+  city          String   @db.VarChar(50)
+  postalCode    String   @db.VarChar(10)
+  line          String   @db.VarChar(300)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+/// Fixed-window rate limit counters (login, register, OTP, contact form...).
+model RateLimitBucket {
+  key     String   @id @db.VarChar(200)
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String   @db.VarChar(100)
+  entity    String   @db.VarChar(50)
+  entityId  String?  @db.VarChar(50)
+  meta      Json?
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Uploaded files. Bytes live in storage (UPLOAD_DIR / S3), not in the DB.
+model Media {
+  id           String   @id @default(cuid())
+  storageKey   String   @unique
+  originalName String?  @db.VarChar(255)
+  mimeType     String   @db.VarChar(100)
+  size         Int
+  width        Int?
+  height       Int?
+  sha256       String?  @db.Char(64)
+  uploaderId   String?
+  createdAt    DateTime @default(now())
+
+  uploader       User?             @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  productImages  ProductImage[]
+  categoryImages Category[]
+  newsCovers     NewsPost[]
+  catalogGames   CatalogGame[]
+
+  @@index([sha256])
+  @@map("media")
+}
+
+// ───────────────────────────── Store ─────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(80)
+  slug        String   @unique @db.VarChar(100)
+  description String?
+  parentId    String?
+  imageId     String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  image    Media?     @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  title            String        @db.VarChar(200)
+  slug             String        @unique @db.VarChar(220)
+  sku              String        @unique @db.VarChar(64)
+  shortDescription String?       @db.VarChar(500)
+  descriptionJson  Json?
+  descriptionHtml  String?
+  price            BigInt
+  compareAtPrice   BigInt?
+  /// CHECK (stock >= 0). Changed only together with an InventoryMovement.
+  stock            Int           @default(0)
+  status           ProductStatus @default(DRAFT)
+  isFeatured       Boolean       @default(false)
+  categoryId       String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category           Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  images             ProductImage[]
+  inventoryMovements InventoryMovement[]
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+
+  @@index([status, categoryId])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  mediaId   String
+  alt       String? @db.VarChar(200)
+  sortOrder Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+enum InventoryReason {
+  MANUAL
+  ORDER
+  ORDER_CANCEL
+  RETURN
+  CORRECTION
+}
+
+model InventoryMovement {
+  id        String          @id @default(cuid())
+  productId String
+  delta     Int
+  reason    InventoryReason
+  note      String?         @db.VarChar(300)
+  orderId   String?
+  actorId   String?
+  createdAt DateTime        @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@map("inventory_movements")
+}
+
+model Cart {
+  id             String    @id @default(cuid())
+  userId         String?   @unique
+  /// Hash of the signed guest cookie token (guest carts only).
+  guestTokenHash String?   @unique
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  /// CHECK (quantity > 0)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+// ───────────────────────── Orders & payments ─────────────────────────
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  /// Human-readable order number shown to customers.
+  number        String      @unique @db.VarChar(20)
+  userId        String
+  status        OrderStatus @default(PENDING)
+  subtotal      BigInt
+  shippingCost  BigInt      @default(0)
+  discount      BigInt      @default(0)
+  total         BigInt
+  // Shipping snapshot (copied from the address at checkout)
+  recipientName String      @db.VarChar(100)
+  phone         String      @db.VarChar(11)
+  province      String      @db.VarChar(50)
+  city          String      @db.VarChar(50)
+  postalCode    String      @db.VarChar(10)
+  addressLine   String      @db.VarChar(300)
+  customerNote  String?     @db.VarChar(500)
+  adminNote     String?
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+  payments           Payment[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  productId     String?
+  titleSnapshot String  @db.VarChar(200)
+  skuSnapshot   String  @db.VarChar(64)
+  unitPrice     BigInt
+  /// CHECK (quantity > 0)
+  quantity      Int
+  lineTotal     BigInt
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String       @id @default(cuid())
+  orderId   String
+  from      OrderStatus?
+  to        OrderStatus
+  actorId   String?
+  note      String?      @db.VarChar(500)
+  createdAt DateTime     @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String?
+  /// Provider key, e.g. "zarinpal". "disabled" while no gateway is configured.
+  provider      String        @db.VarChar(30)
+  status        PaymentStatus @default(INITIATED)
+  amount        BigInt
+  authority     String?       @db.VarChar(100)
+  referenceId   String?       @db.VarChar(100)
+  cardPanMasked String?       @db.VarChar(20)
+  raw           Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order        Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  subscription PartnerSubscription?
+
+  @@unique([provider, authority])
+  @@index([orderId])
+  @@map("payments")
+}
+
+// ───────────────────────────── Content ─────────────────────────────
+
+model NewsCategory {
+  id        String     @id @default(cuid())
+  name      String     @db.VarChar(80)
+  slug      String     @unique @db.VarChar(100)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  posts     NewsPost[]
+
+  @@map("news_categories")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model NewsPost {
+  id           String     @id @default(cuid())
+  title        String     @db.VarChar(200)
+  slug         String     @unique @db.VarChar(220)
+  excerpt      String?    @db.VarChar(500)
+  contentJson  Json?
+  /// Sanitized on save.
+  contentHtml  String     @default("")
+  coverMediaId String?
+  status       PostStatus @default(DRAFT)
+  isFeatured   Boolean    @default(false)
+  publishedAt  DateTime?
+  authorId     String?
+  categoryId   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  cover    Media?        @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  author   User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  category NewsCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@map("news_posts")
+}
+
+/// Editable static pages (e.g. slug "about").
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique @db.VarChar(100)
+  title       String   @db.VarChar(200)
+  contentJson Json?
+  contentHtml String   @default("")
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("pages")
+}
+
+/// Key/value site settings (contact info, social links, payment toggle, hero text...).
+model SiteSetting {
+  key       String   @id @db.VarChar(100)
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  ARCHIVED
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String        @db.VarChar(100)
+  email     String?       @db.VarChar(254)
+  phone     String?       @db.VarChar(11)
+  subject   String        @db.VarChar(200)
+  body      String        @db.VarChar(5000)
+  status    ContactStatus @default(NEW)
+  ipHash    String?       @db.Char(64)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@map("contact_messages")
+}
+
+// ───────────────────────── Partners & subscriptions ─────────────────────────
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PartnerBusinessType {
+  GAME_NET
+  STORE
+  ESPORTS_TEAM
+  OTHER
+}
+
+model PartnerProfile {
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  businessName    String              @db.VarChar(150)
+  businessType    PartnerBusinessType
+  province        String              @db.VarChar(50)
+  city            String              @db.VarChar(50)
+  address         String              @db.VarChar(300)
+  phone           String              @db.VarChar(11)
+  website         String?             @db.VarChar(200)
+  instagram       String?             @db.VarChar(100)
+  description     String?             @db.VarChar(2000)
+  status          PartnerStatus       @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?             @db.VarChar(500)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user          User                  @relation("PartnerOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy    User?                 @relation("PartnerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  subscriptions PartnerSubscription[]
+
+  @@index([status, createdAt])
+  @@map("partner_profiles")
+}
+
+model SubscriptionPlan {
+  id           String   @id @default(cuid())
+  code         String   @unique @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  description  String?  @db.VarChar(1000)
+  price        BigInt
+  durationDays Int
+  /// Entitlement keys granted by this plan, e.g. ["GAMEPAD_TESTER"].
+  features     String[]
+  /// Plans cannot be purchased until enabled (all disabled for now).
+  isActive     Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions PartnerSubscription[]
+
+  @@map("subscription_plans")
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model PartnerSubscription {
+  id        String             @id @default(cuid())
+  partnerId String
+  planId    String
+  status    SubscriptionStatus @default(INACTIVE)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  paymentId String?            @unique
+  note      String?            @db.VarChar(500)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  partner PartnerProfile   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([partnerId, status])
+  @@map("partner_subscriptions")
+}
+
+// ───────────────────────────── Game Catalog ─────────────────────────────
+// Ported from the original Python app (see docs/GAME_CATALOG_ANALYSIS.md).
+
+enum CatalogPlatform {
+  PS4
+  PS5
+}
+
+model CatalogCategory {
+  id        Int             @id @default(autoincrement())
+  platform  CatalogPlatform
+  name      String          @db.VarChar(40)
+  position  Int             @default(0)
+  /// The locked «بدون دسته» category of each platform.
+  isDefault Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  games CatalogGame[]
+
+  @@unique([platform, name])
+  @@index([platform, position])
+  @@map("catalog_categories")
+}
+
+model CatalogGame {
+  /// 12 lowercase hex chars, same format (and same values for imported games) as the original app.
+  id          String          @id @db.VarChar(12)
+  name        String          @db.VarChar(80)
+  platform    CatalogPlatform
+  categoryId  Int
+  imageId     String
+  importRunId String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  category  CatalogCategory   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  image     Media             @relation(fields: [imageId], references: [id], onDelete: Restrict)
+  importRun CatalogImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  @@index([platform, createdAt])
+  @@index([categoryId])
+  @@map("catalog_games")
+}
+
+/// Traceability for imports from the original SQLite catalog.
+model CatalogImportRun {
+  id                 String   @id @default(cuid())
+  sourceFileName     String   @db.VarChar(255)
+  sourceSha256       String   @db.Char(64)
+  schemaVersion      Int
+  gamesImported      Int
+  categoriesImported Int
+  actorId            String?
+  createdAt          DateTime @default(now())
+
+  actor User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  games CatalogGame[]
+
+  @@map("catalog_import_runs")
+}
