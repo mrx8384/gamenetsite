@@ -8,7 +8,7 @@ import type { NewsCardData } from "@/features/news/queries";
 export function NewsCard({ post }: { post: NewsCardData }) {
   return (
     <Link
-      href={`/news/${post.slug}`}
+      href={`/news/${encodeURIComponent(post.slug)}`}
       className="group flex flex-col overflow-hidden rounded-xl border bg-surface shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative aspect-[16/9] bg-secondary">

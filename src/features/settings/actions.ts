@@ -11,6 +11,7 @@ import { toEnglishDigits } from "@/lib/format";
 import { getRequestInfo } from "@/lib/request-info";
 import { getPaymentProvider } from "@/features/payments";
 import { COMMERCE_KEY } from "./commerce";
+import { groupSchema, isSiteGroup } from "./site-schema";
 
 const inputSchema = z.object({
   salesEnabled: z.boolean(),
@@ -44,4 +45,27 @@ export async function saveCommerceSettings(input: unknown): Promise<ActionResult
   updateTag(CACHE_TAGS.settings);
   updateTag(CACHE_TAGS.products);
   return ok(undefined, "تنظیمات فروش ذخیره شد.");
+}
+
+// ───────────── Site texts & contact info ─────────────
+
+
+export async function saveSiteSettings(group: unknown, input: unknown): Promise<ActionResult<undefined>> {
+  let userId: string;
+  try {
+    userId = (await assertRole(["ADMIN"])).user.id;
+  } catch (e) {
+    if (e instanceof AuthorizationError) return fail("دسترسی غیرمجاز.");
+    throw e;
+  }
+  if (!isSiteGroup(group)) return fail("بخش تنظیمات نامعتبر است.");
+  const parsed = groupSchema(group).safeParse(input);
+  if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
+  const key = `site.${group}`;
+  const value = parsed.data as Record<string, string>;
+  await db.siteSetting.upsert({ where: { key }, create: { key, value }, update: { value } });
+  const { ip } = await getRequestInfo();
+  await audit({ actorId: userId, action: "settings.site_updated", entity: "setting", entityId: key, ip });
+  updateTag(CACHE_TAGS.settings);
+  return ok(undefined, "تنظیمات ذخیره شد.");
 }

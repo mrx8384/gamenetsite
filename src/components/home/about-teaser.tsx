@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { homeContent } from "@/content/home";
 import { toPersianDigits } from "@/lib/format";
 
-export function AboutTeaser() {
-  const { title, body } = homeContent.about;
+export function AboutTeaser({ title, body }: { title: string; body: string }) {
   return (
     <div className="grid items-center gap-8 rounded-2xl border bg-surface p-6 shadow-card sm:p-10 md:grid-cols-[auto_1fr]">
       <div className="mx-auto flex size-36 flex-col items-center justify-center rounded-full border-[6px] border-brand-green bg-brand-yellow text-brand-black">

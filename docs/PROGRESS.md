@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-10-22 (9) — Phase 8 completed (news, contact, about, editable site texts)
+
+### Done
+- Rich text: shared Tiptap extensions, server-side sanitizer (allow-listed nodes/marks, links http(s)/mailto/tel/relative only, images only `/media/...`), server HTML rendering, editor with toolbar (headings, marks, lists, quote, rule, alignment, links, image upload, undo/redo), `.prose-atom` styles.
+- Site settings: 4 groups / 44 fields with validation (https URLs, emails, phones normalized) and defaults; admin "تنظیمات سایت" with tabs (sales, home, about, contact, general, tournaments). Public pages read them (homepage, footer, meta description, tournaments, gamepad tester).
+- About page editor + public page. News: categories, posts, admin list/form, public list/article. Contact: page, form, admin inbox. Dashboard cards.
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 80 unit tests incl. sanitizer/XSS and settings schema) · `pnpm build` ✓.
+- E2E on the production build (23 checks, all pass): editing homepage texts and fallback to defaults, unsafe social URL rejected, contact info in page + footer, tournament text, meta description/copyright, About rich text, news category/draft/publish/featured/unpublish, article renders list + safe link (`noopener`) + uploaded image, NewsArticle JSON-LD, editor refuses `javascript:` links, **malicious JSON sent directly to the Server Action** stored as escaped/safe HTML, contact anti-spam (too-fast → fake success, nothing stored), validation, hashed IP, inbox read/archive, rate limit.
+- Bugs found and fixed: (1) news save crashed — ProseMirror null-prototype attrs can't be sent to Server Actions → editor now emits plain JSON; (2) adding a link with no selection did nothing → inserts the URL as a link; (3) inserting an image right after linking replaced the linked text → selection collapses after linking; (4) `Date.now()` in the contact form ran at build time → moved to the browser; (5) typing into pre-filled admin fields during hydration could prepend text → inputs disabled until hydrated.
+- All test data and uploads removed.
+
 ## 2026-10-22 (8) — Shipping methods incl. «پس‌کرایه»
 
 ### Owner request

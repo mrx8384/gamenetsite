@@ -26,7 +26,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 4 (homepage + public layout): **done**.
 - Phase 5 (authentication & authorization): **done**.
 - Phase 6 (store & product management): **done**.
-- Phase 7 (cart, checkout, orders): **done**. Next: Phase 8 (news, contact, about, site settings incl. all site texts).
+- Phase 7 (cart, checkout, orders) + shipping methods: **done**.
+- Phase 8 (news, contact, about, editable site texts): **done**. Next: Phase 9 (Game Catalog port + import).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -54,7 +55,7 @@ Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 | Auth | **Custom database sessions** (per the official Next.js auth guide) instead of Auth.js — see ARCHITECTURE §2. argon2id (`@node-rs/argon2`) |
 | Validation / forms | Zod 4, React Hook Form 7 + `@hookform/resolvers` |
 | Toasts | sonner |
-| Rich text | Tiptap (Phase 8; stores JSON + sanitized HTML) |
+| Rich text | Tiptap 3.31 (StarterKit, Image, TextAlign, Placeholder). Editor emits JSON; server sanitizes (`src/lib/rich-text/sanitize.ts`) and renders HTML with `@tiptap/html/server` — raw HTML from clients is never stored |
 | Tests | Vitest 4 (unit, `tests/unit`), Playwright (e2e, Phase 12; Chromium at `/opt/pw-browsers/chromium`) |
 
 Versions are pinned deliberately: TypeScript 7 and Prisma 8 were too new/pre-release at setup time.
@@ -73,7 +74,7 @@ Do not add dependencies beyond this list without a stated reason.
 ├─ public/brand/        Official logo files (unmodified): atom-logo.webp (1254px), atom-logo-256.png
 ├─ services/
 │  └─ game-catalog/     Original Python catalog — DO NOT EDIT (reference + local LAN tool)
-├─ src/
+├─ src/  (see also: src/lib/rich-text, src/features/settings/site-schema.ts)
 │  ├─ app/
 │  │  ├─ (public)/      Public pages with header + footer (route group, URL has no prefix)
 │  │  ├─ (auth)/        login, register, forgot-password, reset-password
@@ -113,6 +114,8 @@ Full rationale in `docs/ARCHITECTURE.md`.
 - Admin forms with transforming Zod schemas: `useForm<z.input<S>, unknown, z.output<S>>` and send `form.getValues()` (raw input) — the server parses again.
 - Prisma 7 unique errors: use `uniqueViolationTarget()` (constraint name lives in `meta.driverAdapterError`).
 - Client components using `usePathname()` in shared layouts must be wrapped in `<Suspense>` (dynamic routes fail the build otherwise).
+- Rich-text editor output must be plain JSON before sending to a Server Action (ProseMirror attrs are null-prototype objects → React sends them as unusable temporary references). `RichTextEditor` already does `JSON.parse(JSON.stringify(...))`.
+- Admin forms pre-filled with values wrap inputs in `<fieldset disabled={!useHydrated()}>` so typing during hydration can't be clobbered.
 - Request-bound reads (cart, cookies + time checks) start with `await connection()`.
 - Any new client component calling `usePathname()` inside a shared layout needs a `<Suspense>` with a static fallback (see `DesktopNavLinks`, `AccountNavLinks`).
 - Never edit cached tables (settings, products) directly in SQL on a running site: cached pages won't refresh until the cache tag is invalidated by an admin action.
@@ -136,6 +139,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 8: site settings groups (home, contact & social, general/footer, tournaments) defined once in `site-schema.ts` → admin tabbed forms + validation + defaults; homepage, footer, meta description and tournament pages read them; editable About page (rich text); news categories + posts (rich-text editor with image upload, cover, draft/publish, featured, public list with featured/category filter/pagination, article page with NewsArticle JSON-LD, related news); contact page + form (honeypot, min-time check, rate limits, hashed IP) and admin inbox (auto-read, archive, delete); dashboard cards for unread messages and drafts.
 - Phase 7b: shipping methods (`ShippingMethod` model, migration `shipping_methods`, admin CRUD with validation, checkout selection with live summary, server-side active check, order snapshot, tracking code on SHIPPED with carrier link). The earlier flat shipping setting was removed.
 - Phase 7: DB carts for guests (hashed cookie token) and users, merged on login; cart page with live prices and availability issues; checkout (login required) with saved addresses (31 provinces, 10-digit postal code); `placeOrder` re-validates products, row-locks them (`FOR UPDATE`), reserves stock, snapshots prices/address, 20-min payment window; `PaymentProvider` interface + dev-only `sandbox` gateway (refused in production); callback route verifies server-to-server, idempotent, handles late payments (re-reserve or flag refund); failed/expired payments cancel and restore stock; customer order history/detail with retry/cancel; admin orders list/detail with allowed status transitions, notes and payments; admin sales settings (open/close sales, shipping, inquiry phone); dashboard order stats; category «استعلام قیمت».
 - Phase 6: image uploads (Server Action, one image per request, decoded + re-encoded to WebP by `sharp`, max 5 MB / 40 MP, random keys, served by `/media/[...key]` with traversal checks, nosniff, sandbox CSP, immutable cache), admin categories (2-level tree, cycle check, delete only when empty), admin products (create/edit/delete-or-archive, Persian slugs, SKU, Toman prices with discount validation, featured flag, ordered images with alt text, status), inventory adjustments with history (atomic, never negative), public `/shop` (search incl. Persian normalization, category filter incl. sub-categories, sort, in-stock filter, pagination) and `/shop/[slug]` (gallery, discount, stock note, plain-text description, related products, Product JSON-LD in IRR).

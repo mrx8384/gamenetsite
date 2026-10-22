@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Handshake, PackageCheck, Receipt, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
+import { Handshake, Mail, Newspaper, PackageCheck, Receipt, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
@@ -25,7 +25,7 @@ export default function AdminDashboard() {
 
 async function Stats() {
   await requireRole(["ADMIN"], "/admin"); // defense in depth: never rely on the layout alone
-  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum] = await Promise.all([
+  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum, unreadMessages, drafts] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { role: "ADMIN" } }),
     db.user.count({ where: { role: "PARTNER" } }),
@@ -34,11 +34,15 @@ async function Stats() {
     db.order.count({ where: { status: { in: ["PAID", "PROCESSING"] } } }),
     db.order.count({ where: { status: "AWAITING_PAYMENT" } }),
     db.order.aggregate({ where: { paidAt: { gte: daysAgo(30) }, status: { notIn: ["CANCELLED", "REFUNDED"] } }, _sum: { total: true } }),
+    db.contactMessage.count({ where: { status: "NEW" } }),
+    db.newsPost.count({ where: { status: "DRAFT" } }),
   ]);
   const orderCards = [
     { label: "سفارش‌های در انتظار ارسال", value: formatNumber(toProcess), icon: PackageCheck, href: "/admin/orders?status=PAID" },
     { label: "در انتظار پرداخت", value: formatNumber(awaiting), icon: Receipt, href: "/admin/orders?status=AWAITING_PAYMENT" },
     { label: "فروش ۳۰ روز اخیر", value: formatToman(paidSum._sum.total ?? BigInt(0)), icon: Wallet, href: "/admin/orders" },
+    { label: "پیام‌های نخوانده", value: formatNumber(unreadMessages), icon: Mail, href: "/admin/messages?status=NEW" },
+    { label: "پیش‌نویس‌های خبر", value: formatNumber(drafts), icon: Newspaper, href: "/admin/news?status=DRAFT" },
   ];
   const cards = [
     { label: "کل کاربران", value: total, icon: Users, href: "/admin/users" },
@@ -48,7 +52,7 @@ async function Stats() {
   ];
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
         {orderCards.map(({ label, value, icon: Icon, href }) => (
           <Link key={label} href={href}>
             <Card className="flex items-center gap-4 p-5 transition-shadow hover:shadow-lg">

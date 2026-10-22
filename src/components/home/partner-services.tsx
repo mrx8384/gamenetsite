@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { Gamepad2, LayoutDashboard, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { homeContent } from "@/content/home";
 import { SectionHeading } from "./section-heading";
 
 const icons = [LayoutDashboard, Gamepad2, Trophy];
 
-export function PartnerServices() {
-  const { title, subtitle, points } = homeContent.partners;
+export function PartnerServices({ title, subtitle, points }: { title: string; subtitle: string; points: { title: string; body: string }[] }) {
   return (
     <>
       <SectionHeading title={title} subtitle={subtitle} />

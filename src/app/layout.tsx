@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
+import { getSiteSettings } from "@/features/settings/site";
 import { siteConfig } from "@/lib/brand";
 import "./globals.css";
 
@@ -13,11 +14,14 @@ const vazirmatn = localFont({
   preload: true,
 });
 
-export const metadata: Metadata = {
-  title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
-  description: siteConfig.description,
-  applicationName: siteConfig.name,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const general = await getSiteSettings("general");
+  return {
+    title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
+    description: general.siteDescription,
+    applicationName: siteConfig.name,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#FAF9F3",

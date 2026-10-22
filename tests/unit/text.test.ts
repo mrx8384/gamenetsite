@@ -69,3 +69,28 @@ describe("order status transitions", () => {
     expect(Object.keys(ORDER_STATUS_LABEL).sort()).toEqual(Object.keys(ADMIN_TRANSITIONS).sort());
   });
 });
+
+import { groupDefaults, groupSchema, SITE_GROUPS } from "@/features/settings/site-schema";
+
+describe("site settings schema", () => {
+  it("has the required tournament default text", () => {
+    expect(groupDefaults("tournaments").comingSoon).toBe("بخش تورنومنت به‌زودی فعال می‌شود.");
+  });
+  it("validates urls, emails and phones", () => {
+    const s = groupSchema("contact");
+    expect(s.safeParse({ instagram: "javascript:alert(1)" }).success).toBe(false);
+    expect(s.safeParse({ instagram: "http://insecure.com" }).success).toBe(false);
+    expect(s.safeParse({ email: "bad" }).success).toBe(false);
+    const ok = s.safeParse({ phone: "۰۲۱-۱۲۳۴ ۵۶۷۸", instagram: "https://instagram.com/atom" });
+    expect(ok.success && (ok.data as Record<string, string>).phone).toBe("02112345678");
+  });
+  it("enforces max lengths", () => {
+    expect(groupSchema("home").safeParse({ heroTitle: "x".repeat(81) }).success).toBe(false);
+  });
+  it("every field key is unique per group", () => {
+    for (const g of Object.values(SITE_GROUPS)) {
+      const keys = g.fields.map((f) => f.key);
+      expect(new Set(keys).size).toBe(keys.length);
+    }
+  });
+});

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CommerceSettingsForm } from "@/components/admin/orders/commerce-settings-form";
-import { AdminPageHeader } from "@/components/admin/page-header";
 import { LoadingRows } from "@/components/ui/states";
 import { getPaymentProvider } from "@/features/payments";
 import { getCommerceSettings } from "@/features/settings/commerce";
@@ -12,7 +11,7 @@ export const metadata: Metadata = { title: "تنظیمات فروش" };
 export default function SettingsPage() {
   return (
     <>
-      <AdminPageHeader title="تنظیمات فروش" description="باز و بسته کردن فروش آنلاین و شمارهٔ استعلام قیمت. هزینهٔ ارسال در «روش‌های ارسال» تعیین می‌شود." />
+      <p className="mb-4 text-sm text-muted-foreground">باز و بسته کردن فروش آنلاین و شمارهٔ استعلام قیمت. هزینهٔ ارسال در «روش‌های ارسال» تعیین می‌شود.</p>
       <Suspense fallback={<LoadingRows rows={4} />}>
         <SettingsContent />
       </Suspense>

@@ -3,7 +3,6 @@ import { Gamepad2, ShoppingBag } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
-import { homeContent } from "@/content/home";
 
 /** Decorative atom orbits around the (unmodified) logo. */
 function Orbits() {
@@ -25,8 +24,7 @@ function Orbits() {
   );
 }
 
-export function Hero() {
-  const { eyebrow, title, subtitle } = homeContent.hero;
+export function Hero({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
     <section className="relative overflow-hidden">
       <div

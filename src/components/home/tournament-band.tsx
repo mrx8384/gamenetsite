@@ -3,10 +3,8 @@ import { Trophy } from "lucide-react";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { homeContent } from "@/content/home";
 
-export function TournamentBand() {
-  const { title, subtitle } = homeContent.tournaments;
+export function TournamentBand({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <section className="bg-brand-black text-brand-cream">
       <Container className="grid items-center gap-8 py-14 sm:py-16 md:grid-cols-[1fr_auto]">

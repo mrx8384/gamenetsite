@@ -8,16 +8,16 @@ import { PartnerServices } from "@/components/home/partner-services";
 import { SectionHeading } from "@/components/home/section-heading";
 import { TournamentBand } from "@/components/home/tournament-band";
 import { Container } from "@/components/layout/container";
-import { homeContent } from "@/content/home";
+import { getSiteSettings } from "@/features/settings/site";
 
-export default function HomePage() {
-  const c = homeContent;
+export default async function HomePage() {
+  const c = await getSiteSettings("home");
   return (
     <>
-      <Hero />
+      <Hero eyebrow={c.heroEyebrow} title={c.heroTitle} subtitle={c.heroSubtitle} />
 
       <Container className="py-14 sm:py-20">
-        <SectionHeading title={c.shop.title} subtitle={c.shop.subtitle} href="/shop" />
+        <SectionHeading title={c.shopTitle} subtitle={c.shopSubtitle} href="/shop" />
         <Suspense fallback={<ProductGridSkeleton />}>
           <FeaturedProducts />
         </Suspense>
@@ -25,22 +25,30 @@ export default function HomePage() {
 
       <section className="border-y bg-secondary/50">
         <Container className="py-14 sm:py-20">
-          <SectionHeading title={c.catalog.title} subtitle={c.catalog.subtitle} href="/game-catalog" />
+          <SectionHeading title={c.catalogTitle} subtitle={c.catalogSubtitle} href="/game-catalog" />
           <Suspense fallback={<CatalogPreviewSkeleton />}>
             <CatalogPreview />
           </Suspense>
         </Container>
       </section>
 
-      <TournamentBand />
+      <TournamentBand title={c.tournamentsTitle} subtitle={c.tournamentsSubtitle} />
 
       <Container className="py-14 sm:py-20">
-        <PartnerServices />
+        <PartnerServices
+          title={c.partnersTitle}
+          subtitle={c.partnersSubtitle}
+          points={[
+            { title: c.partner1Title, body: c.partner1Body },
+            { title: c.partner2Title, body: c.partner2Body },
+            { title: c.partner3Title, body: c.partner3Body },
+          ]}
+        />
       </Container>
 
       <section className="border-y bg-secondary/50">
         <Container className="py-14 sm:py-20">
-          <SectionHeading title={c.news.title} subtitle={c.news.subtitle} href="/news" />
+          <SectionHeading title={c.newsTitle} subtitle={c.newsSubtitle} href="/news" />
           <Suspense fallback={<NewsGridSkeleton />}>
             <LatestNews />
           </Suspense>
@@ -48,7 +56,7 @@ export default function HomePage() {
       </section>
 
       <Container className="py-14 sm:py-20">
-        <AboutTeaser />
+        <AboutTeaser title={c.aboutTitle} body={c.aboutBody} />
       </Container>
     </>
   );
