@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, MoreHorizontal, ShieldCheck, UserCheck, UserRound, UserX, Handshake } from "lucide-react";
 import { toast } from "sonner";
@@ -50,14 +51,20 @@ export function UserRowActions({ user, isSelf }: { user: { id: string; name: str
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>تغییر نقش</DropdownMenuLabel>
-          {(["USER", "PARTNER", "ADMIN"] as const).map((role) => {
-            const Icon = role === "ADMIN" ? ShieldCheck : role === "PARTNER" ? Handshake : UserRound;
-            return (
-              <DropdownMenuItem key={role} disabled={isSelf || user.role === role} onSelect={() => setPending(roleAction(role))}>
-                <Icon /> {roleLabel[role]}
-              </DropdownMenuItem>
-            );
-          })}
+          {user.role === "PARTNER" ? (
+            <DropdownMenuItem asChild>
+              <Link href="/admin/partners"><Handshake /> مدیریت در بخش همکاران</Link>
+            </DropdownMenuItem>
+          ) : (
+            (["USER", "ADMIN"] as const).map((role) => {
+              const Icon = role === "ADMIN" ? ShieldCheck : UserRound;
+              return (
+                <DropdownMenuItem key={role} disabled={isSelf || user.role === role} onSelect={() => setPending(roleAction(role))}>
+                  <Icon /> {roleLabel[role]}
+                </DropdownMenuItem>
+              );
+            })
+          )}
           <DropdownMenuSeparator />
           {user.isActive ? (
             <DropdownMenuItem

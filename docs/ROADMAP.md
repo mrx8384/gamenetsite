@@ -13,7 +13,7 @@ Each phase: plan (scope, files, dependencies, risks) → owner approval when it 
 | 7 | Cart, checkout, orders | Cart (guest + user), checkout with addresses, order creation with stock reservation, order history, admin order management, payment provider interface (disabled) | **Done** (sales closed until a gateway is connected) |
 | 8 | News & contact | News CRUD with Tiptap, drafts/published, categories, cover images; About page editor; contact form + admin inbox; site settings — **incl. editing all site texts** (homepage, footer, about, contact, tournament page) | **Done** |
 | 9 | Game Catalog integration | Option C: ported module, lossless `catalog.db` importer (UI + CLI), `/game-catalog`, `/admin/game-catalog`, ZIP export | **Done** |
-| 10 | Partners | Partner application, admin approve/reject, partner dashboard, subscription status UI, plans (inactive) | Not started |
+| 10 | Partners | Partner application, admin approve/reject/suspend, partner dashboard, subscription status UI, plans (purchase disabled), `hasEntitlement` | **Done** |
 | 11 | Tournament & Gamepad Tester placeholders | `/tournaments` («بخش تورنومنت به‌زودی فعال می‌شود.»), `/tournaments/gamepad-tester` with entitlement boundary, module skeleton | Not started |
 | 12 | QA & hardening | Unit + e2e tests for critical flows, security review, headers/CSP, accessibility, responsive pass, performance, deployment docs | Not started |
 
@@ -35,4 +35,4 @@ Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), P
 6. Fill Admin → تنظیمات سایت: contact info, social links, homepage texts and the About page.
 5. Add the real shipping companies in Admin → روش‌های ارسال (پس‌کرایه or fixed price) and the «استعلام قیمت» phone in Admin → تنظیمات فروش. At least one active shipping method is required for checkout.
 
-Interim pages (replace when their phase ships): /partners (P10), /tournaments/gamepad-tester (P11).
+Interim pages (replace when their phase ships): /tournaments/gamepad-tester (P11).

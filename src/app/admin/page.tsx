@@ -25,7 +25,7 @@ export default function AdminDashboard() {
 
 async function Stats() {
   await requireRole(["ADMIN"], "/admin"); // defense in depth: never rely on the layout alone
-  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum, unreadMessages, drafts] = await Promise.all([
+  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum, unreadMessages, drafts, pendingPartners] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { role: "ADMIN" } }),
     db.user.count({ where: { role: "PARTNER" } }),
@@ -36,6 +36,7 @@ async function Stats() {
     db.order.aggregate({ where: { paidAt: { gte: daysAgo(30) }, status: { notIn: ["CANCELLED", "REFUNDED"] } }, _sum: { total: true } }),
     db.contactMessage.count({ where: { status: "NEW" } }),
     db.newsPost.count({ where: { status: "DRAFT" } }),
+    db.partnerProfile.count({ where: { status: "PENDING" } }),
   ]);
   const orderCards = [
     { label: "سفارش‌های در انتظار ارسال", value: formatNumber(toProcess), icon: PackageCheck, href: "/admin/orders?status=PAID" },
@@ -43,11 +44,12 @@ async function Stats() {
     { label: "فروش ۳۰ روز اخیر", value: formatToman(paidSum._sum.total ?? BigInt(0)), icon: Wallet, href: "/admin/orders" },
     { label: "پیام‌های نخوانده", value: formatNumber(unreadMessages), icon: Mail, href: "/admin/messages?status=NEW" },
     { label: "پیش‌نویس‌های خبر", value: formatNumber(drafts), icon: Newspaper, href: "/admin/news?status=DRAFT" },
+    { label: "درخواست‌های همکاری", value: formatNumber(pendingPartners), icon: Handshake, href: "/admin/partners" },
   ];
   const cards = [
     { label: "کل کاربران", value: total, icon: Users, href: "/admin/users" },
     { label: "کاربران عادی", value: users, icon: UserRound, href: "/admin/users?role=USER" },
-    { label: "همکاران", value: partners, icon: Handshake, href: "/admin/users?role=PARTNER" },
+    { label: "همکاران", value: partners, icon: Handshake, href: "/admin/partners?status=APPROVED" },
     { label: "مدیران", value: admins, icon: ShieldCheck, href: "/admin/users?role=ADMIN" },
   ];
   return (

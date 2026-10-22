@@ -28,7 +28,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 6 (store & product management): **done**.
 - Phase 7 (cart, checkout, orders) + shipping methods: **done**.
 - Phase 8 (news, contact, about, editable site texts): **done**.
-- Phase 9 (Game Catalog port + import): **done**. Real catalog (85 games) imported. Next: Phase 10 (partners & subscriptions, purchasing disabled).
+- Phase 9 (Game Catalog port + import): **done**. Real catalog (85 games) imported.
+- Phase 10 (partners & subscriptions, purchasing disabled): **done**. Next: Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -105,7 +106,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 3. **Money is stored as integer Rials (`BigInt`)**, displayed in Toman per site setting. No floats.
 4. **Order lines snapshot product title and price**; inventory changes go through `InventoryMovement` inside a transaction.
 5. **Payment is a provider interface** (`PaymentProvider`). Default provider is `disabled`; checkout creates the order as `AWAITING_PAYMENT` and shows a clear message.
-6. **Subscriptions are modelled but not purchasable.** Access to gated features goes through one function: `hasEntitlement(user, "GAMEPAD_TESTER")`.
+6. **Subscriptions are modelled but not purchasable** (`SUBSCRIPTION_PURCHASE_ENABLED = false`). Access to gated features goes through one function: `hasEntitlement(userId, "GAMEPAD_TESTER")` (server-side, DB-backed). The PARTNER role is set/unset only by partner review actions.
 7. **Game Catalog:** the original app is kept unchanged in `services/game-catalog/` (reference only). A plain reverse proxy is **unsafe** (localhost-only admin check). Its 17 features are ported into `src/features/game-catalog` with the same rules and game IDs; data imported losslessly from `catalog.db`.
 8. **Uploads**: validated by magic bytes + size limit, re-encoded images, random file names, stored outside the code tree (local disk now, S3-compatible later).
 
@@ -140,6 +141,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 10: partners (`src/features/partners`): public `/partners`, applicant/partner area `/partner` (apply → pending → rejected/resubmit → approved dashboard; suspended), admin `/admin/partners` (review with reasons; PARTNER role mirrors APPROVED, changed only there), admin `/admin/subscriptions` (plans; purchase disabled via `SUBSCRIPTION_PURCHASE_ENABLED = false`, `isActive` never set), `hasEntitlement()` in `src/features/subscriptions/entitlements.ts` — the only gate for partner features.
 - Phase 9: Game Catalog module (`src/features/game-catalog`): importer (UI + `pnpm catalog:import`), public `/game-catalog` + `/game-catalog/ps4|ps5` (search, chips, grouped grid, lightbox with keys/swipe, 30 s live refresh via `/api/catalog/version`), admin `/admin/game-catalog` (tabs, bulk upload, edit/replace/move/delete, rename flag, categories with merge/reorder, QR, ZIP export, `.db` restore via `POST /api/admin/catalog/import` with ADMIN + same-origin check). Restoring a `.db` **replaces** the whole catalog.
 - Phase 8: site settings groups (home, contact & social, general/footer, tournaments) defined once in `site-schema.ts` → admin tabbed forms + validation + defaults; homepage, footer, meta description and tournament pages read them; editable About page (rich text); news categories + posts (rich-text editor with image upload, cover, draft/publish, featured, public list with featured/category filter/pagination, article page with NewsArticle JSON-LD, related news); contact page + form (honeypot, min-time check, rate limits, hashed IP) and admin inbox (auto-read, archive, delete); dashboard cards for unread messages and drafts.
 - Phase 7b: shipping methods (`ShippingMethod` model, migration `shipping_methods`, admin CRUD with validation, checkout selection with live summary, server-side active check, order snapshot, tracking code on SHIPPED with carrier link). The earlier flat shipping setting was removed.

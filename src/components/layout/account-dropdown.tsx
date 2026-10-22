@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
+import { Handshake, LayoutDashboard, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -46,6 +46,13 @@ export function AccountDropdown({ name, role }: { name: string; role: keyof type
             <ShieldCheck /> امنیت و نشست‌ها
           </Link>
         </DropdownMenuItem>
+        {role === "PARTNER" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/partner">
+              <Handshake /> پنل همکار
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         {role === "ADMIN" ? (
           <DropdownMenuItem asChild>
             <Link href="/admin">

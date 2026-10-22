@@ -1,5 +1,24 @@
 # Progress Log
 
+## 2026-10-22 (11) — Phase 10 completed (partners & subscriptions, purchasing disabled)
+
+### Done
+- Migration `partners_review`: `PartnerProfile.submittedAt` (review queue order), `SubscriptionPlan.isVisible`.
+- Public `/partners`: editable intro (new site-settings group «همکاران»), service points, visible plans with a disabled «به‌زودی» button, CTA that adapts to the visitor (guest / applicant with status / admin).
+- `/partner` (login required, also in proxy matcher, account nav and header menu): application form → pending (editable) → rejected (reason shown, resubmit) → approved dashboard (subscription card, Gamepad Tester access state, tournaments note, plans, editable contact info with business name/type locked) → suspended (reason, no edits). Admins cannot apply.
+- Validation: Iranian mobile/landline normalized to 11 digits, Instagram URL/handle → handle, website https only, province from the 31-province list.
+- Admin `/admin/partners`: status tabs with counts, search (business, city, phones, email, name), oldest-pending-first, detail page with approve / reject (reason required) / suspend (reason required) / re-activate. The PARTNER role mirrors APPROVED in the same transaction (admins keep ADMIN); sessions read the role from the DB, so no logout is needed. Users admin can no longer set/unset PARTNER (points to همکاران instead). Dashboard card «درخواست‌های همکاری».
+- Admin `/admin/subscriptions`: plan CRUD (code, name, description, Toman price, days, features, visibility, order); plans with history cannot be deleted; `isActive` is never settable (always false) and `SUBSCRIPTION_PURCHASE_ENABLED = false`. Read-only list of partner subscriptions.
+- `hasEntitlement(userId, "GAMEPAD_TESTER")` (`src/features/subscriptions/entitlements.ts`) — server-side, DB-backed; pure rule in `entitlement-rules.ts`: active user + role PARTNER + profile APPROVED + subscription ACTIVE within its period + plan includes the feature.
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 98 unit tests incl. 13 new for entitlements, phone/Instagram normalization, application and plan schemas) · `pnpm build` ✓.
+- E2E on the production build (40 checks, all pass; one selector mismatch in the test was re-verified manually): guest CTA and login redirect, field errors, `javascript:` website rejected, submit/edit pending, user gets 404 on admin, dashboard card, list/search/detail, reject requires reason, user sees reason and resubmits (reason cleared), approve → PARTNER, dashboard without subscription, locked business name, contact edit, header link, plan create/duplicate code/hidden plan, price in Toman, disabled «به‌زودی», a test ACTIVE subscription row grants access, used plan not deletable, suspend → USER and no access, re-activate, users-admin guard, admin can't apply, editable page title, no mobile overflow, no page errors.
+- All test users, profiles, plans, subscriptions and settings removed afterwards. Catalog data untouched (85 games).
+
+### Open question for the owner
+- Should admins be able to grant a free/manual subscription (e.g. for trusted partners) before online purchase exists? Not implemented — it changes business rules.
+
 ## 2026-10-22 (10) — Phase 9 completed (Game Catalog port)
 
 ### Done

@@ -86,6 +86,18 @@ export const SITE_GROUPS = {
       { key: "gamepadTesterText", label: "متن صفحهٔ تست دسته", type: "textarea", max: 300, default: "ابزار تست دسته برای همکاران دارای اشتراک فعال، به‌زودی در دسترس قرار می‌گیرد." },
     ],
   },
+  partners: {
+    label: "همکاران",
+    description: "متن‌های صفحهٔ همکاران، فرم درخواست و پنل همکار.",
+    fields: [
+      { key: "pageTitle", label: "عنوان صفحهٔ همکاران", type: "text", max: 80, default: "همکاری با آتم" },
+      { key: "pageIntro", label: "متن معرفی صفحهٔ همکاران", type: "textarea", max: 600, default: "گیم‌نت‌ها، فروشگاه‌ها و تیم‌های ای‌اسپورت می‌توانند با ثبت درخواست همکاری، پنل اختصاصی همکار و دسترسی به ابزارهای ویژهٔ آتم را دریافت کنند." },
+      { key: "applyNote", label: "توضیح بالای فرم درخواست", type: "textarea", max: 400, default: "اطلاعات کسب‌وکار خود را کامل وارد کنید. درخواست شما پس از بررسی توسط تیم آتم تأیید می‌شود و نتیجه را در پنل همکار می‌بینید." },
+      { key: "pendingText", label: "پیام درخواست در انتظار بررسی", type: "textarea", max: 300, default: "درخواست شما ثبت شد و در صف بررسی است. نتیجه در همین صفحه نمایش داده می‌شود." },
+      { key: "plansTitle", label: "عنوان بخش اشتراک‌ها", type: "text", max: 80, default: "اشتراک‌های همکاران" },
+      { key: "plansNote", label: "پیام غیرفعال بودن خرید اشتراک", type: "textarea", max: 300, default: "خرید اشتراک به‌زودی فعال می‌شود." },
+    ],
+  },
 } as const satisfies Record<string, GroupDef>;
 
 export type SiteGroupKey = keyof typeof SITE_GROUPS;

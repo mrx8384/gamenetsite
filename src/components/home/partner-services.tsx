@@ -5,7 +5,7 @@ import { SectionHeading } from "./section-heading";
 
 const icons = [LayoutDashboard, Gamepad2, Trophy];
 
-export function PartnerServices({ title, subtitle, points }: { title: string; subtitle: string; points: { title: string; body: string }[] }) {
+export function PartnerServices({ title, subtitle, points, hideCta = false }: { title: string; subtitle: string; points: { title: string; body: string }[]; hideCta?: boolean }) {
   return (
     <>
       <SectionHeading title={title} subtitle={subtitle} />
@@ -23,11 +23,13 @@ export function PartnerServices({ title, subtitle, points }: { title: string; su
           );
         })}
       </div>
-      <div className="mt-6">
-        <Button asChild variant="strong">
-          <Link href="/partners">درخواست همکاری</Link>
-        </Button>
-      </div>
+      {hideCta ? null : (
+        <div className="mt-6">
+          <Button asChild variant="strong">
+            <Link href="/partners">درخواست همکاری</Link>
+          </Button>
+        </div>
+      )}
     </>
   );
 }

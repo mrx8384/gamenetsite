@@ -578,6 +578,8 @@ model PartnerProfile {
   instagram       String?             @db.VarChar(100)
   description     String?             @db.VarChar(2000)
   status          PartnerStatus       @default(PENDING)
+  /// Last time the application was (re)submitted; review queue order.
+  submittedAt     DateTime            @default(now())
   reviewedById    String?
   reviewedAt      DateTime?
   rejectionReason String?             @db.VarChar(500)
@@ -588,7 +590,7 @@ model PartnerProfile {
   reviewedBy    User?                 @relation("PartnerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   subscriptions PartnerSubscription[]
 
-  @@index([status, createdAt])
+  @@index([status, submittedAt])
   @@map("partner_profiles")
 }
 
@@ -603,6 +605,8 @@ model SubscriptionPlan {
   features     String[]
   /// Plans cannot be purchased until enabled (all disabled for now).
   isActive     Boolean  @default(false)
+  /// Shown on the partners page and dashboard (marked «به‌زودی» while purchasing is disabled).
+  isVisible    Boolean  @default(false)
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

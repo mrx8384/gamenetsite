@@ -10,6 +10,7 @@ const tabs = [
   { href: "/admin/settings/about", label: "درباره ما" },
   { href: "/admin/settings/contact", label: "تماس و شبکه‌های اجتماعی" },
   { href: "/admin/settings/general", label: "عمومی و فوتر" },
+  { href: "/admin/settings/partners", label: "همکاران" },
   { href: "/admin/settings/tournaments", label: "تورنومنت" },
 ];
 

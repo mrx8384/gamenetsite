@@ -37,6 +37,10 @@ export async function setUserRole(userId: string, role: unknown): Promise<Action
   if (!target) return fail("کاربر پیدا نشد.");
   if (target.role === parsedRole.data) return ok(undefined, "تغییری ایجاد نشد.");
   if (target.role === "ADMIN" && (await isLastActiveAdmin(userId))) return fail("حداقل یک مدیر فعال باید باقی بماند.");
+  // The PARTNER role mirrors an approved partner profile; it is managed only from Admin → همکاران.
+  if (parsedRole.data === "PARTNER" || target.role === "PARTNER") {
+    return fail("نقش همکار فقط از بخش «همکاران» (تأیید یا تعلیق درخواست همکاری) تغییر می‌کند.");
+  }
 
   await db.user.update({ where: { id: userId }, data: { role: parsedRole.data, sessionVersion: { increment: 1 } } });
   await revokeUserSessions(userId); // new permissions take effect on next login

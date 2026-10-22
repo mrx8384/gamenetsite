@@ -90,7 +90,8 @@ Money columns are `BigInt` Rials.
 
 - **PartnerProfile**: `userId` (unique), `businessName`, `businessType` (e.g. `GAME_NET | SHOP | OTHER`), `province`, `city`, `address`, `phone`, `website?`, `description`, `status` (`PENDING | APPROVED | REJECTED | SUSPENDED`), `reviewedById?`, `reviewedAt?`, `rejectionReason?`. Approval sets `User.role = PARTNER` in the same transaction
 - **SubscriptionPlan**: `code` (unique), `name`, `price`, `durationDays`, `features` (Json array of entitlement keys, e.g. `["GAMEPAD_TESTER"]`), `isActive` (default **false**)
-- **PartnerSubscription**: `partnerId`, `planId`, `status` (`INACTIVE | ACTIVE | EXPIRED | CANCELLED`), `startsAt?`, `endsAt?`, `paymentId?`. Admin can see/edit; no purchase flow yet
+- **PartnerSubscription**: `partnerId`, `planId`, `status` (`INACTIVE | ACTIVE | EXPIRED | CANCELLED`), `startsAt?`, `endsAt?`, `paymentId?`. Admin can see; no purchase or manual-grant flow yet (Phase 10)
+- `PartnerProfile.submittedAt` orders the review queue; `SubscriptionPlan.isVisible` shows a plan as «به‌زودی» on public/partner pages
 
 ### Tournaments (future — no tables created yet)
 
@@ -111,10 +112,11 @@ Rules kept: default category per platform cannot be renamed or deleted; renaming
 
 ```ts
 // Single source of truth for feature access
-hasEntitlement(user, "GAMEPAD_TESTER")
-  = user.role === "PARTNER"
+hasEntitlement(userId, "GAMEPAD_TESTER")   // src/features/subscriptions/entitlements.ts
+  = user.isActive && user.role === "PARTNER"
     && partner.status === "APPROVED"
-    && activeSubscription(partner).plan.features.includes("GAMEPAD_TESTER")
+    && partner.subscriptions.some(s => s.status === "ACTIVE" && s.startsAt <= now < s.endsAt
+                                       && s.plan.features.includes("GAMEPAD_TESTER"))
 ```
 
 `/tournaments/gamepad-tester` renders the placeholder for everyone; the (disabled) tool area is behind this check on the server.
