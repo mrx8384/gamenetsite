@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, ChevronLeft, PackageX } from "lucide-react";
 import { Container } from "@/components/layout/container";
 import { SectionHeading } from "@/components/home/section-heading";
+import { PurchaseBox } from "@/components/cart/purchase-box";
 import { PriceTag } from "@/components/store/price-tag";
 import { ProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/store/product-gallery";
@@ -55,7 +56,7 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
     sku: product.sku,
     description: product.shortDescription ?? undefined,
     image: product.images.map((i) => new URL(mediaUrl(i.key), env.APP_URL).toString()),
-    offers: {
+    offers: product.priceOnRequest ? undefined : {
       "@type": "Offer",
       priceCurrency: "IRR",
       price: product.price,
@@ -96,13 +97,15 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
             <h1 className="text-2xl leading-[1.6] font-black sm:text-3xl">{product.title}</h1>
             <p className="ltr text-start text-xs text-muted-foreground">SKU: {product.sku}</p>
           </div>
-          <PriceTag price={product.price} compareAtPrice={product.compareAtPrice} size="lg" />
+          {product.priceOnRequest ? null : <PriceTag price={product.price} compareAtPrice={product.compareAtPrice} size="lg" />}
           <p className={inStock ? "flex items-center gap-2 font-medium text-success" : "flex items-center gap-2 font-medium text-destructive"}>
             {inStock ? <CheckCircle2 className="size-5" aria-hidden /> : <PackageX className="size-5" aria-hidden />}
             {inStock ? (product.stock <= 5 ? `موجود — فقط ${formatNumber(product.stock)} عدد باقی مانده` : "موجود در انبار") : "ناموجود"}
           </p>
           {product.shortDescription ? <p className="leading-8 text-muted-foreground">{product.shortDescription}</p> : null}
-          {/* Add-to-cart arrives with the cart in Phase 7. */}
+          <Suspense fallback={<Skeleton className="h-12 w-full" />}>
+            <PurchaseBox productId={product.id} stock={product.stock} priceOnRequest={product.priceOnRequest} />
+          </Suspense>
         </div>
       </div>
 

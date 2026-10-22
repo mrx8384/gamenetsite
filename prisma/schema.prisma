@@ -190,6 +190,8 @@ model Category {
   imageId     String?
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
+  /// Hide prices in this category (and its sub-categories): show "call for price" instead; not purchasable online.
+  priceOnRequest Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -340,6 +342,8 @@ model Order {
   addressLine   String      @db.VarChar(300)
   customerNote  String?     @db.VarChar(500)
   adminNote     String?
+  /// Unpaid orders past this time are cancelled and their stock is released.
+  paymentDeadline DateTime?
   paidAt        DateTime?
   cancelledAt   DateTime?
   createdAt     DateTime    @default(now())

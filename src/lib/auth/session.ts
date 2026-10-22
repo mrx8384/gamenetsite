@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { mergeGuestCartIntoUser } from "@/features/cart/service";
 import { generateToken, sha256Hex } from "./crypto";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -41,6 +42,8 @@ export async function createSession(userId: string, meta: { ip?: string; userAge
     path: "/",
     expires: expiresAt,
   });
+  // Keep what a guest added to the cart before logging in.
+  await mergeGuestCartIntoUser(userId).catch((e) => console.error("[cart] merge failed", e));
 }
 
 /** Reads and validates the session cookie. Returns null for missing/expired/revoked sessions or inactive users. */

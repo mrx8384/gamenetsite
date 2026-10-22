@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Gamepad2 } from "lucide-react";
 import { ComingSoon } from "@/components/coming-soon";
@@ -14,8 +15,16 @@ export async function generateMetadata({ params }: PageProps<"/game-catalog/[pla
   return { title: `کاتالوگ بازی‌های ${platform.toUpperCase()}` };
 }
 
-// Interim page — replaced in Phase 9.
-export default async function Page({ params }: PageProps<"/game-catalog/[platform]">) {
+// Interim page — replaced in Phase 9. Params are read inside <Suspense> (Cache Components).
+export default function Page({ params }: PageProps<"/game-catalog/[platform]">) {
+  return (
+    <Suspense>
+      <PlatformComingSoon params={params} />
+    </Suspense>
+  );
+}
+
+async function PlatformComingSoon({ params }: { params: Promise<{ platform: string }> }) {
   const { platform } = await params;
   if (!(PLATFORMS as readonly string[]).includes(platform)) notFound();
   return (

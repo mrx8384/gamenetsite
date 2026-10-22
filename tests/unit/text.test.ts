@@ -51,3 +51,21 @@ describe("unique violation helpers", () => {
     expect(isUniqueViolation(new Error("x"))).toBe(false);
   });
 });
+
+import { ADMIN_TRANSITIONS, ORDER_STATUS_LABEL } from "@/features/orders/schemas";
+
+describe("order status transitions", () => {
+  it("never allows going back to an earlier payment state manually", () => {
+    for (const targets of Object.values(ADMIN_TRANSITIONS)) {
+      expect(targets).not.toContain("PAID");
+      expect(targets).not.toContain("AWAITING_PAYMENT");
+    }
+  });
+  it("shipped orders cannot be cancelled (stock already left)", () => {
+    expect(ADMIN_TRANSITIONS.SHIPPED).not.toContain("CANCELLED");
+    expect(ADMIN_TRANSITIONS.DELIVERED).not.toContain("CANCELLED");
+  });
+  it("every status has a Persian label", () => {
+    expect(Object.keys(ORDER_STATUS_LABEL).sort()).toEqual(Object.keys(ADMIN_TRANSITIONS).sort());
+  });
+});

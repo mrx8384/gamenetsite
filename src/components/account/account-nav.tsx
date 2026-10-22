@@ -2,20 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, UserRound } from "lucide-react";
+import { Package, ShieldCheck, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/account", label: "اطلاعات حساب", icon: UserRound },
+  { href: "/account/orders", label: "سفارش‌های من", icon: Package },
   { href: "/account/security", label: "امنیت و نشست‌ها", icon: ShieldCheck },
 ];
 
 export function AccountNav() {
-  const pathname = usePathname();
+  return <AccountNavLinks pathname={usePathname()} />;
+}
+
+/** `pathname = null` renders without an active item (static fallback for dynamic routes). */
+export function AccountNavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="منوی حساب کاربری" className="flex gap-1 overflow-x-auto md:flex-col">
       {items.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href;
+        const active = pathname !== null && (href === "/account" ? pathname === href : pathname.startsWith(href));
         return (
           <Link
             key={href}

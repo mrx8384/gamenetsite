@@ -31,17 +31,23 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             <ImageOff className="size-8" aria-hidden />
           </div>
         )}
-        {discount > 0 ? <Badge variant="accent" className="absolute start-3 top-3">٪{toPersianDigits(discount)} تخفیف</Badge> : null}
+        {discount > 0 && !product.priceOnRequest ? <Badge variant="accent" className="absolute start-3 top-3">٪{toPersianDigits(discount)} تخفیف</Badge> : null}
         {!product.inStock ? <Badge variant="strong" className="absolute end-3 top-3">ناموجود</Badge> : null}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         {product.categoryName ? <p className="text-xs text-muted-foreground">{product.categoryName}</p> : null}
         <h3 className="line-clamp-2 leading-7 font-semibold">{product.title}</h3>
         <div className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
-          <span className="font-bold">{formatToman(price)}</span>
-          {discount > 0 && compareAt ? (
-            <span className="text-xs text-muted-foreground line-through">{formatToman(compareAt)}</span>
-          ) : null}
+          {product.priceOnRequest ? (
+            <span className="text-sm font-semibold text-link">استعلام قیمت: تماس بگیرید</span>
+          ) : (
+            <>
+              <span className="font-bold">{formatToman(price)}</span>
+              {discount > 0 && compareAt ? (
+                <span className="text-xs text-muted-foreground line-through">{formatToman(compareAt)}</span>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
     </Link>

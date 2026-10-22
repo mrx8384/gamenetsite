@@ -14,7 +14,13 @@ export interface ProductCardData {
   imageKey: string | null;
   imageAlt: string | null;
   categoryName: string | null;
+  /** Category (or its parent) is "call for price": hide the price and disable online purchase. */
+  priceOnRequest: boolean;
 }
+
+const cardCategorySelect = { select: { name: true, priceOnRequest: true, parent: { select: { priceOnRequest: true } } } } as const;
+type CardCategory = { name: string; priceOnRequest: boolean; parent: { priceOnRequest: boolean } | null } | null;
+const isPriceOnRequest = (c: CardCategory) => !!c && (c.priceOnRequest || !!c.parent?.priceOnRequest);
 
 /** Featured, active products for the homepage. */
 export async function getFeaturedProducts(limit = 4): Promise<ProductCardData[]> {
@@ -33,7 +39,7 @@ export async function getFeaturedProducts(limit = 4): Promise<ProductCardData[]>
       price: true,
       compareAtPrice: true,
       stock: true,
-      category: { select: { name: true } },
+      category: cardCategorySelect,
       images: { orderBy: { sortOrder: "asc" }, take: 1, select: { alt: true, media: { select: { storageKey: true } } } },
     },
   });
@@ -48,6 +54,7 @@ export async function getFeaturedProducts(limit = 4): Promise<ProductCardData[]>
     imageKey: p.images[0]?.media.storageKey ?? null,
     imageAlt: p.images[0]?.alt ?? null,
     categoryName: p.category?.name ?? null,
+    priceOnRequest: isPriceOnRequest(p.category),
   }));
 }
 
@@ -137,7 +144,7 @@ export async function getShopProducts(filters: ShopFilters): Promise<{ items: Pr
         price: true,
         compareAtPrice: true,
         stock: true,
-        category: { select: { name: true } },
+        category: cardCategorySelect,
         images: { orderBy: { sortOrder: "asc" }, take: 1, select: { alt: true, media: { select: { storageKey: true } } } },
       },
     }),
@@ -155,6 +162,7 @@ export async function getShopProducts(filters: ShopFilters): Promise<{ items: Pr
       imageKey: p.images[0]?.media.storageKey ?? null,
       imageAlt: p.images[0]?.alt ?? null,
       categoryName: p.category?.name ?? null,
+      priceOnRequest: isPriceOnRequest(p.category),
     })),
   };
 }
@@ -169,6 +177,7 @@ export interface ProductDetail {
   price: string;
   compareAtPrice: string | null;
   stock: number;
+  priceOnRequest: boolean;
   category: { name: string; slug: string; parent: { name: string; slug: string } | null } | null;
   images: { key: string; alt: string | null; width: number | null; height: number | null }[];
 }
@@ -191,7 +200,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       price: true,
       compareAtPrice: true,
       stock: true,
-      category: { select: { name: true, slug: true, isActive: true, parent: { select: { name: true, slug: true } } } },
+      category: { select: { name: true, slug: true, isActive: true, priceOnRequest: true, parent: { select: { name: true, slug: true, priceOnRequest: true } } } },
       images: { orderBy: { sortOrder: "asc" }, select: { alt: true, media: { select: { storageKey: true, width: true, height: true } } } },
     },
   });
@@ -207,7 +216,10 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     price: p.price.toString(),
     compareAtPrice: p.compareAtPrice?.toString() ?? null,
     stock: p.stock,
-    category: p.category?.isActive ? { name: p.category.name, slug: p.category.slug, parent: p.category.parent } : null,
+    priceOnRequest: !!p.category && (p.category.priceOnRequest || !!p.category.parent?.priceOnRequest),
+    category: p.category?.isActive
+      ? { name: p.category.name, slug: p.category.slug, parent: p.category.parent ? { name: p.category.parent.name, slug: p.category.parent.slug } : null }
+      : null,
     images: p.images.map((i) => ({ key: i.media.storageKey, alt: i.alt, width: i.media.width, height: i.media.height })),
   };
 }
@@ -228,7 +240,7 @@ export async function getRelatedProducts(productId: string, categorySlug: string
       price: true,
       compareAtPrice: true,
       stock: true,
-      category: { select: { name: true } },
+      category: cardCategorySelect,
       images: { orderBy: { sortOrder: "asc" }, take: 1, select: { alt: true, media: { select: { storageKey: true } } } },
     },
   });
@@ -242,5 +254,6 @@ export async function getRelatedProducts(productId: string, categorySlug: string
     imageKey: p.images[0]?.media.storageKey ?? null,
     imageAlt: p.images[0]?.alt ?? null,
     categoryName: p.category?.name ?? null,
+    priceOnRequest: isPriceOnRequest(p.category),
   }));
 }

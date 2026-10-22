@@ -16,7 +16,8 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().min(1).default("./storage/uploads"),
 
   // Optional integrations — features stay disabled until configured.
-  PAYMENT_PROVIDER: z.enum(["disabled", "zarinpal"]).default("disabled"),
+  /** "sandbox" is a local test gateway and is refused in production. Real providers are added when credentials arrive. */
+  PAYMENT_PROVIDER: z.enum(["disabled", "sandbox"]).default("disabled"),
   PAYMENT_MERCHANT_ID: z.string().optional(),
   SMS_PROVIDER: z.enum(["log", "smsir"]).default("log"),
   SMS_API_KEY: z.string().optional(),
@@ -38,6 +39,9 @@ function loadEnv(): Env {
     throw new Error(`Invalid environment variables:\n${issues}`);
   }
   const env = parsed.data;
+  if (env.NODE_ENV === "production" && env.PAYMENT_PROVIDER === "sandbox") {
+    throw new Error("PAYMENT_PROVIDER=sandbox is for development only");
+  }
   if (env.SMS_PROVIDER === "smsir" && (!env.SMS_API_KEY || !env.SMS_TEMPLATE_ID)) {
     throw new Error("SMS_PROVIDER=smsir requires SMS_API_KEY and SMS_TEMPLATE_ID");
   }

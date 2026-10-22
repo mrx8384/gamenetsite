@@ -31,6 +31,7 @@ export const categorySchema = z.object({
   parentId: z.string().trim().optional().transform((v) => v || null),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(0),
   isActive: z.boolean().default(true),
+  priceOnRequest: z.boolean().default(false),
 });
 
 export const productImageSchema = z.object({ mediaId: z.string().min(1), alt: z.string().trim().max(200).default("") });

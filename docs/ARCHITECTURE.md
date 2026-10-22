@@ -139,7 +139,9 @@ Tokens (CSS variables → Tailwind theme):
 
 ## 6. Payment & email integration points
 
-- `PaymentProvider` interface: `createPayment(order) → redirectUrl`, `verify(callback) → result`. Implementations added when the owner chooses a provider (e.g. Zarinpal, IDPay, Pay.ir). Enabled only via env + admin setting.
+- `PaymentProvider` (`src/features/payments/types.ts`): `createPayment({paymentId, amount, description, callbackUrl, mobile}) → {authority, redirectUrl}` and `verifyPayment({authority, amount, callbackParams}) → ok/refId | fail`. Active provider comes from `PAYMENT_PROVIDER`; `sandbox` is a dev-only test gateway (env validation refuses it in production).
+- Order lifecycle: `AWAITING_PAYMENT` (stock reserved, 20-min `paymentDeadline`) → callback verified server-to-server → `PAID` | failed/expired → `CANCELLED` (stock restored, `ORDER_CANCEL` movements). Late payment after expiry: stock re-reserved if available, otherwise the order stays cancelled and is flagged for refund. Admin transitions: PAID→PROCESSING→SHIPPED→DELIVERED, cancel before shipping, REFUNDED marker.
+- Online sales switch (`site_settings.commerce.salesEnabled`) can only be turned on when a provider is configured; cart and checkout are closed otherwise.
 - `Mailer` and `SmsSender` interfaces for login codes, password reset and notifications. In development both write to the server log (`MAIL_PROVIDER=log`, `SMS_PROVIDER=log`). Production: SMTP + an Iranian SMS provider (Kavenegar / SMS.ir), chosen by the owner.
 - Login and password recovery work with **email or mobile number** (owner decision). Codes are stored only as hashes in `VerificationCode`, with expiry and attempt limits.
 

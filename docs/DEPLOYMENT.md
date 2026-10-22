@@ -15,6 +15,7 @@ Target: Iranian VPS, Node.js ≥ 22.12, PostgreSQL 16, nginx in front.
 | `SMS_TEMPLATE_ID` | `490537` (SMS.ir verify template with `#CODE#`) |
 | `SMS_TEMPLATE_PARAM` | `CODE` |
 | `MAIL_PROVIDER` | `log` until an SMTP mailbox exists |
+| `PAYMENT_PROVIDER` | `disabled` until the real gateway is implemented. **Never `sandbox` in production** (the app refuses to start) |
 
 ## 2. First run
 

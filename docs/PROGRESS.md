@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-10-22 (7) — Phase 7 completed (cart, checkout, orders)
+
+### Owner decisions
+- Shipping paid with the order through the gateway (flat amount set in admin, default 0).
+- Online sales stay closed; the owner opens them from the admin panel once the gateway is connected (gateway API will be sent).
+- Per-category «جهت استعلام قیمت تماس بگیرید».
+
+### Done
+- Schema: `categories.priceOnRequest`, `orders.paymentDeadline` (migration `commerce`).
+- Settings: `commerce` (salesEnabled, shippingCost, priceInquiryPhone) + Admin → تنظیمات فروش.
+- Payments: provider interface, dev-only sandbox gateway + sandbox page, callback route.
+- Cart, checkout, addresses, order service (reserve / cancel / expire / late payment), customer orders pages, admin orders pages, dashboard order stats, header cart icon, product purchase box.
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 70/70) · `pnpm build` ✓.
+- Production build with sales closed (12 checks): closed notices, no cart icon/button, price-on-request on product + listing + sub-category, no price in JSON-LD, open-sales button disabled.
+- Direct Server Action calls over HTTP (bypassing the UI): admin can't open sales without a gateway; USER gets «دسترسی غیرمجاز» for 5 admin actions (DB unchanged); anonymous calls never execute; cross-origin call rejected by Next's CSRF check; addToCart refused while closed.
+- Dev server + sandbox gateway (27 checks): guest cart + merge on login, address validation, payment success (PAID, reference, stock 5→3, cart emptied), payment failure (cancel + restore), expiry auto-cancel, late payment re-reserve, callback replay idempotent, last-unit race (one buyer reaches the gateway, the other gets "insufficient stock", stock 0 — re-verified), order ownership, admin PAID→PROCESSING→SHIPPED with tracking note visible to the customer, admin cancel restores stock, cart blocks unavailable products, inventory history. Two checks first failed only because the test expected Rial instead of Toman amounts (DB totals verified correct).
+- Bugs found and fixed: interim `/game-catalog/[platform]` read params outside Suspense (background regeneration error); account nav `usePathname()` on a dynamic route broke the build; cart reads needed `connection()`; admin order page too cramped at 1280px.
+- All test data removed; `PAYMENT_PROVIDER` remains disabled.
+
 ## 2026-10-22 (6) — Phase 6 completed (store & product management)
 
 ### Owner input

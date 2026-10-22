@@ -26,6 +26,7 @@ export interface CategoryFormData {
   parentId: string | null;
   sortOrder: number;
   isActive: boolean;
+  priceOnRequest: boolean;
 }
 
 export function CategoryDialog({
@@ -47,6 +48,7 @@ export function CategoryDialog({
     parentId: category?.parentId ?? "",
     sortOrder: category?.sortOrder ?? 0,
     isActive: category?.isActive ?? true,
+    priceOnRequest: category?.priceOnRequest ?? false,
   };
   const form = useForm<Values, unknown, z.output<typeof categorySchema>>({ resolver: zodResolver(categorySchema), defaultValues: defaults });
 
@@ -158,6 +160,19 @@ export function CategoryDialog({
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!field.value} onChange={(e) => field.onChange(e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" />
                   نمایش در فروشگاه
+                </label>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="priceOnRequest"
+              render={({ field }) => (
+                <label className="flex cursor-pointer items-start gap-2 text-sm">
+                  <input type="checkbox" checked={!!field.value} onChange={(e) => field.onChange(e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" />
+                  <span>
+                    «جهت استعلام قیمت تماس بگیرید»
+                    <span className="block text-xs text-muted-foreground">قیمت محصولات این دسته و زیردسته‌هایش نمایش داده نمی‌شود و خرید آنلاین ندارند.</span>
+                  </span>
                 </label>
               )}
             />

@@ -27,7 +27,7 @@ async function CategoriesContent() {
   await requireRole(["ADMIN"], "/admin/categories");
   const rows = await db.category.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, slug: true, description: true, parentId: true, sortOrder: true, isActive: true, _count: { select: { products: true, children: true } } },
+    select: { id: true, name: true, slug: true, description: true, parentId: true, sortOrder: true, isActive: true, priceOnRequest: true, _count: { select: { products: true, children: true } } },
   });
   const roots = rows.filter((r) => !r.parentId);
   const ordered = roots.flatMap((r) => [r, ...rows.filter((c) => c.parentId === r.id)]);
@@ -66,11 +66,16 @@ async function CategoriesContent() {
                 <TableCell className="text-muted-foreground">{c.slug}</TableCell>
                 <TableCell>{formatNumber(c._count.products)}</TableCell>
                 <TableCell>{formatNumber(c.sortOrder)}</TableCell>
-                <TableCell>{c.isActive ? <Badge variant="success">فعال</Badge> : <Badge variant="secondary">مخفی</Badge>}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {c.isActive ? <Badge variant="success">فعال</Badge> : <Badge variant="secondary">مخفی</Badge>}
+                    {c.priceOnRequest ? <Badge variant="info">استعلام قیمت</Badge> : null}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <CategoryDialog
-                      category={{ id: c.id, name: c.name, slug: c.slug, description: c.description, parentId: c.parentId, sortOrder: c.sortOrder, isActive: c.isActive }}
+                      category={{ id: c.id, name: c.name, slug: c.slug, description: c.description, parentId: c.parentId, sortOrder: c.sortOrder, isActive: c.isActive, priceOnRequest: c.priceOnRequest }}
                       parents={parents}
                       trigger={<Button variant="ghost" size="icon-sm" aria-label={`ویرایش ${c.name}`}><Pencil /></Button>}
                     />

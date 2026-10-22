@@ -32,14 +32,14 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/users", label: "کاربران", icon: Users, available: true },
   { href: "/admin/products", label: "محصولات", icon: Package, available: true },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree, available: true },
-  { href: "/admin/orders", label: "سفارش‌ها", icon: Receipt, available: false },
+  { href: "/admin/orders", label: "سفارش‌ها", icon: Receipt, available: true },
   { href: "/admin/partners", label: "همکاران", icon: Handshake, available: false },
   { href: "/admin/subscriptions", label: "اشتراک‌ها", icon: Repeat, available: false },
   { href: "/admin/news", label: "اخبار", icon: Newspaper, available: false },
   { href: "/admin/messages", label: "پیام‌ها", icon: Mail, available: false },
   { href: "/admin/game-catalog", label: "کاتالوگ بازی‌ها", icon: Gamepad2, available: false },
   { href: "/admin/tournaments", label: "تورنومنت", icon: Trophy, available: false },
-  { href: "/admin/settings", label: "تنظیمات سایت", icon: Settings, available: false },
+  { href: "/admin/settings", label: "تنظیمات فروش", icon: Settings, available: true },
 ];
 
 export function AdminNav() {
