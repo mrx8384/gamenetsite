@@ -70,7 +70,9 @@ async function ShopContent({ searchParams }: { searchParams: Promise<SP> }) {
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <p className="mb-3 text-sm font-bold">دسته‌بندی‌ها</p>
         <ul className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
-          <CategoryLink href={hrefWith(filters, { category: null, page: 1 })} active={!filters.category} label="همهٔ محصولات" />
+          <li className="contents lg:block">
+            <CategoryLink href={hrefWith(filters, { category: null, page: 1 })} active={!filters.category} label="همهٔ محصولات" />
+          </li>
           {roots.map((c) => (
             <li key={c.id} className="contents lg:block">
               <CategoryLink href={hrefWith(filters, { category: c.slug, page: 1 })} active={filters.category === c.slug} label={c.name} count={c.productCount} />

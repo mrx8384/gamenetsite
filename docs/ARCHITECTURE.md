@@ -42,7 +42,8 @@ Uploads storage (local disk now → S3-compatible later)
 | Input | Zod everywhere; rich text sanitized on save (allow-list) |
 | Uploads | Size limit, MIME by magic bytes, image re-encode (`sharp`), random names, served with correct `Content-Type`, no SVG uploads |
 | Secrets | `.env` (git-ignored), validated by Zod env schema at boot; `.env.example` with names only |
-| Headers | CSP, HSTS, X-Content-Type-Options, Referrer-Policy, frame-ancestors |
+| Headers | `next.config.ts`: CSP (same-origin only; `'unsafe-inline'` scripts because nonce CSP is incompatible with Partial Prerendering; `frame-ancestors 'none'`, `form-action 'self'`, `object-src 'none'`), HSTS + `upgrade-insecure-requests` when `APP_URL` is https, nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, COOP. `/media/*` keeps its own `default-src 'none'; sandbox` |
+| Operations | `pnpm maintenance` (daily cron), `scripts/backup.sh` (pg_dump + uploads, retention), `pnpm test:e2e` (read-only smoke test), `/api/health`; app binds to 127.0.0.1 behind nginx |
 | Password reset | Random token, only SHA-256 hash stored, 30-minute expiry, single use, same response whether or not the email exists |
 
 ### Why not Auth.js

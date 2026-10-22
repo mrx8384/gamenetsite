@@ -49,6 +49,7 @@ export async function saveAddress(id: string | null, input: unknown): Promise<Ac
 export async function deleteAddress(id: string): Promise<ActionResult<undefined>> {
   const s = await session();
   if (!s) return fail(LOGIN_REQUIRED);
+  if (typeof id !== "string") return fail("درخواست نامعتبر است.");
   const { count } = await db.address.deleteMany({ where: { id, userId: s.user.id } });
   revalidatePath("/checkout");
   return count ? ok(undefined, "آدرس حذف شد.") : fail("آدرس پیدا نشد.");

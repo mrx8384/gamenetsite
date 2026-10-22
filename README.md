@@ -26,5 +26,12 @@ pnpm dev                     # http://localhost:3000
 | `pnpm check` | Typecheck + lint + unit tests |
 | `pnpm db:migrate` | Create & apply migrations (dev) |
 | `pnpm db:deploy` | Apply migrations (production) |
+| `pnpm admin:create` | Create an admin account (no default admin exists) |
+| `pnpm catalog:import <file.db>` | Import the original game catalog (replaces the catalog) |
+| `pnpm maintenance [--media] [--dry-run]` | Daily cleanup (run from cron) |
+| `./scripts/backup.sh` | Database + uploads backup with retention |
+| `BASE_URL=… pnpm test:e2e` | Read-only smoke test against a running site |
 
 Development-only design reference: `/design-system`. Health check: `/api/health`.
+
+Production setup (systemd, nginx, cron, backups, updates): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).

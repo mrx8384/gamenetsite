@@ -15,7 +15,7 @@ Each phase: plan (scope, files, dependencies, risks) → owner approval when it 
 | 9 | Game Catalog integration | Option C: ported module, lossless `catalog.db` importer (UI + CLI), `/game-catalog`, `/admin/game-catalog`, ZIP export | **Done** |
 | 10 | Partners | Partner application, admin approve/reject/suspend, partner dashboard, subscription status UI, plans (purchase disabled), `hasEntitlement` | **Done** |
 | 11 | Tournament & Gamepad Tester placeholders | `/tournaments` («بخش تورنومنت به‌زودی فعال می‌شود.»), `/tournaments/gamepad-tester` with entitlement boundary, module skeleton, admin placeholder | **Done** |
-| 12 | QA & hardening | Unit + e2e tests for critical flows, security review, headers/CSP, accessibility, responsive pass, performance, deployment docs | Not started |
+| 12 | QA & hardening | Security review, CSP, robots/sitemap, maintenance + backup scripts, accessibility & responsive sweep, e2e smoke test, deployment guide | **Done** |
 
 ## Admin panel modules (built across phases)
 

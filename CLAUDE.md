@@ -31,7 +31,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 9 (Game Catalog port + import): **done**. Real catalog (85 games) imported.
 - Phase 10 (partners & subscriptions, purchasing disabled): **done**.
 - Manual (free) subscription grants by admin: **done** (owner approved 2026-10-22).
-- Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**. Next: Phase 12 (QA, hardening, CSP, maintenance, deployment).
+- Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**.
+- Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete. Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -61,7 +62,7 @@ Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 | Validation / forms | Zod 4, React Hook Form 7 + `@hookform/resolvers` |
 | Toasts | sonner |
 | Rich text | Tiptap 3.31 (StarterKit, Image, TextAlign, Placeholder). Editor emits JSON; server sanitizes (`src/lib/rich-text/sanitize.ts`) and renders HTML with `@tiptap/html/server` — raw HTML from clients is never stored |
-| Tests | Vitest 4 (unit, `tests/unit`), Playwright (e2e, Phase 12; Chromium at `/opt/pw-browsers/chromium`) |
+| Tests | Vitest 4 (unit, `tests/unit`), `playwright-core` + `@axe-core/playwright` read-only smoke test (`tests/e2e/smoke.mjs`, `pnpm test:e2e`; Chromium at `/opt/pw-browsers/chromium` in the dev container via `CHROMIUM_PATH`) |
 
 Versions are pinned deliberately: TypeScript 7 and Prisma 8 were too new/pre-release at setup time.
 | Game Catalog | Ported into the Next.js app + PostgreSQL (option C, approved). Lossless importer from the original SQLite DB via Node 22 `node:sqlite`; QR via `qrcode` |
@@ -130,7 +131,8 @@ Full rationale in `docs/ARCHITECTURE.md`.
 - shadcn's online registry is blocked in the dev environment, so UI components are written by hand in shadcn style under `src/components/ui` (same structure, `radix-ui` package).
 - Text colors: never white on atomic green. Use black on green (`bg-primary`), `text-link` (deep green `#00703C`) for links. Enforced by `tests/unit/brand-contrast.test.ts`.
 - Mark LTR snippets (emails, phones, codes, URLs) with the `ltr` class or `dir="ltr"`.
-- Scripts: `pnpm check` (typecheck + lint + tests), `pnpm build`, `pnpm db:migrate`.
+- Scripts: `pnpm check` (typecheck + lint + tests), `pnpm build`, `pnpm db:migrate`, `pnpm maintenance`, `pnpm test:e2e`.
+- CSP: no external origins. A new third-party script/style/frame/form target (e.g. a payment gateway that needs a browser POST) must be added to `csp` in `next.config.ts` deliberately.
 
 - TypeScript strict, no `any` without a comment explaining why.
 - Server-only modules import `server-only`. Secrets only via `process.env`, validated at startup by a Zod env schema. Never `NEXT_PUBLIC_` for secrets.
@@ -144,6 +146,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 12: security review (every Server Action/route handler checked for auth + ownership; no secrets in git history; `pnpm audit` clean), CSP + COOP headers (`next.config.ts`; media route keeps its sandbox CSP), `robots.txt`, `sitemap.xml` (products + news, per request), metadataBase/OpenGraph, `pnpm maintenance` (sessions, codes, rate limits, guest carts, unpaid orders, ended subscriptions, `--media` prunes unused/stray uploads > 24 h incl. rich-text references), `scripts/backup.sh` (verified restore), `pnpm test:e2e` smoke test, full `docs/DEPLOYMENT.md` (systemd bound to 127.0.0.1, nginx, cron, restore, updates, go-live checklist).
 - Phase 11 + grants: `/tournaments/gamepad-tester` access panel via `getGamepadAccess()` (`src/features/gamepad-tester/access.ts`, `GAMEPAD_TESTER_ENABLED = false`), `src/features/tournaments` placeholder (`TOURNAMENTS_ENABLED = false`), `/admin/tournaments` placeholder; manual grants/cancel in `src/features/subscriptions/admin-actions.ts` (renewals queue via `nextGrantStart`, phases via `subscriptionPhase`).
 - Phase 10: partners (`src/features/partners`): public `/partners`, applicant/partner area `/partner` (apply → pending → rejected/resubmit → approved dashboard; suspended), admin `/admin/partners` (review with reasons; PARTNER role mirrors APPROVED, changed only there), admin `/admin/subscriptions` (plans; purchase disabled via `SUBSCRIPTION_PURCHASE_ENABLED = false`, `isActive` never set), `hasEntitlement()` in `src/features/subscriptions/entitlements.ts` — the only gate for partner features.
 - Phase 9: Game Catalog module (`src/features/game-catalog`): importer (UI + `pnpm catalog:import`), public `/game-catalog` + `/game-catalog/ps4|ps5` (search, chips, grouped grid, lightbox with keys/swipe, 30 s live refresh via `/api/catalog/version`), admin `/admin/game-catalog` (tabs, bulk upload, edit/replace/move/delete, rename flag, categories with merge/reorder, QR, ZIP export, `.db` restore via `POST /api/admin/catalog/import` with ADMIN + same-origin check). Restoring a `.db` **replaces** the whole catalog.

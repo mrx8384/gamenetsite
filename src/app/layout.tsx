@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import { getSiteSettings } from "@/features/settings/site";
 import { siteConfig } from "@/lib/brand";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 // Self-hosted (no external CDN): reliable on Iranian hosting.
@@ -20,6 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
     description: general.siteDescription,
     applicationName: siteConfig.name,
+    metadataBase: new URL(env.APP_URL),
+    openGraph: {
+      type: "website",
+      locale: "fa_IR",
+      siteName: siteConfig.name,
+      description: general.siteDescription,
+      images: [{ url: "/brand/atom-logo-256.png", width: 256, height: 256, alt: siteConfig.name }],
+    },
+    twitter: { card: "summary" },
   };
 }
 

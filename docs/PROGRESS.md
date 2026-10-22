@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-10-22 (13) — Phase 12 completed (QA, hardening, deployment)
+
+### Security review
+- Every exported Server Action (60) and route handler checked: admin actions call `assertRole(["ADMIN"])`; user actions require a session and scope queries to the user's own rows (addresses, orders, cart items, sessions); public actions are rate limited. Added a type check in `deleteAddress`.
+- Raw HTML only in: sanitized rich text, escaped JSON-LD, server-generated QR SVG. No open redirects (`safeRedirectPath`).
+- No secret in the git history (SMS key, AUTH_SECRET checked); `.env`, databases and uploads are not tracked. `pnpm audit --prod`: no known vulnerabilities.
+
+### Hardening
+- CSP (same-origin only; inline scripts allowed because nonce CSP is incompatible with Partial Prerendering), COOP, HSTS and `upgrade-insecure-requests` when `APP_URL` is https. The media route keeps its stricter sandbox CSP (fixed: the global header had overridden it).
+- `robots.txt` (private areas disallowed), `sitemap.xml` (static pages + active products + published news), `metadataBase` + OpenGraph defaults.
+- `pnpm maintenance` with `--dry-run` and `--media`; tested with fixtures: an old unreferenced upload and a stray file were removed, an upload referenced inside page HTML and a fresh upload were kept. Bug found and fixed before use: wrong column names in the rich-text reference query.
+- `scripts/backup.sh`: pg_dump (custom format, verified) + uploads tarball, owner-only, retention. **Restore tested** into a scratch database (85 catalog games restored).
+- `docs/DEPLOYMENT.md` rewritten: env table, server prep, systemd unit bound to 127.0.0.1 (prevents IP spoofing around nginx), nginx with per-route body limits and static caching, cron, restore, updates/rollback, go-live checklist, CSP note for payment gateways.
+
+### QA
+- Full sweep on the production build with fixtures (89 checks, all pass after fixes): 17 public, 5 user and 18 admin pages → HTTP 200, CSP header, `lang=fa dir=rtl`, no console errors, **no CSP violations**, **no serious/critical axe (WCAG 2 A/AA) issues**; rich-text editor works under CSP; mobile overflow; 404 status; media headers; media path traversal blocked. Fixed: invalid list markup in the shop category sidebar (axe `list`), media CSP override.
+- Regression under the new headers: Phase 9 (catalog, 43), Phase 10 (partners, 40), Phase 11 (gamepad/grants, 30) suites re-run; only outdated test expectations failed (updated). Real catalog verified identical to the owner's file again (85/85).
+- New `pnpm test:e2e` read-only smoke test in the repo: 84/84 pass.
+- `pnpm check` ✓ · `pnpm build` ✓. All QA data removed.
+
+### Waiting on the owner
+- Payment gateway provider + credentials (then implement the provider, check CSP `form-action`, and open sales from the admin panel).
+- SMTP mailbox on the site domain (email codes/notifications).
+- Domain + Iranian VPS to deploy (follow `docs/DEPLOYMENT.md`); regenerate the SMS.ir API key.
+- Rename the 50 catalog games flagged «نیاز به تغییر نام».
+
 ## 2026-10-22 (12) — Manual subscription grants + Phase 11 (tournament & Gamepad Tester placeholders)
 
 ### Owner decision
