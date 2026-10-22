@@ -27,7 +27,9 @@ NO_SYSTEMD="${ATOM_NO_SYSTEMD:-0}"   # testing only (containers without systemd)
 say()  { printf '\n\033[1;32m▶ %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m! %s\033[0m\n' "$*"; }
 die()  { printf '\n\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
-as_app() { sudo -u "$APP_USER" -H bash -c "cd '$APP_DIR' && $*"; }
+# Keep proxy settings (if the server uses one) when running commands as the app user.
+KEEP_ENV="HTTP_PROXY,HTTPS_PROXY,NO_PROXY,http_proxy,https_proxy,no_proxy,NODE_EXTRA_CA_CERTS,SSL_CERT_FILE,npm_config_https_proxy,npm_config_noproxy"
+as_app() { sudo -u "$APP_USER" -H --preserve-env="$KEEP_ENV" bash -c "cd '$APP_DIR' && $*"; }
 
 [[ $EUID -eq 0 ]] || die "Run as root (e.g. sudo bash install.sh)."
 . /etc/os-release
@@ -122,7 +124,7 @@ say "Getting the latest code"
 if [[ -d "$APP_DIR/.git" ]]; then
   as_app "git fetch --depth 1 origin '$BRANCH' && git reset --hard 'origin/$BRANCH'"
 else
-  sudo -u "$APP_USER" -H git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+  sudo -u "$APP_USER" -H --preserve-env="$KEEP_ENV" git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 fi
 
 # ───────────── nginx (+ HTTPS) ─────────────
