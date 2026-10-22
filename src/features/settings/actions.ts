@@ -9,13 +9,11 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import { fail, ok, zodFieldErrors, type ActionResult } from "@/lib/action-result";
 import { toEnglishDigits } from "@/lib/format";
 import { getRequestInfo } from "@/lib/request-info";
-import { parseTomanToRial } from "@/lib/text";
 import { getPaymentProvider } from "@/features/payments";
 import { COMMERCE_KEY } from "./commerce";
 
 const inputSchema = z.object({
   salesEnabled: z.boolean(),
-  shippingCostToman: z.string().trim().refine((v) => parseTomanToRial(v || "0") !== null, "مبلغ معتبر نیست"),
   priceInquiryPhone: z
     .string()
     .trim()
@@ -38,7 +36,6 @@ export async function saveCommerceSettings(input: unknown): Promise<ActionResult
   }
   const value = {
     salesEnabled: parsed.data.salesEnabled,
-    shippingCost: parseTomanToRial(parsed.data.shippingCostToman || "0")!.toString(),
     priceInquiryPhone: parsed.data.priceInquiryPhone,
   };
   await db.siteSetting.upsert({ where: { key: COMMERCE_KEY }, create: { key: COMMERCE_KEY, value }, update: { value } });

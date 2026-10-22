@@ -14,6 +14,7 @@ import {
   Repeat,
   Settings,
   Trophy,
+  Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/products", label: "محصولات", icon: Package, available: true },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree, available: true },
   { href: "/admin/orders", label: "سفارش‌ها", icon: Receipt, available: true },
+  { href: "/admin/shipping", label: "روش‌های ارسال", icon: Truck, available: true },
   { href: "/admin/partners", label: "همکاران", icon: Handshake, available: false },
   { href: "/admin/subscriptions", label: "اشتراک‌ها", icon: Repeat, available: false },
   { href: "/admin/news", label: "اخبار", icon: Newspaper, available: false },

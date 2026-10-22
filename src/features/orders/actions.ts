@@ -89,6 +89,8 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
 
   await expireStaleOrders();
 
+  const shipping = await db.shippingMethod.findFirst({ where: { id: parsed.data.shippingMethodId, isActive: true } });
+  if (!shipping) return fail("روش ارسال را انتخاب کنید.", { shippingMethodId: "روش ارسال معتبر نیست." });
   const address = await db.address.findFirst({ where: { id: parsed.data.addressId, userId: s.user.id } });
   if (!address) return fail("آدرس تحویل را انتخاب کنید.", { addressId: "آدرس معتبر نیست." });
   const cartId = await findCartId(s.user.id);
@@ -117,7 +119,8 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
         subtotal += lineTotal;
         return { p, quantity: ci.quantity, lineTotal };
       });
-      const shippingCost = BigInt(settings.shippingCost);
+      // پس‌کرایه: the carrier collects shipping on delivery, so nothing is charged online for it.
+      const shippingCost = shipping.type === "PREPAID" ? shipping.price : BigInt(0);
       const number = await generateOrderNumber(tx);
 
       const order = await tx.order.create({
@@ -135,6 +138,9 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           postalCode: address.postalCode,
           addressLine: address.line,
           customerNote: parsed.data.note || null,
+          shippingMethodId: shipping.id,
+          shippingMethodName: shipping.name,
+          shippingType: shipping.type,
           paymentDeadline: new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000),
           items: {
             create: lines.map((l) => ({ productId: l.p.id, titleSnapshot: l.p.title, skuSnapshot: l.p.sku, unitPrice: l.p.price, quantity: l.quantity, lineTotal: l.lineTotal })),

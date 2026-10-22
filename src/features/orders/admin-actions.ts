@@ -9,6 +9,7 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getRequestInfo } from "@/lib/request-info";
 import { ADMIN_TRANSITIONS, ORDER_STATUS_LABEL, type OrderStatusKey } from "./schemas";
+import { buildTrackingUrl } from "@/features/shipping/schemas";
 import { cancelOrderTx } from "./service";
 
 async function admin() {
@@ -23,6 +24,7 @@ async function admin() {
 const statusSchema = z.object({
   to: z.enum(["PENDING", "AWAITING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"]),
   note: z.string().trim().max(500).default(""),
+  trackingCode: z.string().trim().max(100).default(""),
 });
 
 export async function changeOrderStatus(orderId: string, input: unknown): Promise<ActionResult<undefined>> {
@@ -30,9 +32,9 @@ export async function changeOrderStatus(orderId: string, input: unknown): Promis
   if (!user) return fail("دسترسی غیرمجاز.");
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success || typeof orderId !== "string") return fail("درخواست نامعتبر است.");
-  const order = await db.order.findUnique({ where: { id: orderId }, select: { status: true } });
+  const order = await db.order.findUnique({ where: { id: orderId }, select: { status: true, shippingMethod: { select: { trackingUrl: true } } } });
   if (!order) return fail("سفارش پیدا نشد.");
-  const { to, note } = parsed.data;
+  const { to, note, trackingCode } = parsed.data;
   if (!ADMIN_TRANSITIONS[order.status as OrderStatusKey].includes(to)) {
     return fail(`تغییر وضعیت از «${ORDER_STATUS_LABEL[order.status]}» به «${ORDER_STATUS_LABEL[to]}» مجاز نیست.`);
   }
@@ -43,7 +45,11 @@ export async function changeOrderStatus(orderId: string, input: unknown): Promis
     updateTag(CACHE_TAGS.products);
   } else {
     const changed = await db.$transaction(async (tx) => {
-      const r = await tx.order.updateMany({ where: { id: orderId, status: order.status }, data: { status: to } });
+      const tracking =
+        to === "SHIPPED" && trackingCode
+          ? { trackingCode, trackingUrl: buildTrackingUrl(order.shippingMethod?.trackingUrl, trackingCode) }
+          : {};
+      const r = await tx.order.updateMany({ where: { id: orderId, status: order.status }, data: { status: to, ...tracking } });
       if (r.count) await tx.orderStatusHistory.create({ data: { orderId, from: order.status, to, actorId: user.id, note: note || null } });
       return r.count;
     });

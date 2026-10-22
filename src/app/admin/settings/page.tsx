@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "تنظیمات فروش" };
 export default function SettingsPage() {
   return (
     <>
-      <AdminPageHeader title="تنظیمات فروش" description="باز و بسته کردن فروش آنلاین، هزینهٔ ارسال و شمارهٔ استعلام قیمت. (سایر تنظیمات سایت در فاز ۸ اضافه می‌شود.)" />
+      <AdminPageHeader title="تنظیمات فروش" description="باز و بسته کردن فروش آنلاین و شمارهٔ استعلام قیمت. هزینهٔ ارسال در «روش‌های ارسال» تعیین می‌شود." />
       <Suspense fallback={<LoadingRows rows={4} />}>
         <SettingsContent />
       </Suspense>
@@ -27,7 +27,7 @@ async function SettingsContent() {
   return (
     <CommerceSettingsForm
       gatewayLabel={provider?.label ?? null}
-      initial={{ salesEnabled: s.salesEnabled, shippingCostToman: (BigInt(s.shippingCost) / BigInt(10)).toString(), priceInquiryPhone: s.priceInquiryPhone }}
+      initial={{ salesEnabled: s.salesEnabled, priceInquiryPhone: s.priceInquiryPhone }}
     />
   );
 }

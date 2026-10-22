@@ -312,6 +312,33 @@ model CartItem {
 
 // ───────────────────────── Orders & payments ─────────────────────────
 
+enum ShippingType {
+  /// Fixed cost, paid online together with the order.
+  PREPAID
+  /// «پس‌کرایه»: the carrier sets the cost and collects it on delivery (not via the site's gateway).
+  COLLECT
+}
+
+/// Shipping companies / methods managed by the admin.
+model ShippingMethod {
+  id          String       @id @default(cuid())
+  name        String       @db.VarChar(100)
+  description String?      @db.VarChar(300)
+  type        ShippingType
+  /// Rials; used only for PREPAID.
+  price       BigInt       @default(0)
+  /// Optional tracking page, e.g. "https://carrier.ir/track?code={code}".
+  trackingUrl String?      @db.VarChar(300)
+  isActive    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  orders Order[]
+
+  @@map("shipping_methods")
+}
+
 enum OrderStatus {
   PENDING
   AWAITING_PAYMENT
@@ -342,6 +369,12 @@ model Order {
   addressLine   String      @db.VarChar(300)
   customerNote  String?     @db.VarChar(500)
   adminNote     String?
+  // Shipping snapshot (method may be edited or deleted later)
+  shippingMethodId   String?
+  shippingMethodName String?       @db.VarChar(100)
+  shippingType       ShippingType?
+  trackingCode       String?       @db.VarChar(100)
+  trackingUrl        String?       @db.VarChar(300)
   /// Unpaid orders past this time are cancelled and their stock is released.
   paymentDeadline DateTime?
   paidAt        DateTime?
@@ -350,6 +383,7 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   user               User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  shippingMethod     ShippingMethod?      @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
   items              OrderItem[]
   statusHistory      OrderStatusHistory[]
   payments           Payment[]

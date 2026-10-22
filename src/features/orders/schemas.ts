@@ -22,6 +22,7 @@ export const addressSchema = z.object({
 
 export const placeOrderSchema = z.object({
   addressId: z.string().min(1, "آدرس تحویل را انتخاب کنید"),
+  shippingMethodId: z.string().min(1, "روش ارسال را انتخاب کنید"),
   note: z.string().trim().max(500).default(""),
 });
 

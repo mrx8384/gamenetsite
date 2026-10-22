@@ -1,5 +1,21 @@
 # Progress Log
 
+## 2026-10-22 (8) — Shipping methods incl. «پس‌کرایه»
+
+### Owner request
+Admin can add shipping companies; for «پس‌کرایه» the carrier sets the fee, collected on delivery without the site's gateway.
+
+### Done
+- `ShippingMethod` (type COLLECT / PREPAID, price, description, tracking URL template, active, order) + order snapshot fields (`shippingMethodName`, `shippingType`, `trackingCode`, `trackingUrl`); CHECK: COLLECT price must be 0.
+- Admin → روش‌های ارسال (create/edit/delete, https + `{code}` validation). Flat shipping removed from sales settings.
+- Cart shows "shipping chosen at checkout"; checkout lists active methods with a live summary («مبلغ قابل پرداخت آنلاین»); پس‌کرایه excluded from the online amount with a clear notice.
+- `placeOrder` validates the method server-side; admin enters a tracking code when shipping; customer sees code + carrier link.
+
+### Verification
+- `pnpm check` ✓ (70/70) · `pnpm build` ✓.
+- E2E with the sandbox gateway (16 checks, all pass): method CRUD and validation, only active methods listed, prepaid total adds 80,000, پس‌کرایه total excludes shipping and shows the carrier notice, deactivated method refused by the server, gateway amount = goods only, order snapshot (COLLECT, shipping 0), tracking link `…?code=TPX%20778899` with `noopener`, deleting a used method keeps the order snapshot.
+- Test data removed.
+
 ## 2026-10-22 (7) — Phase 7 completed (cart, checkout, orders)
 
 ### Owner decisions

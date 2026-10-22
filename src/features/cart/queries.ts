@@ -1,7 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
 import { db } from "@/lib/db";
-import { getCommerceSettings } from "@/features/settings/commerce";
 import { findCartId } from "./service";
 
 export type CartLineIssue = "unavailable" | "price_on_request" | "out_of_stock" | "insufficient_stock" | null;
@@ -23,8 +22,6 @@ export interface CartView {
   lines: CartLine[];
   itemCount: number;
   subtotal: string;
-  shipping: string;
-  total: string;
   /** True when every line can be ordered. */
   orderable: boolean;
 }
@@ -32,7 +29,7 @@ export interface CartView {
 /** Current cart with live prices and availability (never trust stored prices). */
 export async function getCartView(userId: string | null): Promise<CartView> {
   await connection(); // request-time only (cookies, expiry checks)
-  const [cartId, settings] = await Promise.all([findCartId(userId), getCommerceSettings()]);
+  const cartId = await findCartId(userId);
   const items = cartId
     ? await db.cartItem.findMany({
         where: { cartId },
@@ -64,15 +61,7 @@ export async function getCartView(userId: string | null): Promise<CartView> {
     };
   });
   const orderable = lines.length > 0 && lines.every((l) => !l.issue);
-  const shipping = lines.length > 0 ? BigInt(settings.shippingCost) : BigInt(0);
-  return {
-    lines,
-    itemCount: lines.reduce((n, l) => n + l.quantity, 0),
-    subtotal: subtotal.toString(),
-    shipping: shipping.toString(),
-    total: (subtotal + shipping).toString(),
-    orderable,
-  };
+  return { lines, itemCount: lines.reduce((n, l) => n + l.quantity, 0), subtotal: subtotal.toString(), orderable };
 }
 
 export async function getCartCount(userId: string | null): Promise<number> {

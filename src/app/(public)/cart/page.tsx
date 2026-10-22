@@ -65,7 +65,7 @@ async function CartContent() {
         ))}
       </ul>
       <div className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-        <OrderSummary subtotal={cart.subtotal} shipping={cart.shipping} total={cart.total}>
+        <OrderSummary subtotal={cart.subtotal} shipping={{ kind: "pending" }}>
           {cart.orderable ? (
             <Button asChild size="lg" className="w-full"><Link href="/checkout">ادامه و ثبت سفارش</Link></Button>
           ) : (

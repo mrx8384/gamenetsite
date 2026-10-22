@@ -32,6 +32,6 @@ Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), P
 2. SMS.ir: create a **verify template** in the SMS.ir panel containing `#CODE#` (e.g. «کد تأیید آتم گیم کلاب: #CODE#») and send its **template ID**. Then set `SMS_PROVIDER=smsir` and `SMS_TEMPLATE_ID` on the server. Recommended: regenerate the API key (it was shared in chat) and enter the new one directly in the server's `.env`.
 3. Email: site domain + an SMTP mailbox from the host (e.g. `no-reply@<domain>`).
 4. **Payment gateway** credentials and provider name (owner will send) → implement provider, then the owner opens sales from Admin → تنظیمات فروش.
-5. Shipping cost amount (currently 0 / free) and the phone number for «استعلام قیمت» — both editable in Admin → تنظیمات فروش.
+5. Add the real shipping companies in Admin → روش‌های ارسال (پس‌کرایه or fixed price) and the «استعلام قیمت» phone in Admin → تنظیمات فروش. At least one active shipping method is required for checkout.
 
 Interim pages (replace when their phase ships): /news, /about, /contact (P8), /game-catalog + /game-catalog/[platform] (P9), /partners (P10), /tournaments/gamepad-tester (P11).

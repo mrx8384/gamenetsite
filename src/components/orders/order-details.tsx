@@ -16,6 +16,10 @@ export interface OrderDetailData {
   postalCode: string;
   addressLine: string;
   customerNote: string | null;
+  shippingMethodName: string | null;
+  shippingType: "PREPAID" | "COLLECT" | null;
+  trackingCode: string | null;
+  trackingUrl: string | null;
   statusHistory: { id: string; from: OrderStatusKey | null; to: OrderStatusKey; note: string | null; createdAt: Date }[];
 }
 
@@ -66,7 +70,7 @@ export function OrderDetails({ order, stacked = false }: { order: OrderDetailDat
         <Card>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">جمع کالاها</span><span>{formatToman(order.subtotal)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">هزینهٔ ارسال</span><span>{order.shippingCost === BigInt(0) ? "رایگان" : formatToman(order.shippingCost)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">هزینهٔ ارسال</span><span>{order.shippingType === "COLLECT" ? "پس‌کرایه" : order.shippingCost === BigInt(0) ? "رایگان" : formatToman(order.shippingCost)}</span></div>
             {order.discount > BigInt(0) ? <div className="flex justify-between"><span className="text-muted-foreground">تخفیف</span><span>{formatToman(order.discount)}</span></div> : null}
             <div className="flex justify-between border-t pt-2 text-base font-black"><span>مبلغ کل</span><span>{formatToman(order.total)}</span></div>
           </CardContent>
@@ -77,6 +81,20 @@ export function OrderDetails({ order, stacked = false }: { order: OrderDetailDat
             <p className="font-semibold">{order.recipientName} · <span className="ltr">{toPersianDigits(order.phone)}</span></p>
             <p className="text-muted-foreground">{order.province}، {order.city}، {order.addressLine}</p>
             <p className="text-muted-foreground">کد پستی: <span className="ltr">{toPersianDigits(order.postalCode)}</span></p>
+            {order.shippingMethodName ? (
+              <p className="border-t pt-2">
+                روش ارسال: <span className="font-semibold">{order.shippingMethodName}</span>
+                {order.shippingType === "COLLECT" ? <span className="block text-xs text-muted-foreground">پس‌کرایه — هزینهٔ ارسال هنگام تحویل به شرکت حمل پرداخت می‌شود.</span> : null}
+              </p>
+            ) : null}
+            {order.trackingCode ? (
+              <p>
+                کد رهگیری: <span className="ltr font-semibold">{order.trackingCode}</span>
+                {order.trackingUrl ? (
+                  <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="ms-2 text-link hover:underline">پیگیری مرسوله</a>
+                ) : null}
+              </p>
+            ) : null}
             {order.customerNote ? <p className="border-t pt-2 text-muted-foreground">توضیحات: {order.customerNote}</p> : null}
           </CardContent>
         </Card>

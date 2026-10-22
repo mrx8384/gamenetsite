@@ -16,6 +16,7 @@ export function OrderAdminPanel({ orderId, transitions, adminNote }: { orderId: 
   const router = useRouter();
   const [target, setTarget] = React.useState<OrderStatusKey | null>(null);
   const [note, setNote] = React.useState("");
+  const [tracking, setTracking] = React.useState("");
   const [memo, setMemo] = React.useState(adminNote);
   const [saving, startSaving] = React.useTransition();
 
@@ -28,7 +29,7 @@ export function OrderAdminPanel({ orderId, transitions, adminNote }: { orderId: 
             <p className="text-sm text-muted-foreground">تغییر وضعیت به:</p>
             <div className="flex flex-wrap gap-2">
               {transitions.map((t) => (
-                <Button key={t} variant={t === "CANCELLED" || t === "REFUNDED" ? "outline" : "default"} size="sm" onClick={() => { setNote(""); setTarget(t); }}>
+                <Button key={t} variant={t === "CANCELLED" || t === "REFUNDED" ? "outline" : "default"} size="sm" onClick={() => { setNote(""); setTracking(""); setTarget(t); }}>
                   {ORDER_STATUS_LABEL[t]}
                 </Button>
               ))}
@@ -64,12 +65,15 @@ export function OrderAdminPanel({ orderId, transitions, adminNote }: { orderId: 
           description={
             <span className="grid gap-2">
               {target === "CANCELLED" ? "موجودی کالاهای این سفارش به انبار برمی‌گردد. اگر مبلغی پرداخت شده، بازپرداخت را جداگانه انجام دهید." : "این تغییر در تاریخچهٔ سفارش ثبت می‌شود."}
-              <Input placeholder="توضیح (اختیاری) — مثلاً کد رهگیری پست" value={note} onChange={(e) => setNote(e.target.value)} aria-label="توضیح" />
+              {target === "SHIPPED" ? (
+                <Input placeholder="کد رهگیری مرسوله (اختیاری)" dir="ltr" className="text-start" value={tracking} onChange={(e) => setTracking(e.target.value)} aria-label="کد رهگیری" />
+              ) : null}
+              <Input placeholder="توضیح (اختیاری)" value={note} onChange={(e) => setNote(e.target.value)} aria-label="توضیح" />
             </span>
           }
           confirmLabel="تأیید"
           onConfirm={async () => {
-            const res = await changeOrderStatus(orderId, { to: target, note });
+            const res = await changeOrderStatus(orderId, { to: target, note, trackingCode: tracking });
             if (res.ok) toast.success(res.message);
             else toast.error(res.error);
             router.refresh();
