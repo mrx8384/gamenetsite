@@ -671,6 +671,8 @@ model CatalogGame {
   platform    CatalogPlatform
   categoryId  Int
   imageId     String
+  /// Display order within the platform (original insertion order; new games go last).
+  position    Int             @default(0)
   importRunId String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -679,7 +681,7 @@ model CatalogGame {
   image     Media             @relation(fields: [imageId], references: [id], onDelete: Restrict)
   importRun CatalogImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
 
-  @@index([platform, createdAt])
+  @@index([platform, position])
   @@index([categoryId])
   @@map("catalog_games")
 }

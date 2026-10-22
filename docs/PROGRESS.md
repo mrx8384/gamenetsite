@@ -1,5 +1,24 @@
 # Progress Log
 
+## 2026-10-22 (10) — Phase 9 completed (Game Catalog port)
+
+### Done
+- Data model: `CatalogCategory`, `CatalogGame` (original 12-hex IDs kept, `position` = original order), `CatalogImportRun`; migration `catalog_position`.
+- Importer (`src/features/game-catalog/importer.ts`): reads the original `catalog.db` read-only with `node:sqlite` (schema v1 and v2, integrity check), re-encodes every BLOB image to WebP via the shared upload pipeline, swaps the catalog in one transaction, cleans up old/new media on success/failure. Available as `pnpm catalog:import <file>` and from the admin panel.
+- Public `/game-catalog` (platform cards) and `/game-catalog/ps4|ps5`: instant search (Persian-normalized), category chips with counts, grid grouped by category, lightbox (prev/next buttons, ← → keys like the original, Esc, swipe, counter), lazy images, live refresh (polls `/api/catalog/version` every 30 s while the tab is visible → `router.refresh()`).
+- Admin `/admin/game-catalog` (ADMIN only; nav entry enabled): PS4/PS5 tabs; single + bulk upload with drag-and-drop, names from file names (editable before upload), browser-side downscale, one file per request; per game: edit name/category, replace image, move to other platform, delete (confirm); «نیاز به تغییر نام» badge + filter; categories: add, rename (merge on conflict), delete (games → «بدون دسته»), reorder; locked default category; QR codes of the public pages (print / SVG download); backup: ZIP export (`catalog.json` in the original shape + `images/<id>.webp`) and restore from `.db` with confirmation.
+- Route handlers: `GET /api/catalog/version`, `GET /api/admin/catalog/export` (ADMIN), `POST /api/admin/catalog/import` (ADMIN + same-origin check, 200 MB cap streamed to a private temp file, one import at a time, rate limited, audit logged).
+- All mutations: server-side ADMIN check, Zod validation, `updateTag(catalog)`, audit log. Removed an unused exported server action that had no auth check.
+
+### Verification
+- `pnpm check` ✓ (typecheck, lint, 85 unit tests) · `pnpm build` ✓.
+- E2E on the production build with the owner's real data (43 checks; all pass after fixes): counts 56/29, chips, search, empty state, lightbox keys/buttons/wrap/Esc/swipe, WebP covers, unknown platform 404 UI, no horizontal overflow on mobile, bulk upload + category creation, rename flag, **live refresh in 27 s without reload**, edit, empty name blocked, image replace (old media deleted), move platform keeps category name, category add/reorder/merge/delete, game delete, ZIP valid with all images and original JSON keys, foreign-Origin import refused even when logged in, invalid file refused with catalog unchanged, v1-schema import (IDs kept, all to PS4), re-import of the real DB, anonymous export 403.
+- After the run the real catalog was restored from the owner's file and compared row by row with the source (id, platform, category, name, order): **identical, 85/85**; source file SHA-256 unchanged; 85 media rows = 85 files.
+- Bugs found and fixed: swipe used stale state when events arrived quickly (now a ref); a non-SQLite file gave a generic 500 instead of a clear message.
+
+### Data finding
+- 50 PS4 games have placeholder names: 49 are `images` / `images (1)`…`images (47)` (bulk-upload file names) and 1 contains image dimensions (`… 321x400`). The earlier analysis counted only the two exact `images`. They are shown with the «نیاز به تغییر نام» badge; the owner should rename them in the panel.
+
 ## 2026-10-22 (9) — Phase 8 completed (news, contact, about, editable site texts)
 
 ### Done

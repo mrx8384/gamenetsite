@@ -27,7 +27,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 5 (authentication & authorization): **done**.
 - Phase 6 (store & product management): **done**.
 - Phase 7 (cart, checkout, orders) + shipping methods: **done**.
-- Phase 8 (news, contact, about, editable site texts): **done**. Next: Phase 9 (Game Catalog port + import).
+- Phase 8 (news, contact, about, editable site texts): **done**.
+- Phase 9 (Game Catalog port + import): **done**. Real catalog (85 games) imported. Next: Phase 10 (partners & subscriptions, purchasing disabled).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -41,7 +42,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Commerce (owner decisions, Phase 7): online sales **closed** by default; admin opens them from Admin → تنظیمات فروش, but only when a real payment gateway is configured. Shipping = **shipping methods** managed in Admin → روش‌های ارسال: `COLLECT` («پس‌کرایه»: carrier sets the fee and collects it on delivery, not via the site gateway) or `PREPAID` (fixed fee paid online with the order). Customer picks one at checkout; orders snapshot name/type and get a tracking code (+ optional carrier tracking URL template with `{code}`). Categories can be marked **«جهت استعلام قیمت تماس بگیرید»** (inherited by sub-categories): price hidden, phone shown, not purchasable. Gateway API details will be supplied by the owner → implement a `PaymentProvider` in `src/features/payments/providers/` and register it in `index.ts`.
 - **All site text must be editable from the admin panel** (owner request) → Phase 8 site settings cover homepage, footer, about, contact and tournament texts.
 - Email: recommended the host's SMTP mailbox on the site domain (see ARCHITECTURE §6). Awaiting domain/mailbox.
-- Catalog games named "images": imported as-is and flagged in the catalog admin for renaming (owner left the choice to us).
+- Catalog games with placeholder names (49 × `images (N)` + 1 with dimensions): imported as-is and flagged «نیاز به تغییر نام» in the catalog admin; owner to rename.
 
 Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 
@@ -59,7 +60,7 @@ Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 | Tests | Vitest 4 (unit, `tests/unit`), Playwright (e2e, Phase 12; Chromium at `/opt/pw-browsers/chromium`) |
 
 Versions are pinned deliberately: TypeScript 7 and Prisma 8 were too new/pre-release at setup time.
-| Game Catalog | Recommended: port into the Next.js app + PostgreSQL with a lossless importer from the original SQLite DB (Node 22 built-in `node:sqlite`). **Pending owner approval** |
+| Game Catalog | Ported into the Next.js app + PostgreSQL (option C, approved). Lossless importer from the original SQLite DB via Node 22 `node:sqlite`; QR via `qrcode` |
 
 Do not add dependencies beyond this list without a stated reason.
 
@@ -105,7 +106,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 4. **Order lines snapshot product title and price**; inventory changes go through `InventoryMovement` inside a transaction.
 5. **Payment is a provider interface** (`PaymentProvider`). Default provider is `disabled`; checkout creates the order as `AWAITING_PAYMENT` and shows a clear message.
 6. **Subscriptions are modelled but not purchasable.** Access to gated features goes through one function: `hasEntitlement(user, "GAMEPAD_TESTER")`.
-7. **Game Catalog:** the original app is kept unchanged in `services/game-catalog/`. A plain reverse proxy is **unsafe**: the original admin trusts any request from 127.0.0.1, so behind a proxy everyone would be admin. Recommended (pending approval): port its 17 features into a `game-catalog` module, keep its data model, rules and game IDs, and import data losslessly from `catalog.db`.
+7. **Game Catalog:** the original app is kept unchanged in `services/game-catalog/` (reference only). A plain reverse proxy is **unsafe** (localhost-only admin check). Its 17 features are ported into `src/features/game-catalog` with the same rules and game IDs; data imported losslessly from `catalog.db`.
 8. **Uploads**: validated by magic bytes + size limit, re-encoded images, random file names, stored outside the code tree (local disk now, S3-compatible later).
 
 ## 6. Coding conventions
@@ -139,6 +140,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Phase 9: Game Catalog module (`src/features/game-catalog`): importer (UI + `pnpm catalog:import`), public `/game-catalog` + `/game-catalog/ps4|ps5` (search, chips, grouped grid, lightbox with keys/swipe, 30 s live refresh via `/api/catalog/version`), admin `/admin/game-catalog` (tabs, bulk upload, edit/replace/move/delete, rename flag, categories with merge/reorder, QR, ZIP export, `.db` restore via `POST /api/admin/catalog/import` with ADMIN + same-origin check). Restoring a `.db` **replaces** the whole catalog.
 - Phase 8: site settings groups (home, contact & social, general/footer, tournaments) defined once in `site-schema.ts` → admin tabbed forms + validation + defaults; homepage, footer, meta description and tournament pages read them; editable About page (rich text); news categories + posts (rich-text editor with image upload, cover, draft/publish, featured, public list with featured/category filter/pagination, article page with NewsArticle JSON-LD, related news); contact page + form (honeypot, min-time check, rate limits, hashed IP) and admin inbox (auto-read, archive, delete); dashboard cards for unread messages and drafts.
 - Phase 7b: shipping methods (`ShippingMethod` model, migration `shipping_methods`, admin CRUD with validation, checkout selection with live summary, server-side active check, order snapshot, tracking code on SHIPPED with carrier link). The earlier flat shipping setting was removed.
 - Phase 7: DB carts for guests (hashed cookie token) and users, merged on login; cart page with live prices and availability issues; checkout (login required) with saved addresses (31 provinces, 10-digit postal code); `placeOrder` re-validates products, row-locks them (`FOR UPDATE`), reserves stock, snapshots prices/address, 20-min payment window; `PaymentProvider` interface + dev-only `sandbox` gateway (refused in production); callback route verifies server-to-server, idempotent, handles late payments (re-reserve or flag refund); failed/expired payments cancel and restore stock; customer order history/detail with retry/cancel; admin orders list/detail with allowed status transitions, notes and payments; admin sales settings (open/close sales, shipping, inquiry phone); dashboard order stats; category «استعلام قیمت».

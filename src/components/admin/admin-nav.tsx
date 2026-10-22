@@ -39,7 +39,7 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/subscriptions", label: "اشتراک‌ها", icon: Repeat, available: false },
   { href: "/admin/news", label: "اخبار", icon: Newspaper, available: true },
   { href: "/admin/messages", label: "پیام‌ها", icon: Mail, available: true },
-  { href: "/admin/game-catalog", label: "کاتالوگ بازی‌ها", icon: Gamepad2, available: false },
+  { href: "/admin/game-catalog", label: "کاتالوگ بازی‌ها", icon: Gamepad2, available: true },
   { href: "/admin/tournaments", label: "تورنومنت", icon: Trophy, available: false },
   { href: "/admin/settings", label: "تنظیمات سایت", icon: Settings, available: true },
 ];

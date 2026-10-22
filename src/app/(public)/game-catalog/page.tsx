@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
-import { Gamepad2 } from "lucide-react";
-import { ComingSoon } from "@/components/coming-soon";
+import { Suspense } from "react";
+import { Container } from "@/components/layout/container";
+import { CatalogPreview, CatalogPreviewSkeleton } from "@/components/home/catalog-preview";
 
-export const metadata: Metadata = { title: "کاتالوگ بازی‌ها" };
+export const metadata: Metadata = {
+  title: "کاتالوگ بازی‌ها",
+  description: "فهرست بازی‌های PS4 و PS5 قابل اجرا در گیم‌نت آتم",
+};
 
-// Interim page — replaced in Phase 9.
-export default function Page() {
-  return <ComingSoon icon={Gamepad2} title="کاتالوگ بازی‌ها" description="کاتالوگ بازی‌های PS4 و PS5 در حال انتقال به سایت جدید است." />;
+export default function GameCatalogPage() {
+  return (
+    <Container className="py-8 sm:py-12">
+      <div className="mb-8 space-y-2">
+        <h1 className="flex items-center gap-3 text-3xl font-black">
+          <span className="h-8 w-1.5 rounded-full bg-brand-green" aria-hidden />
+          کاتالوگ بازی‌ها
+        </h1>
+        <p className="text-muted-foreground">کنسول موردنظر را انتخاب کنید تا بازی‌های موجود را ببینید.</p>
+      </div>
+      <Suspense fallback={<CatalogPreviewSkeleton />}>
+        <CatalogPreview />
+      </Suspense>
+    </Container>
+  );
 }

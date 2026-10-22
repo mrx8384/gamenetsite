@@ -164,4 +164,24 @@ S1 and S2 are acceptable for a LAN tool on the owner's PC but **not** for a publ
 - Images: all 85 are valid JPEG (magic bytes checked), 12.9–85.8 KB each, 3.7 MB total.
 - No orphan games, no platform/category mismatches, all IDs are 12 lowercase hex chars, no empty names, no null timestamps.
 - Insertion order (`rowid`) equals `created_at` order → the new app orders by `createdAt, id` and keeps the original order.
-- Data note: two PS4 games are named `images` (bulk-upload file names). Imported as-is; owner may rename.
+- Data note (corrected in Phase 9): **49 PS4 games** have bulk-upload names (`images`, `images (1)`…`images (47)`) and one name contains image dimensions. Imported as-is and flagged «نیاز به تغییر نام» in the admin panel for the owner to rename.
+
+## 12. Implementation (Phase 9, done)
+
+| Original feature | New implementation |
+|---|---|
+| 1 Platform chooser | `/game-catalog` (counts + last 4 covers) |
+| 2–4 Grouped grid, search, chips | `/game-catalog/[ps4\|ps5]` → `CatalogBrowser` (client) |
+| 5 Lightbox | Radix dialog; ← next, → prev (as original), Esc, swipe 60 px, counter |
+| 6 Auto-refresh (3 s) | `/api/catalog/version` polled every 30 s while visible → `router.refresh()`; admin changes also invalidate the `catalog` cache tag |
+| 7 Lazy images, mobile, RTL | `loading="lazy"`, WebP via `/media/...` (immutable cache, nosniff) |
+| 8 QR | Server-generated SVG (`qrcode`) of `APP_URL/game-catalog/ps4|ps5`, print + download |
+| 9 Tabs | `?p=ps4|ps5` (URL instead of localStorage) |
+| 10–12 Add, bulk, resize | `AddGamesCard`; browser downscale to 1080 px + server re-encode to WebP 720 px |
+| 13 Per-game actions | `GameList` + `admin-actions.ts` |
+| 14 Categories | `CategoryManager` (+ reorder, which the original lacked in the UI) |
+| 15 Backup | ZIP only (`catalog.json` same keys, lowercase platform, `images/<id>.webp`); `.db` export dropped (owner decision) |
+| 16 Restore from `.db` | `POST /api/admin/catalog/import` → `importCatalogDatabase` (replaces catalog; run recorded in `catalog_import_runs`) |
+| 17 Migrations | v1 → PS4, v2 native; legacy JSON format not needed (owner's file is v2) |
+
+Security findings S1–S6 are resolved by design: ADMIN session check on every action/route, same-origin check on the raw-body import route (Server Actions have built-in origin checks), image bytes decoded and re-encoded, 200 MB import cap, no hard-coded ports.

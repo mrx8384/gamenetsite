@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp, { type Metadata } from "sharp";
 import { db } from "@/lib/db";
@@ -65,4 +65,18 @@ export async function storeImage(
     },
     select: { id: true, storageKey: true, width: true, height: true },
   });
+}
+
+/** Deletes media rows that nothing references anymore, and their files. Used when catalog images are replaced/removed. */
+export async function deleteUnusedMedia(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const unused = await db.media.findMany({
+    where: { id: { in: ids }, catalogGames: { none: {} }, productImages: { none: {} }, newsCovers: { none: {} }, categoryImages: { none: {} } },
+    select: { id: true, storageKey: true },
+  });
+  for (const m of unused) {
+    await unlink(path.join(uploadRoot(), m.storageKey)).catch(() => {});
+  }
+  await db.media.deleteMany({ where: { id: { in: unused.map((m) => m.id) } } });
+  return unused.length;
 }

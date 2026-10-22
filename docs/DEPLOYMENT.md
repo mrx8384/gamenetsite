@@ -47,3 +47,10 @@ Back up **both**: the PostgreSQL database (`pg_dump`) and the `UPLOAD_DIR` folde
 ## 5. Periodic cleanup (cron, daily)
 
 Expired sessions, codes and rate-limit buckets can be purged; a maintenance script is added in Phase 12.
+
+## Game Catalog data
+
+- `APP_URL` must be the exact public origin (e.g. `https://atomgameclub.ir`): the catalog restore route only accepts requests whose `Origin` equals it, and the QR codes point to it.
+- First deployment: import the owner's catalog with `pnpm catalog:import /path/to/catalog.db` (or from Admin → کاتالوگ بازی‌ها → بازیابی از فایل ‎.db). Importing **replaces** the current catalog.
+- Images live in `UPLOAD_DIR/catalog/`; back up `UPLOAD_DIR` together with PostgreSQL. The admin ZIP export is a portable extra backup.
+- If a reverse proxy limits request size, allow at least the size of `catalog.db` for `/api/admin/catalog/import` (app limit: 200 MB).
