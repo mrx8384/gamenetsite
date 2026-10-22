@@ -9,6 +9,7 @@
 ### Local install
 - `pnpm setup:local` (`scripts/setup-local.mjs`): checks Node ≥ 22.12, writes `.env` (generated AUTH_SECRET, LAN-IP hint), creates the database, applies migrations (falls back to applying the SQL files directly with Prisma-compatible `_prisma_migrations` rows if Prisma's engine can't be downloaded), builds, creates the first admin, optionally imports `catalog.db`. Re-runnable.
 - `start-atom.bat` for Windows (CRLF via `.gitattributes`), binds 0.0.0.0:3000 for LAN access.
+- `scripts/prisma-generate.mjs` (used by `postinstall`, `build`, `db:generate`): `prisma generate` downloads the schema engine from binaries.prisma.sh when missing even though generation doesn't need it; that failed on the owner's Windows PC ("Can't resolve '@/generated/prisma/client'"). The script retries with `PRISMA_SCHEMA_ENGINE_BINARY` set to a placeholder file. Verified offline with the engine removed.
 - Tested end to end with fresh databases: normal path (85 catalog games imported, admin login, catalog page) and fallback path (engine unavailable → 6 migrations applied directly → `prisma migrate status`: up to date). Test databases and files removed; dev data intact.
 
 ## 2026-10-22 (13) — Phase 12 completed (QA, hardening, deployment)
