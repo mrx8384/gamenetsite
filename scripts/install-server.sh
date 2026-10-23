@@ -222,7 +222,20 @@ fi
 say "Updating the database"
 as_app "pnpm db:deploy"
 say "Building the site (a few minutes)"
-as_app "NODE_OPTIONS=--max-old-space-size=1536 pnpm build"
+# Keep the last working build: `next build` empties .next first, so a failed build would take the site down.
+PREV_BUILD="$BASE/next-previous"
+rm -rf "$PREV_BUILD"
+if [[ -f "$APP_DIR/.next/BUILD_ID" ]]; then cp -a "$APP_DIR/.next" "$PREV_BUILD"; fi
+if ! as_app "set -o pipefail; NODE_OPTIONS=--max-old-space-size=1536 pnpm build 2>&1 | tee '$BASE/build.log'"; then
+  free -m || true
+  if [[ -d "$PREV_BUILD" ]]; then
+    rm -rf "$APP_DIR/.next" && cp -a "$PREV_BUILD" "$APP_DIR/.next"
+    [[ $NO_SYSTEMD == 1 ]] || systemctl restart atom || true
+    die "Build failed — the previous version was restored and is running. Full log: $BASE/build.log"
+  fi
+  die "Build failed. Full log: $BASE/build.log"
+fi
+rm -rf "$PREV_BUILD"
 
 # ───────────── Service ─────────────
 say "Starting the site"

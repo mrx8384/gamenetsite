@@ -1,5 +1,10 @@
 # Progress Log
 
+## 2026-10-23 (18) — Installer keeps the last working build
+
+- Owner's server went down after an update: `.next` was missing ("Could not find a production build"), so the build step had failed and `next build` had already emptied `.next`.
+- `scripts/install-server.sh` now copies the working `.next` to `/srv/atom/next-previous` before building, writes the build output to `/srv/atom/build.log`, and on failure restores the previous build, restarts the service and stops with the log path (shows `free -m` to spot memory problems). `bash -n` ✓; not yet run end-to-end on a server.
+
 ## 2026-10-23 (17) — Tournament system (Challonge-style, owner request)
 
 ### Owner decisions
