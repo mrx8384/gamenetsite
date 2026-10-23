@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-10-23 (17) — Tournament system (Challonge-style, owner request)
+
+### Owner decisions
+- Formats: all — single elimination, double elimination, round robin, groups + knockout.
+- Organizers: admin + partners (partners need a plan with the new entitlement `TOURNAMENT_HOST` «برگزاری تورنومنت»; the admin controls it through plans / free grants).
+- Registration: online sign-up by users **and** manual names by the organizer. Results: organizer only.
+
+### Done
+- Schema + migration `tournaments` (`Tournament`, `TournamentParticipant`, `TournamentMatch`, 4 enums).
+- `src/features/tournaments/engine.ts`: pure bracket engine (seeding, byes, single elimination + third place, double elimination + grand final reset, round robin single/double, snake groups, knockout seeding, standings with points → goal difference → goals for → head-to-head → seed, apply/clear results with downstream undo).
+- `service.ts` (transactions + row locks), `actions.ts` (create/edit/publish/cancel/delete/start/reset/start knockout, participants add/remove/reorder/shuffle, report/clear results, register/withdraw), `queries.ts` (cached public reads, tag `tournaments`), `permissions.ts`.
+- Public `/tournaments` (open registration / in progress / finished; empty state keeps the editable «به‌زودی» text) and `/tournaments/[slug]` (podium, bracket, group tables, rounds, participants with ranks, rules, registration box, live refresh).
+- Management: `/admin/tournaments` (+ `new`, `[id]`) for all tournaments, `/partner/tournaments` (+ `new`, `[id]`) for the partner's own; partner dashboard card shows the host status and links there.
+- Bug found by E2E and fixed: when a loser dropped into a losers-bracket match whose other side was a bye, the auto-advanced winner was not saved (engine reported the bye match but not the match it filled). `resolveByes` now returns filled matches too; the randomized playout tests now simulate "persist only returned keys" after every step (+ random clear/re-report) and failed 45 cases before the fix.
+- Scores and goal difference displayed with Persian digits.
+
+### Verification
+- `pnpm check` ✓ (202 tests; engine: 95 incl. playouts for 2–20 players) · `pnpm build` ✓.
+- E2E against the production build (44 checks, all pass): partner without `TOURNAMENT_HOST` blocked (dashboard, list, /new); partner creates single elimination, draft hidden publicly, publish, two users sign up (duplicate name refused, withdraw + re-register), manual names, capacity full message, other partner/user get 404 on manage pages; start, tie with chosen winner, third-place match, ranks 1–4, public podium + bracket, axe clean; admin sees partner tournaments with organizer; double elimination with grand final reset and ranks, clearing the final result reopens it; round robin with a draw (no winner stored) and ranks; groups + knockout (2×4, top 2) — semis pair different groups, ranks 1–4 then shared group ranks; mobile page without horizontal scroll; reset keeps participants; audit entries; no page errors.
+- All `[TEST]` users, plans and tournaments removed afterwards.
+
 ## 2026-10-23 (16) — Gamepad Tester live (owner request)
 
 ### Done

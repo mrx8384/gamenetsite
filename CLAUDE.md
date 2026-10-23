@@ -12,7 +12,7 @@ ATOM GAME CLUB is a Persian-first (fa-IR, RTL) gaming platform:
 - Auth with roles `ADMIN`, `USER`, `PARTNER`
 - Partner registration, approval workflow, dashboard, subscription architecture (**paid subscriptions disabled**)
 - Existing **Game Catalog** (Python, from `game-catalog.zip`) integrated under `/game-catalog`
-- Tournaments: **frontend placeholder only** — message «بخش تورنومنت به‌زودی فعال می‌شود.»
+- Tournaments (Challonge-style, owner request 2026-10-23): single elimination (+ third place), double elimination (grand final + reset), round robin (single/double), groups + knockout. Organized by admins and by partners whose subscription includes `TOURNAMENT_HOST`; online sign-up and manual names; results entered by the organizer only
 - Gamepad Tester at `/tournaments/gamepad-tester`: browser input tester (Gamepad API), for approved partners with an active subscription and admins
 - One centralized admin panel at `/admin`
 
@@ -33,6 +33,8 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Manual (free) subscription grants by admin: **done** (owner approved 2026-10-22).
 - Phase 11 (tournament + Gamepad Tester placeholders with the entitlement boundary): **done**.
 - Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
+- Gamepad Tester live (2026-10-23): **done**.
+- Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
 - Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
@@ -148,8 +150,10 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Tournaments: `src/features/tournaments/` (engine, service with row locks, actions, cached queries, permissions, Tehran-time helpers); models `Tournament`, `TournamentParticipant`, `TournamentMatch` (migration `tournaments`); public `/tournaments` (open / in progress / finished) and `/tournaments/[slug]` (podium, bracket columns, group tables, rounds, registration box, 30 s live refresh); management at `/admin/tournaments` (all) and `/partner/tournaments` (own, create needs `TOURNAMENT_HOST`): draft → publish → start (seeding = list order, shuffle) → report/edit/clear results (tie in elimination needs a chosen winner) → groups→knockout → automatic final ranks; reset and delete; audit log entries.
+
 - Phase 12: security review (every Server Action/route handler checked for auth + ownership; no secrets in git history; `pnpm audit` clean), CSP + COOP headers (`next.config.ts`; media route keeps its sandbox CSP), `robots.txt`, `sitemap.xml` (products + news, per request), metadataBase/OpenGraph, `pnpm maintenance` (sessions, codes, rate limits, guest carts, unpaid orders, ended subscriptions, `--media` prunes unused/stray uploads > 24 h incl. rich-text references), `scripts/backup.sh` (verified restore), `pnpm test:e2e` smoke test, full `docs/DEPLOYMENT.md` (systemd bound to 127.0.0.1, nginx, cron, restore, updates, go-live checklist).
-- Phase 11 + grants: `/tournaments/gamepad-tester` access panel via `getGamepadAccess()` (`src/features/gamepad-tester/access.ts`, `GAMEPAD_TESTER_ENABLED = false`), `src/features/tournaments` placeholder (`TOURNAMENTS_ENABLED = false`), `/admin/tournaments` placeholder; manual grants/cancel in `src/features/subscriptions/admin-actions.ts` (renewals queue via `nextGrantStart`, phases via `subscriptionPhase`).
+- Phase 11 + grants: `/tournaments/gamepad-tester` access panel via `getGamepadAccess()` (`src/features/gamepad-tester/access.ts`, now `true`), tournaments placeholder (since replaced by the full tournament system); manual grants/cancel in `src/features/subscriptions/admin-actions.ts` (renewals queue via `nextGrantStart`, phases via `subscriptionPhase`).
 - Phase 10: partners (`src/features/partners`): public `/partners`, applicant/partner area `/partner` (apply → pending → rejected/resubmit → approved dashboard; suspended), admin `/admin/partners` (review with reasons; PARTNER role mirrors APPROVED, changed only there), admin `/admin/subscriptions` (plans; purchase disabled via `SUBSCRIPTION_PURCHASE_ENABLED = false`, `isActive` never set), `hasEntitlement()` in `src/features/subscriptions/entitlements.ts` — the only gate for partner features.
 - Phase 9: Game Catalog module (`src/features/game-catalog`): importer (UI + `pnpm catalog:import`), public `/game-catalog` + `/game-catalog/ps4|ps5` (search, chips, grouped grid, lightbox with keys/swipe, 30 s live refresh via `/api/catalog/version`), admin `/admin/game-catalog` (tabs, bulk upload, edit/replace/move/delete, rename flag, categories with merge/reorder, QR, ZIP export, `.db` restore via `POST /api/admin/catalog/import` with ADMIN + same-origin check). Restoring a `.db` **replaces** the whole catalog.
 - Phase 8: site settings groups (home, contact & social, general/footer, tournaments) defined once in `site-schema.ts` → admin tabbed forms + validation + defaults; homepage, footer, meta description and tournament pages read them; editable About page (rich text); news categories + posts (rich-text editor with image upload, cover, draft/publish, featured, public list with featured/category filter/pagination, article page with NewsArticle JSON-LD, related news); contact page + form (honeypot, min-time check, rate limits, hashed IP) and admin inbox (auto-read, archive, delete); dashboard cards for unread messages and drafts.
@@ -172,7 +176,7 @@ See `docs/ROADMAP.md` (Phases 3–12).
 - Do **not** reverse-proxy the original catalog to the public internet (its admin is protected only by a localhost check).
 - Do **not** modify the ATOM GAME CLUB logo.
 - Do **not** enable real payments or paid subscriptions until the owner supplies provider details.
-- Do **not** implement tournament generation, brackets or results.
+- Tournaments: bracket logic lives only in the pure `src/features/tournaments/engine.ts` (covered by randomized playout tests that also check that persisting only the returned keys keeps the DB in sync). Organizer rights only via `src/features/tournaments/permissions.ts`; players never enter results.
 - Gamepad Tester: browser-based input tester is live (owner request 2026-10-23; partners with entitlement + admins). Stick **calibration** (writing to controllers over WebHID) is not implemented — needs owner decision (see PROGRESS 16).
 - Do **not** claim a feature works unless it was verified (tests, typecheck, lint, route check).
 - No mock functionality in place of real implementation; sample data only when marked as dev data.

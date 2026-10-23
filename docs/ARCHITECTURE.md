@@ -94,9 +94,13 @@ Money columns are `BigInt` Rials.
 - **PartnerSubscription**: `partnerId`, `planId`, `status` (`INACTIVE | ACTIVE | EXPIRED | CANCELLED`), `startsAt?`, `endsAt?`, `paymentId?`. No purchase flow; admins can grant free subscriptions to APPROVED partners (renewals start when the current period ends) and cancel them
 - `PartnerProfile.submittedAt` orders the review queue; `SubscriptionPlan.isVisible` shows a plan as «به‌زودی» on public/partner pages
 
-### Tournaments (future — no tables created yet)
+### Tournaments (owner request 2026-10-23)
 
-Reserved module `src/features/tournaments/` with types only. Planned entities: `Tournament`, `TournamentEntry`, `Match`, `Platform/Game` (FIFA / EA SPORTS FC). Created only when specs arrive.
+- **Tournament**: slug (Persian, `RESERVED_SLUGS` excluded), name, game, platform, description, rules, prize, entry-fee note, `startsAt` (entered in Tehran time, stored UTC), `format` (`SINGLE_ELIMINATION | DOUBLE_ELIMINATION | ROUND_ROBIN | GROUPS_KNOCKOUT`), `status` (`DRAFT → REGISTRATION → IN_PROGRESS → COMPLETED`, or `CANCELLED`), capacity, self-registration flag, third-place match, double round robin, group count / advance per group, points (win/draw/loss), `organizerId` (admin or partner), `knockoutStarted`.
+- **TournamentParticipant**: optional `userId` (online sign-up) or manual name; `seed` (list order = seeding), `groupIndex`, `finalRank`. Unique per tournament on user and on name.
+- **TournamentMatch**: stage (`WINNERS/LOSERS/GRAND_FINAL/GRAND_FINAL_RESET/THIRD_PLACE/ROUND_ROBIN/GROUP`), round, position, group, display number, players + bye flags, scores, winner, status (`PENDING/COMPLETED/SKIPPED`), links `nextMatchId/nextSlot` and `loserMatchId/loserSlot`.
+
+Flow: `engine.ts` generates pure match specs (standard seeding, byes for top seeds, double-elimination losers bracket with reversed drops, circle-method round robin, snake groups, knockout seeding that keeps group mates apart). `service.ts` locks the tournament row (`FOR UPDATE`) for every change, maps DB rows to the engine's live map, applies `applyResult`/`clearResult` (re-reporting allowed until a downstream match is played; GF won by the losers-bracket player activates the reset) and writes back only the changed matches. Ranks are computed when every match is done (and cleared when a result is removed). Organizers: `canCreateTournament` (admin, or partner with `TOURNAMENT_HOST`) and `canManageTournament` (admin, or the organizing partner).
 
 ### Game Catalog (option C — pending approval)
 
@@ -120,7 +124,9 @@ hasEntitlement(userId, "GAMEPAD_TESTER")   // src/features/subscriptions/entitle
                                        && s.plan.features.includes("GAMEPAD_TESTER"))
 ```
 
-`/tournaments/gamepad-tester` renders the placeholder for everyone; `getGamepadAccess()` explains the visitor's state and only entitled partners see the (still disabled) tool area. Admins are not auto-entitled.
+`/tournaments/gamepad-tester`: `getGamepadAccess()` explains the visitor's state; entitled partners and admins (`canUseGamepadTester`) get the browser tester.
+
+`TOURNAMENT_HOST` (same function): lets an approved partner create tournaments at `/partner/tournaments`. Admins always can.
 
 ## 5. Design system
 

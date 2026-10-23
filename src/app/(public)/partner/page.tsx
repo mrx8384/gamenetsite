@@ -97,7 +97,7 @@ async function PartnerContent() {
     );
   }
 
-  const [plans, gamepad] = await Promise.all([getVisiblePlans(), hasEntitlement(user.id, "GAMEPAD_TESTER")]);
+  const [plans, gamepad, host] = await Promise.all([getVisiblePlans(), hasEntitlement(user.id, "GAMEPAD_TESTER"), hasEntitlement(user.id, "TOURNAMENT_HOST")]);
   const sub = currentSubscription(profile);
   const next = upcomingSubscription(profile);
 
@@ -131,13 +131,17 @@ async function PartnerContent() {
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Gamepad className="size-5" /> تست دسته</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             {gamepad ? <Badge variant="success">دسترسی فعال</Badge> : <Badge variant="outline"><Lock className="size-3" /> نیازمند اشتراک فعال</Badge>}
-            <p className="text-muted-foreground">ابزار تست دسته به‌زودی فعال می‌شود.</p>
+            <p className="text-muted-foreground">تست دکمه‌ها، استیک‌ها، دریفت و لرزش دسته در مرورگر.</p>
             <Link href="/tournaments/gamepad-tester" className="text-link underline underline-offset-4">صفحهٔ تست دسته</Link>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trophy className="size-5" /> تورنومنت‌ها</CardTitle></CardHeader>
-          <CardContent className="text-sm text-muted-foreground">همکاری در برگزاری تورنومنت‌ها به‌زودی از همین پنل امکان‌پذیر می‌شود.</CardContent>
+          <CardContent className="space-y-2 text-sm">
+            {host ? <Badge variant="success">برگزاری فعال</Badge> : <Badge variant="outline"><Lock className="size-3" /> نیازمند اشتراک با امکان برگزاری</Badge>}
+            <p className="text-muted-foreground">ساخت تورنومنت، ثبت‌نام بازیکنان، جدول مسابقات و ثبت نتایج.</p>
+            <Link href="/partner/tournaments" className="text-link underline underline-offset-4">تورنومنت‌های من</Link>
+          </CardContent>
         </Card>
       </div>
 

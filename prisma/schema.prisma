@@ -39,20 +39,22 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  sessions           Session[]
-  addresses          Address[]
-  verificationCodes  VerificationCode[]
-  cart               Cart?
-  orders             Order[]
-  newsPosts          NewsPost[]
-  partnerProfile     PartnerProfile?   @relation("PartnerOwner")
-  reviewedPartners   PartnerProfile[]  @relation("PartnerReviewer")
-  auditLogs          AuditLog[]
-  uploadedMedia      Media[]
-  inventoryMovements InventoryMovement[]
-  statusChanges      OrderStatusHistory[]
-  catalogImports     CatalogImportRun[]
-  pagesUpdated       Page[]
+  sessions             Session[]
+  addresses            Address[]
+  verificationCodes    VerificationCode[]
+  cart                 Cart?
+  orders               Order[]
+  newsPosts            NewsPost[]
+  partnerProfile       PartnerProfile?         @relation("PartnerOwner")
+  reviewedPartners     PartnerProfile[]        @relation("PartnerReviewer")
+  auditLogs            AuditLog[]
+  uploadedMedia        Media[]
+  inventoryMovements   InventoryMovement[]
+  statusChanges        OrderStatusHistory[]
+  catalogImports       CatalogImportRun[]
+  pagesUpdated         Page[]
+  organizedTournaments Tournament[]            @relation("TournamentOrganizer")
+  tournamentEntries    TournamentParticipant[]
 
   @@index([role])
   @@map("users")
@@ -60,14 +62,14 @@ model User {
 
 /// Database session. The cookie holds a random token; only its SHA-256 hash is stored.
 model Session {
-  id         String    @id @default(cuid())
-  tokenHash  String    @unique @db.Char(64)
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique @db.Char(64)
   userId     String
   expiresAt  DateTime
-  lastSeenAt DateTime  @default(now())
-  ip         String?   @db.VarChar(45)
-  userAgent  String?   @db.VarChar(300)
-  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime @default(now())
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @db.VarChar(300)
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -169,7 +171,7 @@ model Media {
   uploaderId   String?
   createdAt    DateTime @default(now())
 
-  uploader       User?             @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  uploader       User?          @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
   productImages  ProductImage[]
   categoryImages Category[]
   newsCovers     NewsPost[]
@@ -182,18 +184,18 @@ model Media {
 // ───────────────────────────── Store ─────────────────────────────
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String   @db.VarChar(80)
-  slug        String   @unique @db.VarChar(100)
-  description String?
-  parentId    String?
-  imageId     String?
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(80)
+  slug           String   @unique @db.VarChar(100)
+  description    String?
+  parentId       String?
+  imageId        String?
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
   /// Hide prices in this category (and its sub-categories): show "call for price" instead; not purchasable online.
-  priceOnRequest Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  priceOnRequest Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")
@@ -351,24 +353,24 @@ enum OrderStatus {
 }
 
 model Order {
-  id            String      @id @default(cuid())
+  id                 String        @id @default(cuid())
   /// Human-readable order number shown to customers.
-  number        String      @unique @db.VarChar(20)
-  userId        String
-  status        OrderStatus @default(PENDING)
-  subtotal      BigInt
-  shippingCost  BigInt      @default(0)
-  discount      BigInt      @default(0)
-  total         BigInt
+  number             String        @unique @db.VarChar(20)
+  userId             String
+  status             OrderStatus   @default(PENDING)
+  subtotal           BigInt
+  shippingCost       BigInt        @default(0)
+  discount           BigInt        @default(0)
+  total              BigInt
   // Shipping snapshot (copied from the address at checkout)
-  recipientName String      @db.VarChar(100)
-  phone         String      @db.VarChar(11)
-  province      String      @db.VarChar(50)
-  city          String      @db.VarChar(50)
-  postalCode    String      @db.VarChar(10)
-  addressLine   String      @db.VarChar(300)
-  customerNote  String?     @db.VarChar(500)
-  adminNote     String?
+  recipientName      String        @db.VarChar(100)
+  phone              String        @db.VarChar(11)
+  province           String        @db.VarChar(50)
+  city               String        @db.VarChar(50)
+  postalCode         String        @db.VarChar(10)
+  addressLine        String        @db.VarChar(300)
+  customerNote       String?       @db.VarChar(500)
+  adminNote          String?
   // Shipping snapshot (method may be edited or deleted later)
   shippingMethodId   String?
   shippingMethodName String?       @db.VarChar(100)
@@ -376,11 +378,11 @@ model Order {
   trackingCode       String?       @db.VarChar(100)
   trackingUrl        String?       @db.VarChar(300)
   /// Unpaid orders past this time are cancelled and their stock is released.
-  paymentDeadline DateTime?
-  paidAt        DateTime?
-  cancelledAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  paymentDeadline    DateTime?
+  paidAt             DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   user               User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
   shippingMethod     ShippingMethod?      @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
@@ -705,4 +707,139 @@ model CatalogImportRun {
   games CatalogGame[]
 
   @@map("catalog_import_runs")
+}
+
+// ───────────────────────────── Tournaments ─────────────────────────────
+// Organizer = admin or an entitled partner. Results are entered by the organizer only.
+
+enum TournamentFormat {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+  GROUPS_KNOCKOUT
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MatchStage {
+  WINNERS
+  LOSERS
+  GRAND_FINAL
+  GRAND_FINAL_RESET
+  THIRD_PLACE
+  ROUND_ROBIN
+  GROUP
+}
+
+enum MatchStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+}
+
+model Tournament {
+  id                    String           @id @default(cuid())
+  slug                  String           @unique @db.VarChar(120)
+  name                  String           @db.VarChar(120)
+  game                  String           @db.VarChar(80)
+  platform              String?          @db.VarChar(40)
+  description           String?          @db.VarChar(3000)
+  rules                 String?          @db.VarChar(5000)
+  prize                 String?          @db.VarChar(500)
+  entryFeeNote          String?          @db.VarChar(200)
+  startsAt              DateTime?
+  format                TournamentFormat
+  status                TournamentStatus @default(DRAFT)
+  maxParticipants       Int?
+  allowSelfRegistration Boolean          @default(true)
+  thirdPlaceMatch       Boolean          @default(false)
+  doubleRoundRobin      Boolean          @default(false)
+  groupCount            Int?
+  advancePerGroup       Int?
+  /// Group stage finished and the knockout bracket was generated (GROUPS_KNOCKOUT only).
+  knockoutStarted       Boolean          @default(false)
+  pointsWin             Int              @default(3)
+  pointsDraw            Int              @default(1)
+  pointsLoss            Int              @default(0)
+  organizerId           String?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  organizer    User?                   @relation("TournamentOrganizer", fields: [organizerId], references: [id], onDelete: SetNull)
+  participants TournamentParticipant[]
+  matches      TournamentMatch[]
+
+  @@index([status, startsAt])
+  @@index([organizerId])
+  @@map("tournaments")
+}
+
+model TournamentParticipant {
+  id           String   @id @default(cuid())
+  tournamentId String
+  userId       String?
+  name         String   @db.VarChar(60)
+  seed         Int
+  groupIndex   Int?
+  finalRank    Int?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  matchesAsPlayer1 TournamentMatch[] @relation("MatchPlayer1")
+  matchesAsPlayer2 TournamentMatch[] @relation("MatchPlayer2")
+  matchesWon       TournamentMatch[] @relation("MatchWinner")
+
+  @@unique([tournamentId, userId])
+  @@unique([tournamentId, name])
+  @@index([tournamentId, seed])
+  @@map("tournament_participants")
+}
+
+model TournamentMatch {
+  id           String      @id @default(cuid())
+  tournamentId String
+  stage        MatchStage
+  round        Int
+  position     Int
+  groupIndex   Int?
+  /// Display/order number inside the tournament (1..n).
+  number       Int
+  player1Id    String?
+  player2Id    String?
+  /// A slot that will never receive a player (bracket bye).
+  player1Bye   Boolean     @default(false)
+  player2Bye   Boolean     @default(false)
+  score1       Int?
+  score2       Int?
+  winnerId     String?
+  /// 1 or 2 — which slot won (also for byes, where there is no winner participant row change).
+  winnerSlot   Int?
+  status       MatchStatus @default(PENDING)
+  nextMatchId  String?
+  nextSlot     Int?
+  loserMatchId String?
+  loserSlot    Int?
+  note         String?     @db.VarChar(200)
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tournament Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1    TournamentParticipant? @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2    TournamentParticipant? @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner     TournamentParticipant? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  @@unique([tournamentId, number])
+  @@index([tournamentId, stage, round, position])
+  @@map("tournament_matches")
 }

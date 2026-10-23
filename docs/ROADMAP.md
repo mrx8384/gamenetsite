@@ -15,11 +15,12 @@ Each phase: plan (scope, files, dependencies, risks) → owner approval when it 
 | 9 | Game Catalog integration | Option C: ported module, lossless `catalog.db` importer (UI + CLI), `/game-catalog`, `/admin/game-catalog`, ZIP export | **Done** |
 | 10 | Partners | Partner application, admin approve/reject/suspend, partner dashboard, subscription status UI, plans (purchase disabled), `hasEntitlement` | **Done** |
 | 11 | Tournament & Gamepad Tester placeholders | `/tournaments` («بخش تورنومنت به‌زودی فعال می‌شود.»), `/tournaments/gamepad-tester` with entitlement boundary, module skeleton, admin placeholder | **Done** |
+| 13 | Tournament system (owner request) | Challonge-style: 4 formats, admin + partner organizers (`TOURNAMENT_HOST`), online/manual registration, organizer-entered results, final ranks | **Done** |
 | 12 | QA & hardening | Security review, CSP, robots/sitemap, maintenance + backup scripts, accessibility & responsive sweep, e2e smoke test, deployment guide | **Done** |
 
 ## Admin panel modules (built across phases)
 
-Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), Partners & Subscriptions (P10), News (P8), Contact messages (P8), Site settings (P8), Game Catalog (P9), Tournament placeholder (P11).
+Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), Partners & Subscriptions (P10), News (P8), Contact messages (P8), Site settings (P8), Game Catalog (P9), Tournaments (P13).
 
 ## Decisions made (2026-10-22)
 
@@ -35,4 +36,4 @@ Dashboard overview (P7+), Products & Categories (P6), Orders (P7), Users (P5), P
 6. Fill Admin → تنظیمات سایت: contact info, social links, homepage texts and the About page.
 5. Add the real shipping companies in Admin → روش‌های ارسال (پس‌کرایه or fixed price) and the «استعلام قیمت» phone in Admin → تنظیمات فروش. At least one active shipping method is required for checkout.
 
-Interim pages: none left. Tournament and Gamepad Tester stay placeholders by specification.
+Interim pages: none left. Tournaments and the Gamepad Tester are live.
