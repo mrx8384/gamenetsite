@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-10-23 (16) — Gamepad Tester live (owner request)
+
+### Done
+- Owner asked to make the Gamepad Tester usable → `GAMEPAD_TESTER_ENABLED = true`. Access: entitled partners (unchanged `hasEntitlement`) **and admins** (`canUseGamepadTester`).
+- Browser tester (`src/components/gamepad-tester/gamepad-tester.tsx`, Gamepad API, no server calls): controller detection (DualSense / Edge / DualShock 4 / Xbox / generic) and multi-controller picker; all buttons with live state and "tested" tracking + progress; analog L2/R2 bars; both sticks with live X/Y/|r|, deadzone ring; 3-second drift test with verdict; stick range (circularity) test with coverage; vibration (weak / strong / both, `dual-rumble`); text report with copy-to-clipboard; reset; HTTPS / unsupported-browser / waiting states.
+- Pure analysis in `src/features/gamepad-tester/analysis.ts` + `tests/unit/gamepad.test.ts` (found and fixed: "Xbox Wireless Controller" was detected as PlayStation).
+- Owner pointed to dualshock-tools.github.io (WebHID: stick calibration, battery/firmware/serial, speaker/mic/IMU/lights tests). It is MIT-licensed, but building or reading its code was blocked by this environment's safety policy, and writing calibration reports from memory risks damaging controllers, so calibration is **not** implemented. Options left to the owner (see chat).
+
+### Verification
+- `pnpm check` ✓ · `pnpm build` ✓ · E2E with a simulated DualSense (17 checks, all pass): locked for guests, waiting state, detection, button/trigger tracking, stick values, drift verdicts (0.150 drift / 0.020 clean), range verdicts (full vs 0.8), vibration call, report + clipboard, reset, disconnect, no console errors.
+- Note: browsers expose controllers only on HTTPS (or localhost); on `http://<IP>` the page explains this.
+
 ## 2026-10-22 (15) — Local install cancelled
 
 - Owner cancelled the local (PC) install and wants the site on a server. Removed `scripts/setup-local.mjs`, `start-atom.bat` and the README section.

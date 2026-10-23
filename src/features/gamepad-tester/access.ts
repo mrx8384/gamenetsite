@@ -2,11 +2,13 @@ import "server-only";
 import { db } from "@/lib/db";
 import { hasEntitlement } from "@/features/subscriptions/entitlements";
 
-/**
- * The tester itself is NOT implemented (waiting for detailed specs). Keep this false until then;
- * even entitled partners only see a "coming soon" panel.
- */
-export const GAMEPAD_TESTER_ENABLED = false as const;
+/** The browser-based tester is live (owner request 2026-10-23). Set to false to show "coming soon" again. */
+export const GAMEPAD_TESTER_ENABLED = true as const;
+
+/** Who may use the tester: entitled partners, and admins (the owner tests controllers too). */
+export function canUseGamepadTester(access: GamepadAccess): boolean {
+  return GAMEPAD_TESTER_ENABLED && (access === "granted" || access === "admin");
+}
 
 export type GamepadAccess = "anonymous" | "admin" | "no-application" | "pending" | "rejected" | "suspended" | "no-subscription" | "granted";
 

@@ -13,7 +13,7 @@ ATOM GAME CLUB is a Persian-first (fa-IR, RTL) gaming platform:
 - Partner registration, approval workflow, dashboard, subscription architecture (**paid subscriptions disabled**)
 - Existing **Game Catalog** (Python, from `game-catalog.zip`) integrated under `/game-catalog`
 - Tournaments: **frontend placeholder only** — message «بخش تورنومنت به‌زودی فعال می‌شود.»
-- Gamepad Tester at `/tournaments/gamepad-tester`: **placeholder only**, gated for approved partners with an active subscription
+- Gamepad Tester at `/tournaments/gamepad-tester`: browser input tester (Gamepad API), for approved partners with an active subscription and admins
 - One centralized admin panel at `/admin`
 
 Communication with the owner: **Persian**. Code, comments, technical docs: **English**.
@@ -173,7 +173,7 @@ See `docs/ROADMAP.md` (Phases 3–12).
 - Do **not** modify the ATOM GAME CLUB logo.
 - Do **not** enable real payments or paid subscriptions until the owner supplies provider details.
 - Do **not** implement tournament generation, brackets or results.
-- Do **not** implement Gamepad Tester functionality until detailed specs arrive.
+- Gamepad Tester: browser-based input tester is live (owner request 2026-10-23; partners with entitlement + admins). Stick **calibration** (writing to controllers over WebHID) is not implemented — needs owner decision (see PROGRESS 16).
 - Do **not** claim a feature works unless it was verified (tests, typecheck, lint, route check).
 - No mock functionality in place of real implementation; sample data only when marked as dev data.
 - Work phase by phase; before each phase list scope, affected files, dependencies, risks; after it run tests/typecheck/lint and update `docs/PROGRESS.md`.
