@@ -9,7 +9,8 @@ export function PasswordInput({ className, ...props }: Omit<React.ComponentProps
   const [visible, setVisible] = React.useState(false);
   return (
     <div className="relative">
-      <Input type={visible ? "text" : "password"} dir="ltr" className={cn("pe-11 text-start", className)} {...props} />
+      {/* The input is LTR (passwords), the page is RTL: the toggle sits at the page's end (left), which is the input's start, so the input reserves space with ps-11. */}
+      <Input type={visible ? "text" : "password"} dir="ltr" className={cn("ps-11 text-start", className)} {...props} />
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
