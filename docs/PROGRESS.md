@@ -1,5 +1,9 @@
 # Progress Log
 
+## 2026-10-24 (19) — Live on atomgclub.ir with HTTPS (ArvanCloud)
+
+- Site deployed on the Iranian server, domain `atomgclub.ir` (DNS on ArvanCloud). certbot failed (Arvan nameservers not visible from abroad, and only a `www` A record existed) → HTTPS via Arvan's edge certificate; 502 fixed by setting the origin protocol to HTTP. Steps recorded in DEPLOYMENT §5b.
+
 ## 2026-10-23 (18) — Installer keeps the last working build
 
 - Owner's server went down after an update: `.next` was missing ("Could not find a production build"), so the build step had failed and `next build` had already emptied `.next`.

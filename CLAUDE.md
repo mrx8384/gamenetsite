@@ -35,7 +35,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
 - Gamepad Tester live (2026-10-23): **done**.
 - Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
-- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Waiting on the owner for: payment gateway details, SMTP mailbox, domain/hosting to deploy.
+- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://atomgclub.ir (Iranian server, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

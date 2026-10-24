@@ -134,6 +134,17 @@ proxy_set_header X-Forwarded-Proto $scheme;
 
 Security headers (CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, COOP) are sent by the app itself (`next.config.ts`); don't duplicate them in nginx.
 
+## 5b. HTTPS through ArvanCloud CDN (used for atomgclub.ir)
+
+The domain's DNS is on ArvanCloud. Let's Encrypt cannot validate it (Arvan's nameservers are not visible from abroad), so HTTPS is terminated at Arvan's edge:
+
+1. DNS: A records `@` and `www` → server IP, cloud (proxy) **on**, origin protocol **HTTP** (port 80). With HTTPS/auto the edge tries port 443 and returns 502.
+2. HTTPS settings: HTTPS on, Arvan's free managed certificate, "HTTPS by default" (redirect) on. Leave "upgrade insecure requests" off (the app sends it itself when `APP_URL` is https).
+3. Real client IPs (required for rate limits and audit logs):
+   `{ for ip in $(curl -fsS https://www.arvancloud.ir/fa/ips.txt); do echo "set_real_ip_from $ip;"; done; echo "real_ip_header ar-real-ip;"; } > /etc/nginx/conf.d/arvan-realip.conf && nginx -t && systemctl reload nginx`
+   Re-run occasionally (Arvan's ranges change).
+4. `APP_URL="https://<domain>"` in `.env`, then run the installer again (rebuild).
+
 ## 6. Scheduled jobs (`crontab -e` as `atom`)
 
 ```cron
