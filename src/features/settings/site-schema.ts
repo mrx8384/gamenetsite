@@ -75,6 +75,7 @@ export const SITE_GROUPS = {
       { key: "footerDescription", label: "متن معرفی در فوتر", type: "textarea", max: 300, default: "باشگاه گیمینگ آتم؛ فروشگاه، کاتالوگ بازی‌ها، تورنومنت‌ها و خدمات همکاران." },
       { key: "footerSince", label: "متن سال تأسیس در فوتر", type: "text", max: 60, default: "فعالیت از سال ۲۰۲۱" },
       { key: "copyright", label: "متن حق نشر", type: "text", max: 120, default: "آتم گیم کلاب — تمامی حقوق محفوظ است." },
+      { key: "enamadCode", label: "کد اینماد (دسترسی فنی)", type: "text", max: 20, default: "", hint: "فقط عدد، همان کدی که اینماد در مرحلهٔ «افزودن متاتگ» می‌دهد؛ متاتگ enamad خودکار در صفحه‌ها قرار می‌گیرد." },
     ],
   },
   tournaments: {

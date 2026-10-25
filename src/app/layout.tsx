@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import { getSiteSettings } from "@/features/settings/site";
 import { siteConfig } from "@/lib/brand";
 import { env } from "@/lib/env";
+import { toEnglishDigits } from "@/lib/format";
 import "./globals.css";
 
 // Self-hosted (no external CDN): reliable on Iranian hosting.
@@ -17,7 +18,10 @@ const vazirmatn = localFont({
 
 export async function generateMetadata(): Promise<Metadata> {
   const general = await getSiteSettings("general");
+  // Enamad (Iranian e-commerce trust mark) domain verification: <meta name="enamad" content="...">.
+  const enamad = toEnglishDigits(general.enamadCode).replace(/\D/g, "");
   return {
+    ...(enamad ? { other: { enamad } } : {}),
     title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
     description: general.siteDescription,
     applicationName: siteConfig.name,

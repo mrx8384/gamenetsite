@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-10-25 (26) — Enamad domain verification (meta tag)
+
+- New site setting «کد اینماد (دسترسی فنی)» (Admin → تنظیمات سایت → عمومی). The root layout adds `<meta name="enamad" content="<code>">` to every page (digits normalized to English; empty → no tag).
+- Verified: build ✓, tag present on /, /shop, /contact with Persian-digit input stored; saving in the admin panel updates the tag immediately (cache tag), no rebuild; empty setting → no tag; 214 unit tests ✓.
+- Note: Enamad checks `atomgclub.ir`, which ArvanCloud redirects to `www`; if their check doesn't follow redirects, use the meta tag on the www host or ask Enamad support.
+
 ## 2026-10-25 (25) — FAQ suggestions in the support chat (owner request, option 2: no external AI)
 
 ### Why no AI chatbot
