@@ -1,5 +1,9 @@
 # Progress Log
 
+## 2026-10-25 (22) — Installer: one run at a time
+
+- Owner's update failed with «Another next build process is already running» (a build from an earlier, interrupted update was still alive on the 1 GB server). `install-server.sh` now takes an exclusive `flock` (`/var/lock/atom-install.lock`) and refuses a second parallel run; while holding it, leftover `next build` processes of the app user are stopped. Verified: `bash -n` ✓, lock refuses a second holder (simulated).
+
 ## 2026-10-25 (21) — www redirect, favicon for Google, site-name structured data
 
 - Catalog restore failed with «درخواست نامعتبر است.»: the owner used `https://www.atomgclub.ir`, but the import route only accepts `Origin` = `APP_URL` (`https://atomgclub.ir`). Google had also indexed the `www` host. `src/proxy.ts` now redirects `www.<APP_URL host>` → APP_URL with 308 (keeps POST); the matcher covers all paths except `_next/static`, `_next/image`, `media/`. Private-area session redirect unchanged.

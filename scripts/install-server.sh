@@ -32,6 +32,15 @@ KEEP_ENV="HTTP_PROXY,HTTPS_PROXY,NO_PROXY,http_proxy,https_proxy,no_proxy,NODE_E
 as_app() { sudo -u "$APP_USER" -H --preserve-env="$KEEP_ENV" bash -c "cd '$APP_DIR' && $*"; }
 
 [[ $EUID -eq 0 ]] || die "Run as root (e.g. sudo bash install.sh)."
+
+# Only one install/update at a time (two builds at once exhaust the memory of small servers).
+exec 9>/var/lock/atom-install.lock
+flock -n 9 || die "Another install/update is already running. Wait for it to finish (or close it) and try again."
+# Holding the lock means any remaining `next build` is left over from an interrupted run.
+if id "$APP_USER" >/dev/null 2>&1 && pkill -u "$APP_USER" -f "next build" 2>/dev/null; then
+  warn "Stopped a leftover build from an interrupted update."
+  sleep 2
+fi
 . /etc/os-release
 [[ "${ID:-}" == "ubuntu" ]] || die "This installer supports Ubuntu 22.04 / 24.04 only."
 export DEBIAN_FRONTEND=noninteractive
