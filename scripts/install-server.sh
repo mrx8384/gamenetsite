@@ -36,11 +36,17 @@ as_app() { sudo -u "$APP_USER" -H --preserve-env="$KEEP_ENV" bash -c "cd '$APP_D
 # Only one install/update at a time (two builds at once exhaust the memory of small servers).
 exec 9>/var/lock/atom-install.lock
 flock -n 9 || die "Another install/update is already running. Wait for it to finish (or close it) and try again."
-# Holding the lock means any remaining `next build` is left over from an interrupted run.
-if id "$APP_USER" >/dev/null 2>&1 && pkill -u "$APP_USER" -f "next build" 2>/dev/null; then
-  warn "Stopped a leftover build from an interrupted update."
-  sleep 2
+# Holding our lock means any remaining build is left over from an interrupted run. Its worker
+# processes (other names than "next build") can survive and keep Next's build lock (.next/lock).
+NEXT_LOCK="$APP_DIR/.next/lock"
+if [[ -e "$NEXT_LOCK" ]] && command -v fuser >/dev/null && fuser -s "$NEXT_LOCK" 2>/dev/null; then
+  warn "Stopping a leftover build from an interrupted update."
+  fuser -k -TERM "$NEXT_LOCK" >/dev/null 2>&1 || true
+  sleep 3
+  fuser -k -KILL "$NEXT_LOCK" >/dev/null 2>&1 || true
 fi
+if id "$APP_USER" >/dev/null 2>&1; then pkill -u "$APP_USER" -f "next build|jest-worker|next/dist/compiled/.*worker" 2>/dev/null || true; fi
+rm -f "$NEXT_LOCK"
 . /etc/os-release
 [[ "${ID:-}" == "ubuntu" ]] || die "This installer supports Ubuntu 22.04 / 24.04 only."
 export DEBIAN_FRONTEND=noninteractive
@@ -63,7 +69,7 @@ fi
 # ───────────── System packages ─────────────
 say "Installing system packages"
 apt-get update -y
-apt-get install -y ca-certificates curl git sudo nginx postgresql postgresql-contrib ufw fail2ban cron xz-utils
+apt-get install -y ca-certificates curl git sudo nginx postgresql postgresql-contrib ufw fail2ban cron xz-utils psmisc
 if [[ -n "${DOMAIN:-}" ]]; then apt-get install -y certbot python3-certbot-nginx; fi
 
 # Building needs ~2 GB of memory: add swap on small servers.

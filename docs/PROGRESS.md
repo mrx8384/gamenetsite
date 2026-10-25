@@ -3,6 +3,7 @@
 ## 2026-10-25 (22) — Installer: one run at a time
 
 - Owner's update failed with «Another next build process is already running» (a build from an earlier, interrupted update was still alive on the 1 GB server). `install-server.sh` now takes an exclusive `flock` (`/var/lock/atom-install.lock`) and refuses a second parallel run; while holding it, leftover `next build` processes of the app user are stopped. Verified: `bash -n` ✓, lock refuses a second holder (simulated).
+- Follow-up: the error persisted because orphaned build *worker* processes (not named "next build") kept Next's `.next/lock`. The installer now stops whatever holds that file (`fuser -k`, psmisc added to the apt list), also kills leftover worker processes and removes the stale lock. Verified the fuser part with a simulated lock holder (detected → stopped → lock acquirable).
 
 ## 2026-10-25 (21) — www redirect, favicon for Google, site-name structured data
 
