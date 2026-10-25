@@ -4,6 +4,7 @@
 
 - Owner's update failed with «Another next build process is already running» (a build from an earlier, interrupted update was still alive on the 1 GB server). `install-server.sh` now takes an exclusive `flock` (`/var/lock/atom-install.lock`) and refuses a second parallel run; while holding it, leftover `next build` processes of the app user are stopped. Verified: `bash -n` ✓, lock refuses a second holder (simulated).
 - Follow-up: the error persisted because orphaned build *worker* processes (not named "next build") kept Next's `.next/lock`. The installer now stops whatever holds that file (`fuser -k`, psmisc added to the apt list), also kills leftover worker processes and removes the stale lock. Verified the fuser part with a simulated lock holder (detected → stopped → lock acquirable).
+- Root cause on the owner's server turned out to be root-owned files in `.next` ("Build directory is not writeable", EACCES on `.next/trace`), likely from a command run by hand as root. The installer now `chown -R`s the app directory (and the saved previous build) to the app user before doing anything else. `bash -n` ✓.
 
 ## 2026-10-25 (21) — www redirect, favicon for Google, site-name structured data
 

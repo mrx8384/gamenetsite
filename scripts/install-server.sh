@@ -47,6 +47,12 @@ if [[ -e "$NEXT_LOCK" ]] && command -v fuser >/dev/null && fuser -s "$NEXT_LOCK"
 fi
 if id "$APP_USER" >/dev/null 2>&1; then pkill -u "$APP_USER" -f "next build|jest-worker|next/dist/compiled/.*worker" 2>/dev/null || true; fi
 rm -f "$NEXT_LOCK"
+# Commands run by hand as root (e.g. a manual `pnpm build`) leave root-owned files the app user can't
+# overwrite ("Build directory is not writeable"). The app directory always belongs to the app user.
+if [[ -d "$APP_DIR" ]] && id "$APP_USER" >/dev/null 2>&1; then
+  chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+  [[ -d "$BASE/next-previous" ]] && chown -R "$APP_USER:$APP_USER" "$BASE/next-previous"
+fi
 . /etc/os-release
 [[ "${ID:-}" == "ubuntu" ]] || die "This installer supports Ubuntu 22.04 / 24.04 only."
 export DEBIAN_FRONTEND=noninteractive
