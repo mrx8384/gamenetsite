@@ -145,7 +145,7 @@ The domain's DNS is on ArvanCloud. Let's Encrypt cannot validate it (Arvan's nam
 3. Real client IPs (required for rate limits and audit logs):
    `{ for ip in $(curl -fsS https://www.arvancloud.ir/fa/ips.txt); do echo "set_real_ip_from $ip;"; done; echo "real_ip_header ar-real-ip;"; } > /etc/nginx/conf.d/arvan-realip.conf && nginx -t && systemctl reload nginx`
    Re-run occasionally (Arvan's ranges change).
-4. `APP_URL="https://<domain>"` in `.env`, then run the installer again (rebuild).
+4. `APP_URL` in `.env` = the host Arvan finally serves. For atomgclub.ir Arvan redirects the apex to `www`, so `APP_URL="https://www.atomgclub.ir"`. If `APP_URL` is the apex while Arvan redirects to www, `src/proxy.ts` (www → APP_URL) and Arvan redirect in a loop. Check with `curl -sI https://<domain>/ https://www.<domain>/ | grep -i location`. Then run the installer again (rebuild).
 
 ## 6. Scheduled jobs (`crontab -e` as `atom`)
 

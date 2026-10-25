@@ -37,7 +37,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Gamepad Tester live (2026-10-23): **done**.
 - Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
 - Online support chat (owner request 2026-10-25): **done** — see PROGRESS 20. SMS needs two new SMS.ir templates (DEPLOYMENT §1).
-- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://atomgclub.ir (Iranian server, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
+- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://www.atomgclub.ir (Iranian server; ArvanCloud redirects the apex to www, so `APP_URL` must be the www origin, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

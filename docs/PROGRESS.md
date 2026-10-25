@@ -1,5 +1,9 @@
 # Progress Log
 
+## 2026-10-25 (23) — Redirect loop fixed by configuration
+
+- After the www → APP_URL redirect went live, the site looped: ArvanCloud redirects `atomgclub.ir` → `www.atomgclub.ir` (301) and the app redirected `www` → apex (308). Confirmed with curl on the server. Fix: `APP_URL="https://www.atomgclub.ir"` (Google had indexed www as well) + rebuild. DEPLOYMENT §5b updated.
+
 ## 2026-10-25 (22) — Installer: one run at a time
 
 - Owner's update failed with «Another next build process is already running» (a build from an earlier, interrupted update was still alive on the 1 GB server). `install-server.sh` now takes an exclusive `flock` (`/var/lock/atom-install.lock`) and refuses a second parallel run; while holding it, leftover `next build` processes of the app user are stopped. Verified: `bash -n` ✓, lock refuses a second holder (simulated).
