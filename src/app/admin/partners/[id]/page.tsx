@@ -88,7 +88,7 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
               <p className="font-medium">{p.user.name}</p>
               {p.user.phone ? <p className="ltr text-start">{p.user.phone}</p> : null}
               {p.user.email ? <p className="ltr text-start">{p.user.email}</p> : null}
-              <p className="text-muted-foreground">نقش: {p.user.role === "PARTNER" ? "همکار" : p.user.role === "ADMIN" ? "مدیر" : "کاربر عادی"} · عضویت: {formatDate(p.user.createdAt)}</p>
+              <p className="text-muted-foreground">نقش: {p.user.role === "PARTNER" ? "همکار" : p.user.role === "ADMIN" ? "مدیر" : p.user.role === "SUPPORT" ? "پشتیبان" : "کاربر عادی"} · عضویت: {formatDate(p.user.createdAt)}</p>
             </CardContent>
           </Card>
           <Card>

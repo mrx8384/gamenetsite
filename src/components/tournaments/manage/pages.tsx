@@ -15,7 +15,7 @@ import { isoToTehranInput } from "@/features/tournaments/time";
 import { getManagedTournaments, getTournamentForManage, type TournamentView } from "@/features/tournaments/queries";
 import { formatDateTime, formatNumber } from "@/lib/format";
 
-type Actor = { id: string; role: "ADMIN" | "USER" | "PARTNER" };
+type Actor = { id: string; role: "ADMIN" | "USER" | "PARTNER" | "SUPPORT" };
 
 export async function ManagedTournamentList({ user, basePath, canCreate }: { user: Actor; basePath: string; canCreate: boolean }) {
   const list = await getManagedTournaments(user);

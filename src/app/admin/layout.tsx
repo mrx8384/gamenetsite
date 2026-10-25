@@ -9,9 +9,12 @@ import { requireRole } from "@/lib/auth/dal";
 
 export const metadata: Metadata = { title: { default: "پنل مدیریت", template: "%s | پنل مدیریت" }, robots: { index: false } };
 
-/** Every admin page renders only after the server confirms the ADMIN role. */
+/**
+ * The panel opens for ADMIN and SUPPORT. Every page and action still checks its own role:
+ * SUPPORT staff can only use the support inbox (all other pages require ADMIN).
+ */
 async function AdminGate({ children }: { children: React.ReactNode }) {
-  const user = await requireRole(["ADMIN"], "/admin");
+  const user = await requireRole(["ADMIN", "SUPPORT"], "/admin");
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
       <aside className="bg-brand-black text-brand-cream lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:overflow-y-auto">
@@ -25,7 +28,7 @@ async function AdminGate({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
         <div className="px-3 pb-3 lg:pb-6">
-          <AdminNav />
+          <AdminNav role={user.role} />
         </div>
         <p className="hidden px-4 pb-6 text-xs text-brand-cream/50 lg:block">وارد شده با: {user.name}</p>
       </aside>

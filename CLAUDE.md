@@ -9,10 +9,11 @@ ATOM GAME CLUB is a Persian-first (fa-IR, RTL) gaming platform:
 
 - Public site: homepage, store, news, about, contact
 - Store with cart, checkout, orders (payment gateway configurable, **disabled** until provider + credentials are supplied)
-- Auth with roles `ADMIN`, `USER`, `PARTNER`
+- Auth with roles `ADMIN`, `USER`, `PARTNER`, `SUPPORT` (support inbox only)
 - Partner registration, approval workflow, dashboard, subscription architecture (**paid subscriptions disabled**)
 - Existing **Game Catalog** (Python, from `game-catalog.zip`) integrated under `/game-catalog`
 - Tournaments (Challonge-style, owner request 2026-10-23): single elimination (+ third place), double elimination (grand final + reset), round robin (single/double), groups + knockout. Organized by admins and by partners whose subscription includes `TOURNAMENT_HOST`; online sign-up and manual names; results entered by the organizer only
+- Online support chat (owner request 2026-10-25): floating widget for logged-in users, answered by ADMIN or the new `SUPPORT` role in `/admin/support`; badge + sound, SMS to staff, SMS/email to offline customers
 - Gamepad Tester at `/tournaments/gamepad-tester`: browser input tester (Gamepad API), for approved partners with an active subscription and admins
 - One centralized admin panel at `/admin`
 
@@ -35,6 +36,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
 - Gamepad Tester live (2026-10-23): **done**.
 - Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
+- Online support chat (owner request 2026-10-25): **done** — see PROGRESS 20. SMS needs two new SMS.ir templates (DEPLOYMENT §1).
 - Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://atomgclub.ir (Iranian server, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
@@ -150,6 +152,8 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Online support: `src/features/support/` (constants, schemas, merge, service with throttled notifications, actions), models `SupportConversation` + `SupportMessage` + role `SUPPORT` (migration `support_chat`), widget `src/components/support/*` in the public layout (texts in Admin → تنظیمات سایت → پشتیبانی آنلاین), polling APIs `/api/support`, `/api/admin/support/unread`, `/api/admin/support/[id]`, admin inbox `/admin/support` (+ `[id]`), nav badge + chime, dashboard card, contact-page button, `sendTemplateSms()` + optional `SMS_SUPPORT_*_TEMPLATE_ID`.
+
 - Tournaments: `src/features/tournaments/` (engine, service with row locks, actions, cached queries, permissions, Tehran-time helpers); models `Tournament`, `TournamentParticipant`, `TournamentMatch` (migration `tournaments`); public `/tournaments` (open / in progress / finished) and `/tournaments/[slug]` (podium, bracket columns, group tables, rounds, registration box, 30 s live refresh); management at `/admin/tournaments` (all) and `/partner/tournaments` (own, create needs `TOURNAMENT_HOST`): draft → publish → start (seeding = list order, shuffle) → report/edit/clear results (tie in elimination needs a chosen winner) → groups→knockout → automatic final ranks; reset and delete; audit log entries.
 
 - Phase 12: security review (every Server Action/route handler checked for auth + ownership; no secrets in git history; `pnpm audit` clean), CSP + COOP headers (`next.config.ts`; media route keeps its sandbox CSP), `robots.txt`, `sitemap.xml` (products + news, per request), metadataBase/OpenGraph, `pnpm maintenance` (sessions, codes, rate limits, guest carts, unpaid orders, ended subscriptions, `--media` prunes unused/stray uploads > 24 h incl. rich-text references), `scripts/backup.sh` (verified restore), `pnpm test:e2e` smoke test, full `docs/DEPLOYMENT.md` (systemd bound to 127.0.0.1, nginx, cron, restore, updates, go-live checklist).
@@ -172,7 +176,7 @@ See `docs/ROADMAP.md` (Phases 3–12).
 
 - Do **not** rewrite or delete the existing Game Catalog or its data without explicit approval. Never edit files in `services/game-catalog/`. Never write to an imported `catalog.db`; open it read-only.
 - Never create default admin accounts or passwords; use `pnpm admin:create`.
-- Authorization: every admin page/action calls `requireRole`/`assertRole` itself — the admin layout and `proxy.ts` are not security boundaries.
+- Authorization: every admin page/action calls `requireRole`/`assertRole` itself — the admin layout and `proxy.ts` are not security boundaries. The admin layout also admits `SUPPORT`, so **new admin pages must require `["ADMIN"]` explicitly** (only support pages allow `SUPPORT`).
 - Do **not** reverse-proxy the original catalog to the public internet (its admin is protected only by a localhost check).
 - Do **not** modify the ATOM GAME CLUB logo.
 - Do **not** enable real payments or paid subscriptions until the owner supplies provider details.

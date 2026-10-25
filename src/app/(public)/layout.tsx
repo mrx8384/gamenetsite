@@ -1,5 +1,6 @@
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SupportWidgetLoader } from "@/components/support/support-widget-loader";
 
 export default function PublicLayout({ children }: LayoutProps<"/">) {
   return (
@@ -15,6 +16,7 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
         {children}
       </main>
       <SiteFooter />
+      <SupportWidgetLoader />
     </>
   );
 }

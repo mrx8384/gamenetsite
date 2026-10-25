@@ -18,8 +18,9 @@ import { formatDate, formatNumber, toEnglishDigits } from "@/lib/format";
 export const metadata: Metadata = { title: "کاربران" };
 
 const PAGE_SIZE = 20;
-const roleLabel = { ADMIN: "مدیر", USER: "کاربر", PARTNER: "همکار" } as const;
-const roleVariant = { ADMIN: "strong", USER: "secondary", PARTNER: "info" } as const;
+const roleLabel = { ADMIN: "مدیر", USER: "کاربر", PARTNER: "همکار", SUPPORT: "پشتیبان" } as const;
+const roleVariant = { ADMIN: "strong", USER: "secondary", PARTNER: "info", SUPPORT: "warning" } as const;
+const ROLES = ["ADMIN", "USER", "PARTNER", "SUPPORT"] as const;
 
 type Search = { q?: string; role?: string; status?: string; page?: string };
 
@@ -38,7 +39,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
   const admin = await requireRole(["ADMIN"], "/admin/users");
   const sp = await searchParams;
   const q = toEnglishDigits(String(sp.q ?? "")).trim().slice(0, 100);
-  const role = sp.role === "ADMIN" || sp.role === "USER" || sp.role === "PARTNER" ? sp.role : undefined;
+  const role = ROLES.find((r) => r === sp.role);
   const status = sp.status === "active" || sp.status === "inactive" ? sp.status : undefined;
   const page = Math.max(1, Number.parseInt(String(sp.page ?? "1"), 10) || 1);
 
@@ -89,6 +90,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
           <option value="">همهٔ نقش‌ها</option>
           <option value="USER">کاربر</option>
           <option value="PARTNER">همکار</option>
+          <option value="SUPPORT">پشتیبان</option>
           <option value="ADMIN">مدیر</option>
         </NativeSelect>
         <NativeSelect name="status" defaultValue={status ?? ""} aria-label="وضعیت">

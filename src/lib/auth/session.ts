@@ -12,12 +12,15 @@ const secureCookies = env.APP_URL.startsWith("https://");
 /** `__Host-` prefix forces Secure, Path=/ and no Domain (only possible over HTTPS). */
 export const SESSION_COOKIE = secureCookies ? "__Host-atom_session" : "atom_session";
 
+/** Mirrors the Prisma `Role` enum. SUPPORT may only use the support inbox in the admin panel. */
+export type UserRole = "ADMIN" | "USER" | "PARTNER" | "SUPPORT";
+
 export interface SessionUser {
   id: string;
   name: string;
   email: string | null;
   phone: string | null;
-  role: "ADMIN" | "USER" | "PARTNER";
+  role: UserRole;
 }
 
 export interface ValidSession {

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, MoreHorizontal, ShieldCheck, UserCheck, UserRound, UserX, Handshake } from "lucide-react";
+import { Handshake, Headset, LogOut, MoreHorizontal, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -18,8 +18,8 @@ import {
 import { revokeAllUserSessions, setUserActive, setUserRole } from "@/features/users/actions";
 import type { ActionResult } from "@/lib/action-result";
 
-type Role = "ADMIN" | "USER" | "PARTNER";
-const roleLabel: Record<Role, string> = { ADMIN: "مدیر", USER: "کاربر عادی", PARTNER: "همکار" };
+type Role = "ADMIN" | "USER" | "PARTNER" | "SUPPORT";
+const roleLabel: Record<Role, string> = { ADMIN: "مدیر", USER: "کاربر عادی", PARTNER: "همکار", SUPPORT: "پشتیبان" };
 
 interface PendingAction {
   title: string;
@@ -56,8 +56,8 @@ export function UserRowActions({ user, isSelf }: { user: { id: string; name: str
               <Link href="/admin/partners"><Handshake /> مدیریت در بخش همکاران</Link>
             </DropdownMenuItem>
           ) : (
-            (["USER", "ADMIN"] as const).map((role) => {
-              const Icon = role === "ADMIN" ? ShieldCheck : UserRound;
+            (["USER", "SUPPORT", "ADMIN"] as const).map((role) => {
+              const Icon = role === "ADMIN" ? ShieldCheck : role === "SUPPORT" ? Headset : UserRound;
               return (
                 <DropdownMenuItem key={role} disabled={isSelf || user.role === role} onSelect={() => setPending(roleAction(role))}>
                   <Icon /> {roleLabel[role]}

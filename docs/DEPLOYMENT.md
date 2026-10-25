@@ -14,6 +14,8 @@ No external CDN, font or script is used at runtime, so the site works on Iranian
 | `SMS_PROVIDER` | `smsir` |
 | `SMS_API_KEY` | SMS.ir key. **Regenerate the key that was shared in chat** and put only the new one here. |
 | `SMS_TEMPLATE_ID` / `SMS_TEMPLATE_PARAM` | `490537` / `CODE` |
+| `SMS_SUPPORT_STAFF_TEMPLATE_ID` | Optional. SMS.ir verify template with `#NAME#`, e.g. «پیام جدید پشتیبانی آتم از #NAME#». Sent to the number in Admin → تنظیمات سایت → پشتیبانی آنلاین (max once per conversation per 15 min). Unset → no SMS. |
+| `SMS_SUPPORT_REPLY_TEMPLATE_ID` | Optional. Template with `#NAME#`, e.g. «#NAME# عزیز، پشتیبانی آتم گیم کلاب به پیام شما پاسخ داد.» Sent to customers who are not on the site when staff replies (users without a mobile get an email instead). |
 | `MAIL_PROVIDER` | `log` until an SMTP mailbox exists, then `smtp` + `SMTP_URL` + `MAIL_FROM` |
 | `PAYMENT_PROVIDER` | `disabled` until the real gateway is implemented. `sandbox` is refused in production. |
 

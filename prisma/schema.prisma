@@ -19,6 +19,8 @@ enum Role {
   ADMIN
   USER
   PARTNER
+  /// Support agent: only the support inbox in the admin panel.
+  SUPPORT
 }
 
 model User {
@@ -55,6 +57,8 @@ model User {
   pagesUpdated         Page[]
   organizedTournaments Tournament[]            @relation("TournamentOrganizer")
   tournamentEntries    TournamentParticipant[]
+  supportConversation  SupportConversation?
+  supportMessages      SupportMessage[]
 
   @@index([role])
   @@map("users")
@@ -842,4 +846,50 @@ model TournamentMatch {
   @@unique([tournamentId, number])
   @@index([tournamentId, stage, round, position])
   @@map("tournament_matches")
+}
+
+// ───────────── Online support (chat) ─────────────
+
+enum SupportStatus {
+  OPEN
+  CLOSED
+}
+
+/// One support thread per user. A closed thread reopens when the user writes again.
+model SupportConversation {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             SupportStatus @default(OPEN)
+  lastMessageAt      DateTime      @default(now())
+  /// Messages the other side has not read yet.
+  unreadByStaff      Int           @default(0)
+  unreadByUser       Int           @default(0)
+  /// Last time the user's browser polled (used to decide whether to notify them by SMS/email).
+  userLastSeenAt     DateTime?
+  /// Throttle notifications.
+  staffNotifiedAt    DateTime?
+  customerNotifiedAt DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([status, lastMessageAt])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  /// Author (null if the account was deleted).
+  senderId       String?
+  sender         User?               @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  fromStaff      Boolean
+  body           String              @db.VarChar(2000)
+  createdAt      DateTime            @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("support_messages")
 }

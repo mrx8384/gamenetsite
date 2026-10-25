@@ -9,7 +9,7 @@ import { revokeUserSessions } from "@/lib/auth/session";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getRequestInfo } from "@/lib/request-info";
 
-const roleSchema = z.enum(["ADMIN", "USER", "PARTNER"]);
+const roleSchema = z.enum(["ADMIN", "USER", "PARTNER", "SUPPORT"]);
 
 async function adminSession() {
   try {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Clock, Mail, MapPin, Phone, Smartphone } from "lucide-react";
 import { ContactForm } from "@/components/contact/contact-form";
+import { OpenSupportButton } from "@/components/support/open-support-button";
 import { Container } from "@/components/layout/container";
 import { SocialLinks } from "@/components/layout/social-links";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,12 @@ export default async function ContactPage() {
           <CardContent><ContactForm /></CardContent>
         </Card>
         <div className="space-y-4">
+          <Card>
+            <CardContent className="space-y-3">
+              <p className="text-sm leading-7 text-muted-foreground">پاسخ سریع‌تر می‌خواهید؟ با پشتیبانی آنلاین گفت‌وگو کنید.</p>
+              <OpenSupportButton className="w-full" />
+            </CardContent>
+          </Card>
           {rows.length > 0 ? (
             <Card>
               <CardContent className="space-y-4">

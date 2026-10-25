@@ -102,6 +102,13 @@ Money columns are `BigInt` Rials.
 
 Flow: `engine.ts` generates pure match specs (standard seeding, byes for top seeds, double-elimination losers bracket with reversed drops, circle-method round robin, snake groups, knockout seeding that keeps group mates apart). `service.ts` locks the tournament row (`FOR UPDATE`) for every change, maps DB rows to the engine's live map, applies `applyResult`/`clearResult` (re-reporting allowed until a downstream match is played; GF won by the losers-bracket player activates the reset) and writes back only the changed matches. Ranks are computed when every match is done (and cleared when a result is removed). Organizers: `canCreateTournament` (admin, or partner with `TOURNAMENT_HOST`) and `canManageTournament` (admin, or the organizing partner).
 
+### Online support (owner request 2026-10-25)
+
+- Role `SUPPORT`: the admin layout admits ADMIN + SUPPORT, but every other admin page/action still requires ADMIN; SUPPORT sees only `/admin/support` (and `/admin` redirects there).
+- **SupportConversation** (one per user, `OPEN`/`CLOSED`; a new user message reopens it): `unreadByStaff` / `unreadByUser` counters, `userLastSeenAt` (updated by widget polling), `staffNotifiedAt` / `customerNotifiedAt` (15-min throttles claimed atomically with `updateMany`). **SupportMessage**: body ≤ 2000 chars (plain text, rendered escaped), `fromStaff`, `senderId` (SetNull).
+- Transport: HTTP polling (no websockets; works behind nginx and ArvanCloud): `GET /api/support` (customer; 4 s open / 25 s closed, paused while the tab is hidden), `GET /api/admin/support/unread` (15 s, badge + Web Audio chime), `GET /api/admin/support/[id]` (4 s, marks read). Cursor = last `createdAt` (inclusive, client de-duplicates by id). All responses `Cache-Control: private, no-store`.
+- Sending via Server Actions (`src/features/support/actions.ts`), rate limited (customer 8/min + 200/day). Notifications run in `after()` so they never block or fail the action.
+
 ### Game Catalog (option C — pending approval)
 
 Mirrors the original SQLite model (see `docs/GAME_CATALOG_ANALYSIS.md`).

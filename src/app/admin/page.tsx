@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Handshake, Mail, Newspaper, PackageCheck, Receipt, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Handshake, Headset, Mail, Newspaper, PackageCheck, Receipt, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
@@ -24,8 +25,9 @@ export default function AdminDashboard() {
 }
 
 async function Stats() {
-  await requireRole(["ADMIN"], "/admin"); // defense in depth: never rely on the layout alone
-  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum, unreadMessages, drafts, pendingPartners] = await Promise.all([
+  const me = await requireRole(["ADMIN", "SUPPORT"], "/admin"); // defense in depth: never rely on the layout alone
+  if (me.role === "SUPPORT") redirect("/admin/support"); // support staff only have the support inbox
+  const [total, admins, partners, users, newThisWeek, toProcess, awaiting, paidSum, unreadMessages, drafts, pendingPartners, waitingChats] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { role: "ADMIN" } }),
     db.user.count({ where: { role: "PARTNER" } }),
@@ -37,11 +39,13 @@ async function Stats() {
     db.contactMessage.count({ where: { status: "NEW" } }),
     db.newsPost.count({ where: { status: "DRAFT" } }),
     db.partnerProfile.count({ where: { status: "PENDING" } }),
+    db.supportConversation.count({ where: { unreadByStaff: { gt: 0 } } }),
   ]);
   const orderCards = [
     { label: "سفارش‌های در انتظار ارسال", value: formatNumber(toProcess), icon: PackageCheck, href: "/admin/orders?status=PAID" },
     { label: "در انتظار پرداخت", value: formatNumber(awaiting), icon: Receipt, href: "/admin/orders?status=AWAITING_PAYMENT" },
     { label: "فروش ۳۰ روز اخیر", value: formatToman(paidSum._sum.total ?? BigInt(0)), icon: Wallet, href: "/admin/orders" },
+    { label: "گفت‌وگوهای منتظر پاسخ", value: formatNumber(waitingChats), icon: Headset, href: "/admin/support" },
     { label: "پیام‌های نخوانده", value: formatNumber(unreadMessages), icon: Mail, href: "/admin/messages?status=NEW" },
     { label: "پیش‌نویس‌های خبر", value: formatNumber(drafts), icon: Newspaper, href: "/admin/news?status=DRAFT" },
     { label: "درخواست‌های همکاری", value: formatNumber(pendingPartners), icon: Handshake, href: "/admin/partners" },

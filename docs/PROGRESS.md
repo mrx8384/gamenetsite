@@ -1,5 +1,21 @@
 # Progress Log
 
+## 2026-10-25 (20) — Online support chat (owner request)
+
+### Owner decisions
+- Built-in chat (no third-party service), logged-in users only, answered by admins + a new «پشتیبان» role, notifications: panel sound/badge, SMS to staff, SMS/email to the customer.
+
+### Done
+- Schema + migration `support_chat`: role `SUPPORT`, `SupportConversation`, `SupportMessage`.
+- Customer widget on every public page (floating button, unread badge, guest login prompt, Enter to send / Shift+Enter new line, closed-thread notice, opens from the contact page and from `?support=open` email links, Escape closes, mobile layout).
+- Admin: `/admin/support` (open / waiting / closed tabs, search, auto refresh), `/admin/support/[id]` (live thread, reply, close/reopen, "user is on the site" indicator), nav badge + chime, dashboard card. SUPPORT users see only this; `/admin` redirects them there. Role can be assigned in Admin → کاربران.
+- Notifications: staff SMS (`SMS_SUPPORT_STAFF_TEMPLATE_ID`, number from site settings), customer SMS (`SMS_SUPPORT_REPLY_TEMPLATE_ID`) or email when they're offline; throttled 15 min per conversation; without templates nothing is sent.
+- Site settings group «پشتیبانی آنلاین» (title, welcome, hours, guest text, notify mobile).
+
+### Verification
+- `pnpm check` ✓ (207 tests, incl. `tests/unit/support.test.ts`) · `pnpm build` ✓ · smoke E2E 84/84.
+- Support E2E against the production build (46 checks, all pass): guest prompt, user messages (multi-line), conversation + unread counters, staff SMS once (throttle), SUPPORT agent redirected and limited to the inbox (other admin pages 404), badge, mark-as-read, reply with staff name (hidden from customer), live delivery to the open widget, unread badge when closed, close → notice → reopen, email to an offline email-only user, SMS to an offline user with a phone, staff APIs 403 for normal users, admin assigns the SUPPORT role, editable widget title, mobile layout, axe clean (fixed: focusable message list), Escape, no page errors. Test data removed.
+
 ## 2026-10-24 (19) — Live on atomgclub.ir with HTTPS (ArvanCloud)
 
 - Site deployed on the Iranian server, domain `atomgclub.ir` (DNS on ArvanCloud). certbot failed (Arvan nameservers not visible from abroad, and only a `www` A record existed) → HTTPS via Arvan's edge certificate; 502 fixed by setting the origin protocol to HTTP. Steps recorded in DEPLOYMENT §5b.

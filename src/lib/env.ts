@@ -25,6 +25,9 @@ const envSchema = z.object({
   SMS_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   /** Template variable name that receives the code, e.g. #CODE# → "CODE". */
   SMS_TEMPLATE_PARAM: z.string().default("CODE"),
+  /** Optional SMS.ir templates for the support chat, each with the variable #NAME#. Unset → no SMS. */
+  SMS_SUPPORT_STAFF_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+  SMS_SUPPORT_REPLY_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   MAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().optional(),

@@ -100,6 +100,17 @@ export const SITE_GROUPS = {
       { key: "plansNote", label: "پیام غیرفعال بودن خرید اشتراک", type: "textarea", max: 300, default: "خرید اشتراک به‌زودی فعال می‌شود." },
     ],
   },
+  support: {
+    label: "پشتیبانی آنلاین",
+    description: "متن‌های پنجرهٔ چت پشتیبانی و شمارهٔ دریافت پیامک پیام‌های جدید.",
+    fields: [
+      { key: "title", label: "عنوان پنجرهٔ چت", type: "text", max: 60, default: "پشتیبانی آنلاین آتم" },
+      { key: "welcome", label: "پیام خوش‌آمد", type: "textarea", max: 300, default: "سلام! سؤال یا مشکلتان را بنویسید؛ همکاران ما در اولین فرصت پاسخ می‌دهند." },
+      { key: "hours", label: "ساعات پاسخ‌گویی", type: "text", max: 120, default: "", hint: "زیر عنوان چت نمایش داده می‌شود، مثلاً «پاسخ‌گویی: هر روز ۱۰ تا ۲۲»" },
+      { key: "loginText", label: "پیام برای کاربران واردنشده", type: "textarea", max: 300, default: "برای گفت‌وگو با پشتیبانی، وارد حساب کاربری خود شوید یا ثبت‌نام کنید." },
+      { key: "notifyMobile", label: "موبایل دریافت پیامک پیام‌های جدید", type: "phone", max: 20, default: "", hint: "مثلاً 09121234567 — اگر خالی باشد پیامک ارسال نمی‌شود." },
+    ],
+  },
 } as const satisfies Record<string, GroupDef>;
 
 export type SiteGroupKey = keyof typeof SITE_GROUPS;

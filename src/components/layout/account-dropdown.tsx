@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Handshake, LayoutDashboard, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
+import { Handshake, Headset, LayoutDashboard, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/features/auth/actions";
 
-const roleLabel = { ADMIN: "مدیر", USER: "کاربر", PARTNER: "همکار" } as const;
+const roleLabel = { ADMIN: "مدیر", USER: "کاربر", PARTNER: "همکار", SUPPORT: "پشتیبان" } as const;
 
 export function AccountDropdown({ name, role }: { name: string; role: keyof typeof roleLabel }) {
   const initial = name.match(/\p{L}/u)?.[0] ?? "؟";
@@ -57,6 +57,13 @@ export function AccountDropdown({ name, role }: { name: string; role: keyof type
           <DropdownMenuItem asChild>
             <Link href="/admin">
               <LayoutDashboard /> پنل مدیریت
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
+        {role === "SUPPORT" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/support">
+              <Headset /> پشتیبانی آنلاین
             </Link>
           </DropdownMenuItem>
         ) : null}

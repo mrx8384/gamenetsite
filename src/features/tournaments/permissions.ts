@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { hasEntitlement } from "@/features/subscriptions/entitlements";
 
-type Actor = { id: string; role: "ADMIN" | "USER" | "PARTNER" };
+type Actor = { id: string; role: "ADMIN" | "USER" | "PARTNER" | "SUPPORT" };
 
 /** Admins always; partners only when their subscription includes TOURNAMENT_HOST. */
 export async function canCreateTournament(user: Actor | null): Promise<boolean> {

@@ -8,7 +8,7 @@ export interface SubscriptionPeriod {
 }
 
 export interface EntitlementSubject {
-  role: "ADMIN" | "USER" | "PARTNER";
+  role: "ADMIN" | "USER" | "PARTNER" | "SUPPORT";
   isActive: boolean;
   partner: { status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED"; subscriptions: SubscriptionPeriod[] } | null;
 }
