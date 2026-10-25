@@ -1,5 +1,12 @@
 # Progress Log
 
+## 2026-10-25 (21) — www redirect, favicon for Google, site-name structured data
+
+- Catalog restore failed with «درخواست نامعتبر است.»: the owner used `https://www.atomgclub.ir`, but the import route only accepts `Origin` = `APP_URL` (`https://atomgclub.ir`). Google had also indexed the `www` host. `src/proxy.ts` now redirects `www.<APP_URL host>` → APP_URL with 308 (keeps POST); the matcher covers all paths except `_next/static`, `_next/image`, `media/`. Private-area session redirect unchanged.
+- Google showed a generic globe instead of the logo: the favicon was 256 px (Google needs a multiple of 48 px). New `src/app/favicon.ico` (48/32/16), `icon.png` 192 px, `apple-icon.png` 180 px — resized from `public/brand/atom-logo.webp`, design unchanged.
+- Homepage JSON-LD: `WebSite` (name «ATOM GAME CLUB», alternate «آتم گیم کلاب») + `Organization` (logo).
+- Verified: `pnpm check` ✓, `pnpm build` ✓, smoke E2E 84/84, curl: www GET/POST → 308 to the apex, apex 200, icons served with correct types, icon `<link>`s + JSON-LD in the homepage HTML.
+
 ## 2026-10-25 (20) — Online support chat (owner request)
 
 ### Owner decisions

@@ -9,11 +9,19 @@ import { SectionHeading } from "@/components/home/section-heading";
 import { TournamentBand } from "@/components/home/tournament-band";
 import { Container } from "@/components/layout/container";
 import { getSiteSettings } from "@/features/settings/site";
+import { env } from "@/lib/env";
 
 export default async function HomePage() {
   const c = await getSiteSettings("home");
+  const origin = new URL(env.APP_URL).origin;
+  // Site name and logo for search results (WebSite + Organization structured data).
+  const jsonLd = [
+    { "@context": "https://schema.org", "@type": "WebSite", name: "ATOM GAME CLUB", alternateName: ["آتم گیم کلاب", "Atom Game Club"], url: `${origin}/` },
+    { "@context": "https://schema.org", "@type": "Organization", name: "ATOM GAME CLUB", alternateName: "آتم گیم کلاب", url: `${origin}/`, logo: `${origin}/brand/atom-logo-256.png` },
+  ];
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Hero eyebrow={c.heroEyebrow} title={c.heroTitle} subtitle={c.heroSubtitle} />
 
       <Container className="py-14 sm:py-20">
