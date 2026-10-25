@@ -109,6 +109,10 @@ Flow: `engine.ts` generates pure match specs (standard seeding, byes for top see
 - Transport: HTTP polling (no websockets; works behind nginx and ArvanCloud): `GET /api/support` (customer; 4 s open / 25 s closed, paused while the tab is hidden), `GET /api/admin/support/unread` (15 s, badge + Web Audio chime), `GET /api/admin/support/[id]` (4 s, marks read). Cursor = last `createdAt` (inclusive, client de-duplicates by id). All responses `Cache-Control: private, no-store`.
 - Sending via Server Actions (`src/features/support/actions.ts`), rate limited (customer 8/min + 200/day). Notifications run in `after()` so they never block or fail the action.
 
+### Support FAQ suggestions (2026-10-25)
+
+`SupportFaq` rows are cached (`faq` tag) and sent to the widget; `faq-match.ts` scores them in the browser (normalization, stop words, light stemming, question/keyword ×3 + answer, threshold 0.8 per query token). Counters `openCount`/`helpfulCount` via a rate-limited public action. Admin + SUPPORT manage them at `/admin/support/faq`.
+
 ### Game Catalog (option C — pending approval)
 
 Mirrors the original SQLite model (see `docs/GAME_CATALOG_ANALYSIS.md`).

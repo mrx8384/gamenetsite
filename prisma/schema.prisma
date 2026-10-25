@@ -893,3 +893,22 @@ model SupportMessage {
   @@index([conversationId, createdAt])
   @@map("support_messages")
 }
+
+/// Frequently asked questions; suggested in the support chat while the user types (no external AI).
+model SupportFaq {
+  id           String   @id @default(cuid())
+  question     String   @db.VarChar(200)
+  answer       String   @db.VarChar(2000)
+  /// Extra words/synonyms that should match this FAQ (space separated).
+  keywords     String   @default("") @db.VarChar(300)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  /// Times the answer was opened from a suggestion / marked as helpful.
+  openCount    Int      @default(0)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("support_faqs")
+}

@@ -57,8 +57,25 @@ export function ChatMessages({ messages, mineIsStaff, intro, className }: { mess
 }
 
 /** Text box + send button. Enter sends, Shift+Enter adds a line. Returns true from `onSend` to clear. */
-export function ChatComposer({ onSend, disabled, placeholder = "پیام خود را بنویسید…", autoFocus }: { onSend: (text: string) => Promise<boolean>; disabled?: boolean; placeholder?: string; autoFocus?: boolean }) {
-  const [text, setText] = React.useState("");
+export function ChatComposer({
+  onSend,
+  disabled,
+  placeholder = "پیام خود را بنویسید…",
+  autoFocus,
+  value,
+  onValueChange,
+}: {
+  onSend: (text: string) => Promise<boolean>;
+  disabled?: boolean;
+  placeholder?: string;
+  autoFocus?: boolean;
+  /** Optional controlled text (the chat widget reads it to suggest FAQ answers). */
+  value?: string;
+  onValueChange?: (text: string) => void;
+}) {
+  const [own, setOwn] = React.useState("");
+  const text = value ?? own;
+  const setText = (t: string) => (onValueChange ? onValueChange(t) : setOwn(t));
   const [pending, setPending] = React.useState(false);
   const ref = React.useRef<HTMLTextAreaElement>(null);
 

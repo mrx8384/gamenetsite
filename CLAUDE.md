@@ -36,7 +36,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Phase 12 (QA, hardening, CSP, maintenance, deployment guide): **done**. All planned phases complete.
 - Gamepad Tester live (2026-10-23): **done**.
 - Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
-- Online support chat (owner request 2026-10-25): **done** — see PROGRESS 20. SMS needs two new SMS.ir templates (DEPLOYMENT §1).
+- Online support chat (owner request 2026-10-25): **done** — see PROGRESS 20. FAQ suggestions (no external AI): **done** — PROGRESS 25. SMS needs two new SMS.ir templates (DEPLOYMENT §1).
 - Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://www.atomgclub.ir (Iranian server; ArvanCloud redirects the apex to www, so `APP_URL` must be the www origin, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
@@ -152,6 +152,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 
 ## 7. Completed features
 
+- Support FAQ: `SupportFaq` model, matcher `src/features/support/faq-match.ts` (pure, browser-side), widget suggestions + quick list, admin `/admin/support/faq`. No external AI (not available from Iran); an AI provider could later use the same FAQ data.
 - Online support: `src/features/support/` (constants, schemas, merge, service with throttled notifications, actions), models `SupportConversation` + `SupportMessage` + role `SUPPORT` (migration `support_chat`), widget `src/components/support/*` in the public layout (texts in Admin → تنظیمات سایت → پشتیبانی آنلاین), polling APIs `/api/support`, `/api/admin/support/unread`, `/api/admin/support/[id]`, admin inbox `/admin/support` (+ `[id]`), nav badge + chime, dashboard card, contact-page button, `sendTemplateSms()` + optional `SMS_SUPPORT_*_TEMPLATE_ID`.
 
 - Tournaments: `src/features/tournaments/` (engine, service with row locks, actions, cached queries, permissions, Tehran-time helpers); models `Tournament`, `TournamentParticipant`, `TournamentMatch` (migration `tournaments`); public `/tournaments` (open / in progress / finished) and `/tournaments/[slug]` (podium, bracket columns, group tables, rounds, registration box, 30 s live refresh); management at `/admin/tournaments` (all) and `/partner/tournaments` (own, create needs `TOURNAMENT_HOST`): draft → publish → start (seeding = list order, shuffle) → report/edit/clear results (tie in elimination needs a chosen winner) → groups→knockout → automatic final ranks; reset and delete; audit log entries.

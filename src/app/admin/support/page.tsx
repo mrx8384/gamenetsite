@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Headset, Search } from "lucide-react";
+import { BookOpen, Headset, Search } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { InboxRefresh } from "@/components/admin/support/support-thread";
@@ -81,11 +81,14 @@ async function Inbox({ searchParams }: { searchParams: Promise<Search> }) {
             </Link>
           ))}
         </nav>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <Button asChild variant="outline" size="sm"><Link href="/admin/support/faq"><BookOpen /> سؤالات متداول</Link></Button>
         <form role="search" className="relative w-full sm:w-72">
           {tab ? <input type="hidden" name="tab" value={tab} /> : null}
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input name="q" defaultValue={q} placeholder="نام، موبایل یا ایمیل" className="ps-9" aria-label="جست‌وجو در گفت‌وگوها" />
         </form>
+        </div>
       </div>
 
       {rows.length === 0 ? (

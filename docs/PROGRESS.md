@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-10-25 (25) — FAQ suggestions in the support chat (owner request, option 2: no external AI)
+
+### Why no AI chatbot
+- Major AI APIs don't serve Iran (sanctions/terms) and the 1 GB server can't run a model. The owner chose keyword-based suggestions; an AI provider can be added later on top of the same FAQ data.
+
+### Done
+- Model `SupportFaq` (question, answer, keywords, active, order, open/helpful counters), migration `support_faq`, cache tag `faq`.
+- `src/features/support/faq-match.ts` (pure, runs in the browser): Persian normalization (ي/ك, digits, ZWNJ), stop words, light stemming (plurals, verb prefixes, multi-letter possessives; one-letter endings compared at match time so «سفارش» isn't cut), question/keyword hits ×3 + answer hits, partial matches, relevance threshold.
+- Widget: suggestions box while typing («مشکلم حل شد» clears the draft and counts as helpful; «نه، پیامم را بفرستم» hides it for that text), first 4 FAQs before the first message (hidden while typing), guests get a FAQ search + list above the login prompt.
+- Admin `/admin/support/faq` (ADMIN + SUPPORT): add/edit (dialog, validation), activate/deactivate, reorder, delete, stats, and a «امتحان پیشنهادها» tester; linked from the inbox.
+
+### Verification
+- `pnpm check` ✓ (214 tests, incl. `tests/unit/faq-match.test.ts`: natural questions, Arabic letters, possessives, unrelated text, limits) · `pnpm build` ✓.
+- FAQ E2E (24 checks, all pass): agent creates FAQs (validation), tester match/no-match, reorder, deactivate; guest list (order, max 4, inactive hidden) + search + open answer; user suggestions while typing, «حل شد» (draft cleared, no message, counters 1/1), «نه» then message sent, unrelated text → none, possessive form matched; axe clean; mobile layout; normal user 404 on FAQ admin; delete. Chat E2E 46/46 and smoke 84/84 re-run. Test data removed.
+
 ## 2026-10-25 (24) — Branded error page for 502/503/504 (owner request)
 
 - `deploy/errors/50x.html`: self-contained Persian page (brand colors, logo resized from the official file, atom orbits, retry button, quiet HEAD re-check with back-off and auto reload when the site answers, reduced-motion support). Served by nginx, so it works while the app is down or rebuilding.

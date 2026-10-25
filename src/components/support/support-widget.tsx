@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { sendSupportMessage } from "@/features/support/actions";
 import { OPEN_SUPPORT_EVENT, POLL_CLOSED_MS, POLL_OPEN_MS, type ChatMessage } from "@/features/support/constants";
+import type { FaqItem } from "@/features/support/faq-match";
 import { cn } from "@/lib/utils";
 import { ChatComposer, ChatMessages, mergeMessages, usePolling } from "./chat-parts";
+import { FaqQuickList, FaqSuggestions } from "./faq-suggestions";
 
 export interface SupportTexts {
   title: string;
@@ -26,8 +28,12 @@ type State =
 type ApiResponse = { auth: false } | { auth: true; status: "OPEN" | "CLOSED" | null; unread: number; messages: ChatMessage[] };
 
 /** Floating support chat for every public page. Guests are asked to log in. */
-export function SupportWidget({ texts }: { texts: SupportTexts }) {
+export function SupportWidget({ texts, faqs }: { texts: SupportTexts; faqs: FaqItem[] }) {
   const [open, setOpen] = React.useState(false);
+  const [draft, setDraft] = React.useState("");
+  const [guestQuery, setGuestQuery] = React.useState("");
+  // Text for which the user said "not solved" (suggestions stay hidden until the text changes).
+  const [dismissedFor, setDismissedFor] = React.useState<string | null>(null);
   const [state, setState] = React.useState<State>({ kind: "loading" });
   const panelId = React.useId();
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -88,6 +94,7 @@ export function SupportWidget({ texts }: { texts: SupportTexts }) {
       toast.error(res.error);
       return false;
     }
+    setDismissedFor(null);
     setState((prev) =>
       prev.kind === "user"
         ? { ...prev, status: "OPEN", messages: mergeMessages(prev.messages, [res.data]) }
@@ -125,7 +132,20 @@ export function SupportWidget({ texts }: { texts: SupportTexts }) {
               <Spinner />
             </div>
           ) : state.kind === "guest" ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="flex flex-1 flex-col items-center gap-4 overflow-y-auto p-4 text-center">
+              {faqs.length > 0 ? (
+                <div className="w-full space-y-2 text-start">
+                  <label className="sr-only" htmlFor={`${panelId}-q`}>جست‌وجو در سؤالات متداول</label>
+                  <input
+                    id={`${panelId}-q`}
+                    value={guestQuery}
+                    onChange={(e) => setGuestQuery(e.target.value)}
+                    placeholder="سؤالتان را بنویسید تا جوابش را پیدا کنیم…"
+                    className="h-10 w-full rounded-lg border bg-surface px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  {guestQuery.trim().length >= 3 ? <FaqSuggestions faqs={faqs} query={guestQuery} className="rounded-xl border" /> : <FaqQuickList faqs={faqs} />}
+                </div>
+              ) : null}
               <p className="text-sm leading-7 text-muted-foreground">{texts.loginText}</p>
               <div className="flex gap-2">
                 <Button asChild>
@@ -145,13 +165,29 @@ export function SupportWidget({ texts }: { texts: SupportTexts }) {
                 intro={
                   <>
                     <div className="max-w-[85%] self-end rounded-2xl rounded-se-sm border bg-surface px-3 py-2 text-sm leading-7">{texts.welcome}</div>
+                    {state.messages.length === 0 && faqs.length > 0 && draft.trim().length < 3 ? (
+                      <div className="self-stretch">
+                        <FaqQuickList faqs={faqs} />
+                      </div>
+                    ) : null}
                     {state.status === "CLOSED" ? (
                       <p className="my-1 text-center text-xs text-muted-foreground">این گفت‌وگو بسته شده است؛ با ارسال پیام جدید دوباره باز می‌شود.</p>
                     ) : null}
                   </>
                 }
               />
-              <ChatComposer onSend={send} autoFocus />
+              {dismissedFor !== draft ? (
+                <FaqSuggestions
+                  faqs={faqs}
+                  query={draft}
+                  onSolved={() => {
+                    setDraft("");
+                    toast.success("خوشحالیم که مشکلتان حل شد!");
+                  }}
+                  onDismiss={() => setDismissedFor(draft)}
+                />
+              ) : null}
+              <ChatComposer onSend={send} autoFocus value={draft} onValueChange={setDraft} />
             </>
           )}
         </section>
