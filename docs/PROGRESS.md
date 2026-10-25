@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-10-25 (24) — Branded error page for 502/503/504 (owner request)
+
+- `deploy/errors/50x.html`: self-contained Persian page (brand colors, logo resized from the official file, atom orbits, retry button, quiet HEAD re-check with back-off and auto reload when the site answers, reduced-motion support). Served by nginx, so it works while the app is down or rebuilding.
+- Installer: copies the files to `/var/www/atom-errors`, writes `snippets/atom-errors.conf`, includes it in new configs and patches existing ones safely.
+- Verified with a real nginx: upstream down → 502 with the page (GET and POST), logo/font 200 with correct types, upstream up → responses pass through (200); `nginx -t` OK on a config patched by the installer's sed; screenshots desktop/mobile, no JS errors.
+
 ## 2026-10-25 (23) — Redirect loop fixed by configuration
 
 - After the www → APP_URL redirect went live, the site looped: ArvanCloud redirects `atomgclub.ir` → `www.atomgclub.ir` (301) and the app redirected `www` → apex (308). Confirmed with curl on the server. Fix: `APP_URL="https://www.atomgclub.ir"` (Google had indexed www as well) + rebuild. DEPLOYMENT §5b updated.

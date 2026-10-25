@@ -147,6 +147,10 @@ The domain's DNS is on ArvanCloud. Let's Encrypt cannot validate it (Arvan's nam
    Re-run occasionally (Arvan's ranges change).
 4. `APP_URL` in `.env` = the host Arvan finally serves. For atomgclub.ir Arvan redirects the apex to `www`, so `APP_URL="https://www.atomgclub.ir"`. If `APP_URL` is the apex while Arvan redirects to www, `src/proxy.ts` (www → APP_URL) and Arvan redirect in a loop. Check with `curl -sI https://<domain>/ https://www.<domain>/ | grep -i location`. Then run the installer again (rebuild).
 
+## 5c. Branded 502/503/504 page
+
+`deploy/errors/` (`50x.html`, logo, Vazirmatn) is copied by the installer to `/var/www/atom-errors` on every run and wired in via `/etc/nginx/snippets/atom-errors.conf` (`error_page 502 503 504`, assets under `/__atom_errors/`, `Cache-Control: no-store`). Existing servers get the `include` added automatically (backup in `sites-available/atom.bak`, restored if `nginx -t` fails). The page re-checks the site and reloads itself when it answers again. Limitation: if the whole server is unreachable, ArvanCloud shows its own error page.
+
 ## 6. Scheduled jobs (`crontab -e` as `atom`)
 
 ```cron

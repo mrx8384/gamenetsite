@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>به‌زودی برمی‌گردیم | آتم گیم کلاب</title>
+<!--
+  Served by nginx (not by the Next.js app) for 502/503/504, i.e. when the site is restarting,
+  updating or down. Self-contained: assets live next to this file under /__atom_errors/.
+-->
+<style>
+  @font-face { font-family: "Vazirmatn"; src: url("/__atom_errors/Vazirmatn-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  :root { --green: #00c96b; --green-deep: #00703c; --yellow: #ffdf00; --black: #111111; --cream: #faf9f3; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Vazirmatn", Tahoma, sans-serif;
+    background: radial-gradient(ellipse at top, #1d1d1d 0%, var(--black) 60%);
+    color: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px 16px; text-align: center; overflow-x: hidden;
+  }
+  main { max-width: 520px; width: 100%; }
+  .atom { position: relative; width: 220px; height: 220px; margin: 0 auto 28px; }
+  .atom img { position: absolute; inset: 50px; width: 120px; height: 120px; border-radius: 50%; box-shadow: 0 0 40px rgba(0, 201, 107, .35); }
+  .orbit { position: absolute; inset: 0; border: 2px solid rgba(250, 249, 243, .14); border-radius: 50%; }
+  .orbit:nth-child(1) { transform: rotateZ(0deg) rotateX(68deg); }
+  .orbit:nth-child(2) { transform: rotateZ(60deg) rotateX(68deg); }
+  .orbit:nth-child(3) { transform: rotateZ(120deg) rotateX(68deg); }
+  .orbit::after {
+    content: ""; position: absolute; top: -6px; left: calc(50% - 6px); width: 12px; height: 12px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 12px var(--green);
+    animation: spin 3s linear infinite; transform-origin: 6px 116px;
+  }
+  .orbit:nth-child(2)::after { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); animation-duration: 4s; }
+  .orbit:nth-child(3)::after { animation-duration: 5s; animation-direction: reverse; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .code { display: inline-block; margin-bottom: 14px; padding: 4px 14px; border: 1px solid rgba(0, 201, 107, .5); border-radius: 999px; color: var(--green); font-size: 13px; letter-spacing: .5px; }
+  h1 { margin: 0 0 12px; font-size: clamp(24px, 6vw, 34px); font-weight: 900; line-height: 1.5; }
+  p { margin: 0 0 8px; color: rgba(250, 249, 243, .75); line-height: 2; font-size: 15px; }
+  .retry { margin-top: 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  button {
+    font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; border: 0; border-radius: 12px;
+    padding: 12px 28px; background: var(--green); color: var(--black);
+  }
+  button:hover { filter: brightness(1.08); }
+  button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+  .bar { width: 220px; height: 4px; background: rgba(250, 249, 243, .12); border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--green); }
+  small { color: rgba(250, 249, 243, .55); font-size: 13px; }
+  footer { margin-top: 36px; font-size: 12px; color: rgba(250, 249, 243, .4); letter-spacing: 2px; }
+  @media (prefers-reduced-motion: reduce) { .orbit::after { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="atom" aria-hidden="true">
+    <div class="orbit"></div><div class="orbit"></div><div class="orbit"></div>
+    <img src="/__atom_errors/logo.webp" alt="" width="120" height="120">
+  </div>
+  <span class="code">در حال به‌روزرسانی</span>
+  <h1>چند لحظه صبر کنید؛ زود برمی‌گردیم!</h1>
+  <p>سایت آتم گیم کلاب در حال راه‌اندازی دوباره یا به‌روزرسانی است.</p>
+  <p>این صفحه خودش چند ثانیه یک‌بار دوباره تلاش می‌کند.</p>
+  <div class="retry">
+    <button type="button" id="retry">تلاش دوباره</button>
+    <div class="bar" aria-hidden="true"><span id="progress"></span></div>
+    <small id="status" role="status" aria-live="polite"></small>
+  </div>
+  <footer>ATOM GAME CLUB</footer>
+</main>
+<script>
+  (function () {
+    var wait = 15, left = wait, tries = 0;
+    var status = document.getElementById("status"), bar = document.getElementById("progress");
+    var fa = function (n) { return n.toLocaleString("fa-IR"); };
+    // Check quietly first; reload only when the site answers again (no flashing error pages).
+    function check() {
+      tries++;
+      status.textContent = "در حال بررسی…";
+      fetch(location.href, { method: "HEAD", cache: "no-store" }).then(function (r) {
+        if (r.status < 500) location.reload();
+        else schedule();
+      }).catch(schedule);
+    }
+    function schedule() {
+      left = Math.min(wait + tries * 5, 60);
+      var total = left;
+      var t = setInterval(function () {
+        left--;
+        status.textContent = "تلاش دوباره تا " + fa(left) + " ثانیه دیگر";
+        bar.style.width = ((total - left) / total * 100) + "%";
+        if (left <= 0) { clearInterval(t); check(); }
+      }, 1000);
+    }
+    document.getElementById("retry").addEventListener("click", function () { location.reload(); });
+    schedule();
+  })();
+</script>
+</body>
+</html>

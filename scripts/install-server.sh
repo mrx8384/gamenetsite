@@ -149,6 +149,23 @@ else
 fi
 
 # ───────────── nginx (+ HTTPS) ─────────────
+# Branded page for 502/503/504 (site restarting, updating or down), served by nginx itself.
+# Copied outside /srv/atom because nginx (www-data) can't read the app directory.
+ERROR_PAGES=/var/www/atom-errors
+install_error_pages() {
+  mkdir -p "$ERROR_PAGES"
+  cp -f "$APP_DIR"/deploy/errors/* "$ERROR_PAGES"/
+  chmod 755 "$ERROR_PAGES" && chmod 644 "$ERROR_PAGES"/*
+  cat > /etc/nginx/snippets/atom-errors.conf <<EOF
+error_page 502 503 504 /__atom_errors/50x.html;
+location ^~ /__atom_errors/ {
+    alias $ERROR_PAGES/;
+    add_header Cache-Control "no-store" always;
+}
+EOF
+}
+install_error_pages
+
 SERVER_NAME="${DOMAIN:-_}"
 write_nginx() {
   local listen6=""
@@ -167,6 +184,7 @@ server {
     $listen6
     server_name $SERVER_NAME;
     client_max_body_size 8m;
+    include /etc/nginx/snippets/atom-errors.conf;
 
     location = /api/admin/catalog/import {
         client_max_body_size 200m;
@@ -208,6 +226,17 @@ if [[ $FIRST_RUN -eq 1 ]]; then
   else
     IP="$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')"
     APP_URL="http://$IP"
+  fi
+elif [[ -f /etc/nginx/sites-available/atom ]] && ! grep -q "atom-errors.conf" /etc/nginx/sites-available/atom; then
+  # Servers installed before the error page existed: add it to the existing config (kept otherwise as is).
+  say "Adding the branded error page to nginx"
+  cp /etc/nginx/sites-available/atom /etc/nginx/sites-available/atom.bak
+  sed -i '/client_max_body_size 8m;/a\    include /etc/nginx/snippets/atom-errors.conf;' /etc/nginx/sites-available/atom
+  if nginx -t 2>/dev/null; then
+    if [[ $NO_SYSTEMD == 1 ]]; then nginx -s reload || true; else systemctl reload nginx; fi
+  else
+    warn "nginx rejected the error page config — restored the previous config."
+    cp /etc/nginx/sites-available/atom.bak /etc/nginx/sites-available/atom
   fi
 fi
 
