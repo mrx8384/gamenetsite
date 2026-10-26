@@ -11,6 +11,7 @@ No external CDN, font or script is used at runtime, so the site works on Iranian
 | `AUTH_SECRET` | `openssl rand -base64 32` (changing it invalidates pending one-time codes) |
 | `APP_URL` | Exact public HTTPS origin, e.g. `https://atomgameclub.ir` — enables `__Host-` secure cookies, HSTS and `upgrade-insecure-requests`, and is checked as `Origin` by the catalog restore route. **Set before `pnpm build`** (security headers are computed at build time). |
 | `UPLOAD_DIR` | `/srv/atom/uploads` (outside the app directory) |
+| `ATOM_WORLD_DATA_DIR` | Optional. Folder of the 3D world editor (layout, texts, photos). Default: `atom-world` beside `UPLOAD_DIR` (`/srv/atom/atom-world`), created on the first save; backed up by `scripts/backup.sh`. See `docs/ATOM_WORLD.md`. |
 | `SMS_PROVIDER` | `smsir` |
 | `SMS_API_KEY` | SMS.ir key. **Regenerate the key that was shared in chat** and put only the new one here. |
 | `SMS_TEMPLATE_ID` / `SMS_TEMPLATE_PARAM` | `490537` / `CODE` |
@@ -205,3 +206,4 @@ Rollback: `git checkout <previous commit>`, `pnpm install`, `pnpm build`, restar
 - **CSP and payment gateways:** `form-action 'self'` blocks HTML forms that post to other domains. If the chosen gateway needs a browser POST to its own domain (most Iranian gateways redirect with GET), add that domain to `form-action` in `next.config.ts` when the provider is implemented.
 - Nonce-based CSP is not used because it is incompatible with Partial Prerendering; inline scripts are allowed, everything else is same-origin only.
 - The app refuses to start with invalid environment variables or with `PAYMENT_PROVIDER=sandbox` in production.
+- **3D world** (`/atom-world`, `docs/ATOM_WORLD.md`): its pages alone allow `'wasm-unsafe-eval'` (WebAssembly decoders) and `blob:` in `connect-src`. Online play between two phones keeps rooms in the app's memory (one app process; a restart ends open rooms). The world editor data folder must stay outside the app directory (default beside `UPLOAD_DIR`).

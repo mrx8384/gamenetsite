@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-10-26 (27) — 3D world merged (owner request: one button «ورود به دنیای سه‌بعدی اتم گیم»)
+
+### Scope
+- The 3D world from `mrx8384/gameatom` is now part of the site at `/atom-world` (game) and `/atom-world/admin`
+  (world editor). Visible change to the existing site: **one** outline button in the homepage hero. Details: `docs/ATOM_WORLD.md`.
+- New dependencies (reason: 3D rendering): `three@0.186.1`, `@react-three/fiber@9.8.2`, dev `@types/three`.
+- Risks handled: CSP relaxed **only on the world's pages** (`'wasm-unsafe-eval'`, `blob:` in connect-src); the
+  Tailwind CSS rule no longer swallows CSS modules; plain links between site and world (a client-side navigation
+  kept the homepage CSP and blocked the decoders); editor data beside `UPLOAD_DIR` (kept by updates, in backups).
+
+### Done
+- World editor login = the site's ADMIN accounts (`src/atom-world/server/adminAuth.ts`, the only file that differs
+  from gameatom); not logged in → link to `/login?next=/atom-world/admin`.
+- `pnpm build` regenerates the world's offline files first (`scripts/build-offline.mjs`); headers for its worker.
+- `scripts/backup.sh` also archives the world editor folder (`atom-world-<stamp>.tar.gz`, same retention).
+
+### Verification
+- `pnpm check` ✓ (354 tests incl. the world's and `siteAdminAuth.test.ts`) · `pnpm build` ✓ · smoke 84/84 ✓.
+- Against a local production build: world suites gaming center 39/39, mini-games 46/46, accessibility 30/30;
+  homepage button desktop + mobile → world, no console errors / CSP violations; editor flow (logged out → site login →
+  editor → save → public config updated; save without login → 401).
+- Clean-build cost: peak memory about +6 %, time about +11 s (the installer's build limit stays 1536 MB).
+
+### Next (owner)
+- Run the update on the server (installer or DEPLOYMENT §8). Nothing new is required in `.env`.
+
 ## 2026-10-25 (26) — Enamad domain verification (meta tag)
 
 - New site setting «کد اینماد (دسترسی فنی)» (Admin → تنظیمات سایت → عمومی). The root layout adds `<meta name="enamad" content="<code>">` to every page (digits normalized to English; empty → no tag).

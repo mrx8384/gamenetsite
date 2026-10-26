@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "src/generated/**",
     "services/**", // original Python Game Catalog (kept unchanged)
+    "public/atom-world/**", // 3D world: third-party decoders (minified) and the generated offline worker
   ]),
 ]);
 

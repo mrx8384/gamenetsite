@@ -11,13 +11,16 @@ const isHttps = (process.env.APP_URL ?? "").startsWith("https://");
  * scripts, styles, fonts, frames or connections; the site cannot be framed; forms post only here.
  * User-generated HTML is sanitized on the server before it is stored (src/lib/rich-text).
  */
-const csp = [
+const buildCsp = (world = false) => [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  // 3D world only (`world`): 'wasm-unsafe-eval' lets its self-hosted model decoders (/atom-world/decoders)
+  // compile WebAssembly — it does not allow JavaScript eval.
+  `script-src 'self' 'unsafe-inline'${world ? " 'wasm-unsafe-eval'" : ""}${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self'${isProd ? "" : " ws: wss:"}`,
+  // 3D world only: blob: — textures inside its character models are decoded from in-page blob URLs
+  `connect-src 'self'${world ? " blob:" : ""}${isProd ? "" : " ws: wss:"}`,
   "media-src 'self'",
   "object-src 'none'",
   "frame-src 'none'",
@@ -28,6 +31,9 @@ const csp = [
   "worker-src 'self' blob:",
   ...(isHttps ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
+const csp = buildCsp();
+/** The 3D world's pages (/atom-world, /atom-world/admin): the same policy plus the two additions above. */
+const worldCsp = buildCsp(true);
 
 const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
@@ -49,6 +55,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "*.css": {
+        // CSS modules (the 3D world's *.module.css) keep Next's own module handling; `as: "*.css"`
+        // would turn them into global CSS and leave their class names undefined.
+        condition: { not: { path: /\.module\.css$/ } },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
@@ -59,6 +68,13 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Uploaded files (/media/...) send their own stricter policy ("default-src 'none'; sandbox").
       { source: "/((?!media/).*)", headers: [{ key: "Content-Security-Policy", value: csp }] },
+      // 3D world (src/atom-world): later rules override the policy above for its pages only
+      { source: "/atom-world", headers: [{ key: "Content-Security-Policy", value: worldCsp }] },
+      { source: "/atom-world/:path*", headers: [{ key: "Content-Security-Policy", value: worldCsp }] },
+      // its offline worker and file list are never served stale; the worker (in /atom-world/) may
+      // control the page /atom-world itself — nothing else of the site
+      { source: "/atom-world/:file(sw\\.js|offline-manifest\\.json)", headers: [{ key: "Cache-Control", value: "no-cache" }] },
+      { source: "/atom-world/sw.js", headers: [{ key: "Service-Worker-Allowed", value: "/atom-world" }] },
     ];
   },
 };

@@ -1,0 +1,205 @@
+{
+ "version": "0f7c9d02672c",
+ "assets": [
+  {
+   "url": "/atom-world/envs/gaming-center/controllers-wall.webp",
+   "bytes": 19530
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/counter-shelves.webp",
+   "bytes": 35526
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/mural-castle.webp",
+   "bytes": 65468
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/mural-paris.webp",
+   "bytes": 20858
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/mural-train.webp",
+   "bytes": 27730
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/painting-paris.webp",
+   "bytes": 7816
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/photos/02-room-train-mural-tv.webp",
+   "bytes": 20220
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/photos/03-counter-shop-purple-shelves.webp",
+   "bytes": 38880
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/photos/05-arch-chalkboard-stations-2-3.webp",
+   "bytes": 52878
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/photos/10-long-view-paris-cafe-london.webp",
+   "bytes": 26316
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/photos/15-street-facade-sign.webp",
+   "bytes": 48650
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/poster-deer.webp",
+   "bytes": 6332
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/stone-wall.webp",
+   "bytes": 37188
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/street-door-view.webp",
+   "bytes": 13036
+  },
+  {
+   "url": "/atom-world/envs/gaming-center/wall-portraits.webp",
+   "bytes": 35626
+  },
+  {
+   "url": "/atom-world/icons/apple-touch-icon.png",
+   "bytes": 11061
+  },
+  {
+   "url": "/atom-world/icons/icon-192.png",
+   "bytes": 8850
+  },
+  {
+   "url": "/atom-world/icons/icon-512.png",
+   "bytes": 35059
+  },
+  {
+   "url": "/atom-world/icons/maskable-192.png",
+   "bytes": 9629
+  },
+  {
+   "url": "/atom-world/icons/maskable-512.png",
+   "bytes": 51087
+  },
+  {
+   "url": "/atom-world/manifest.webmanifest",
+   "bytes": 994
+  },
+  {
+   "url": "/atom-world/models/atom-boy.glb",
+   "bytes": 131896
+  },
+  {
+   "url": "/atom-world/models/atom-girl.glb",
+   "bytes": 138468
+  },
+  {
+   "url": "/atom-world/photos/air-hockey-left-wall.webp",
+   "bytes": 44490
+  },
+  {
+   "url": "/atom-world/photos/construction-zone.webp",
+   "bytes": 39230
+  },
+  {
+   "url": "/atom-world/photos/entrance-glass-white-sofas.webp",
+   "bytes": 41494
+  },
+  {
+   "url": "/atom-world/photos/exterior-facade-night.webp",
+   "bytes": 62570
+  },
+  {
+   "url": "/atom-world/photos/foot-pool-field-and-mural.webp",
+   "bytes": 52282
+  },
+  {
+   "url": "/atom-world/photos/footballs-tables-gray-sofa.webp",
+   "bytes": 87546
+  },
+  {
+   "url": "/atom-world/photos/hall-overview.webp",
+   "bytes": 72298
+  },
+  {
+   "url": "/atom-world/photos/staircase.webp",
+   "bytes": 67538
+  },
+  {
+   "url": "/atom-world/references/characters/boy/boy-thumb.webp",
+   "bytes": 3504
+  },
+  {
+   "url": "/atom-world/references/characters/girl/girl-thumb.webp",
+   "bytes": 3408
+  },
+  {
+   "url": "/atom-world/textures/air-hockey-side-panel.webp",
+   "bytes": 26196
+  },
+  {
+   "url": "/atom-world/textures/atom-logo.webp",
+   "bytes": 15008
+  },
+  {
+   "url": "/atom-world/textures/mural-batman-joker.webp",
+   "bytes": 35930
+  },
+  {
+   "url": "/atom-world/textures/mural-excavator.webp",
+   "bytes": 40372
+  },
+  {
+   "url": "/atom-world/textures/mural-lamppost-man.webp",
+   "bytes": 46494
+  },
+  {
+   "url": "/atom-world/textures/mural-upper-back.webp",
+   "bytes": 77782
+  },
+  {
+   "url": "/atom-world/textures/mural-upper-cards.webp",
+   "bytes": 32366
+  },
+  {
+   "url": "/atom-world/textures/mural-upper-dice.webp",
+   "bytes": 76074
+  },
+  {
+   "url": "/atom-world/textures/mural-woman-lamp.webp",
+   "bytes": 32434
+  },
+  {
+   "url": "/atom-world/textures/sm/air-hockey-side-panel.webp",
+   "bytes": 8206
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-batman-joker.webp",
+   "bytes": 9906
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-excavator.webp",
+   "bytes": 13948
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-lamppost-man.webp",
+   "bytes": 11782
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-upper-back.webp",
+   "bytes": 25402
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-upper-cards.webp",
+   "bytes": 10968
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-upper-dice.webp",
+   "bytes": 24638
+  },
+  {
+   "url": "/atom-world/textures/sm/mural-woman-lamp.webp",
+   "bytes": 8770
+  }
+ ]
+}

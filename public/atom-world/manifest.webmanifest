@@ -1,0 +1,20 @@
+{
+  "name": "دنیای سه‌بعدی اتم — ATOM GAME CLUB",
+  "short_name": "دنیای اتم",
+  "description": "گشت سه‌بعدی در مجموعهٔ ATOM GAME CLUB با مینی‌گیم‌های ایرهاکی، بیل مکانیکی و فوت‌پول.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/atom-world",
+  "scope": "/atom-world",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#050605",
+  "theme_color": "#050605",
+  "icons": [
+    { "src": "/atom-world/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/atom-world/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/atom-world/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/atom-world/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

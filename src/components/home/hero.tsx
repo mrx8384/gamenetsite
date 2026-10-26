@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Gamepad2, ShoppingBag } from "lucide-react";
+import { Box, Gamepad2, ShoppingBag } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,13 @@ export function Hero({ eyebrow, title, subtitle }: { eyebrow: string; title: str
               <Link href="/shop">
                 <ShoppingBag /> ورود به فروشگاه
               </Link>
+            </Button>
+            {/* The 3D world (src/atom-world), full screen. A plain link on purpose: a full page load gives the
+                world its own security policy (next.config.ts) and a fresh page for WebGL; nothing is prefetched. */}
+            <Button asChild size="lg" variant="outline">
+              <a href="/atom-world">
+                <Box /> ورود به دنیای سه‌بعدی اتم گیم
+              </a>
             </Button>
           </div>
         </div>

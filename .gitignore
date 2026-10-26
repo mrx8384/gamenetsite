@@ -45,6 +45,8 @@ next-env.d.ts
 
 # local storage (uploads)
 /storage/
+# 3D world editor data when UPLOAD_DIR is unset (otherwise it lives beside UPLOAD_DIR)
+/.data/
 
 # allow env template
 !.env.example

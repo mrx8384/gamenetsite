@@ -1,0 +1,446 @@
+/* Mini-game layer (uses the same ATOM tokens as atomWorld.module.css via inheritance from .root). */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 30%, #121614, #050605 70%);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--aw-border);
+  min-height: 56px;
+}
+.title { margin: 0; font-size: 1rem; font-weight: 800; white-space: nowrap; }
+.hud { display: flex; gap: 0.4rem; flex: 1; justify-content: center; flex-wrap: wrap; min-width: 0; }
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgb(57 255 136 / 0.35);
+  background: rgb(57 255 136 / 0.08);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.chip strong { color: var(--aw-green); font-variant-numeric: tabular-nums; }
+.chipLabel { color: var(--aw-muted); font-size: 0.75rem; }
+.chipWarn { border-color: rgb(255 79 160 / 0.6); background: rgb(255 79 160 / 0.12); }
+.chipWarn strong { color: var(--aw-pink); }
+.barActions { display: flex; gap: 0.4rem; }
+
+.stage { position: relative; flex: 1; min-height: 0; }
+.center { position: absolute; inset: 0; display: grid; place-items: center; color: var(--aw-muted); }
+.canvasBox { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.canvas { display: block; touch-action: none; }
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(3rem, 14vmin, 7rem);
+  font-weight: 900;
+  color: var(--aw-green);
+  text-shadow: 0 0 30px rgb(57 255 136 / 0.6);
+  pointer-events: none;
+}
+.flash {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  background: rgb(5 6 5 / 0.85);
+  border: 1px solid var(--aw-pink);
+  font-weight: 800;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cardWrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 0.55);
+  overflow-y: auto;
+}
+.card {
+  width: min(100%, 520px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--aw-radius);
+  border: 1px solid var(--aw-border);
+  background: var(--aw-panel);
+  backdrop-filter: blur(10px);
+  line-height: 1.8;
+}
+.card p { margin: 0 0 0.6rem; }
+.cardHead { margin: 0.4rem 0; font-size: 1rem; color: var(--aw-green); }
+.howTo { margin: 0 0 0.6rem; padding-inline-start: 1.2rem; font-size: 0.92rem; }
+.levels { display: flex; flex-wrap: wrap; gap: 0.4rem; border: 0; padding: 0; margin: 0.4rem 0 0.8rem; }
+.levels legend { width: 100%; margin-bottom: 0.3rem; color: var(--aw-muted); font-size: 0.85rem; }
+.levels button[aria-pressed="true"] { border-color: var(--aw-green); color: var(--aw-green); }
+.best { color: var(--aw-green); font-weight: 700; }
+.note { color: var(--aw-muted); font-size: 0.8rem; }
+.cardActions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.resultHead { margin: 0 0 0.5rem; font-size: 1.3rem; color: var(--aw-green); }
+.lost { color: var(--aw-pink); }
+
+/* excavator: canvas + joysticks + swing button. Physical left/right (joysticks are not mirrored in RTL). */
+.digLayout { position: relative; width: 100%; height: 100%; direction: ltr; }
+.digTouch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas: "view view" "left right";
+}
+.digTouch .canvasBox { grid-area: view; }
+.padLeft { grid-area: left; display: flex; justify-content: flex-start; padding: 0.4rem 0.3rem 0.6rem; min-width: 0; }
+.padRight { grid-area: right; display: flex; justify-content: flex-end; padding: 0.4rem 0.3rem 0.6rem; min-width: 0; }
+@media (orientation: landscape) {
+  .digTouch {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: 1fr;
+    grid-template-areas: "left view right";
+  }
+  .padLeft, .padRight { align-items: flex-end; padding: 0.4rem; }
+}
+.swingBtn {
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 44px;
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--aw-green);
+  background: rgb(5 6 5 / 0.8);
+  color: var(--aw-white);
+  font-weight: 800;
+  cursor: pointer;
+  direction: rtl;
+}
+/* phones: between the joysticks, where the thumbs are */
+.swingBtnTouch { top: auto; bottom: calc(0.8rem + env(safe-area-inset-bottom)); min-height: 52px; padding-inline: 1rem; z-index: 2; }
+@media (orientation: landscape) {
+  /* landscape: the scene sits low, the free space is at the top */
+  .swingBtnTouch { top: 0.6rem; bottom: auto; }
+}
+.swingBtn:focus-visible { outline: 2px solid var(--aw-green); outline-offset: 2px; }
+
+.stickWrap { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; direction: rtl; }
+.stickRow { display: flex; align-items: center; gap: 0.3rem; direction: ltr; }
+.stickCap { font-size: 0.7rem; color: var(--aw-muted); white-space: nowrap; min-width: 2.2rem; text-align: center; }
+.stick {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  border: 1px solid rgb(57 255 136 / 0.45);
+  background: radial-gradient(circle, rgb(57 255 136 / 0.12), rgb(5 6 5 / 0.6) 70%);
+  touch-action: none;
+}
+.knob {
+  position: absolute;
+  inset: 32px;
+  border-radius: 50%;
+  background: var(--aw-green);
+  box-shadow: 0 0 18px rgb(57 255 136 / 0.6);
+  pointer-events: none;
+}
+@media (max-height: 420px) {
+  .stick { width: 96px; height: 96px; }
+  .knob { inset: 28px; }
+  .bar { min-height: 48px; padding-block: 0.25rem; }
+}
+@media (max-width: 420px) {
+  .stick { width: 96px; height: 96px; }
+  .knob { inset: 28px; }
+  .stickCap { min-width: 1.8rem; font-size: 0.68rem; }
+  .title { font-size: 0.9rem; }
+  .chip { font-size: 0.78rem; padding: 0.15rem 0.45rem; }
+}
+.rotateHint {
+  position: absolute;
+  top: 4.2rem;
+  inset-inline: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--aw-muted);
+  font-size: 0.85rem;
+  direction: rtl;
+  pointer-events: none;
+}
+@media (orientation: landscape) {
+  .rotateHint { display: none; }
+}
+
+/* score table, name form, achievements */
+.board { margin-top: 0.6rem; border: 1px solid var(--aw-border); border-radius: 12px; padding: 0.5rem 0.7rem; background: rgb(255 255 255 / 0.03); }
+.boardHead { font-weight: 800; font-size: 0.88rem; color: var(--aw-green); margin-bottom: 0.3rem; }
+.boardList { list-style: none; margin: 0; padding: 0; font-size: 0.85rem; }
+.boardList li { display: grid; grid-template-columns: 1.6rem 1fr auto auto; gap: 0.5rem; align-items: baseline; padding: 0.2rem 0.3rem; border-radius: 8px; }
+.boardList li strong { color: var(--aw-white); font-variant-numeric: tabular-nums; }
+.boardMine { background: rgb(57 255 136 / 0.14); outline: 1px solid rgb(57 255 136 / 0.5); }
+.boardRank { color: var(--aw-muted); }
+.boardName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boardDetail { color: var(--aw-muted); font-size: 0.75rem; white-space: nowrap; }
+.nameForm { display: grid; gap: 0.3rem; margin-top: 0.4rem; font-size: 0.85rem; color: var(--aw-muted); }
+.nameRow { display: flex; gap: 0.4rem; }
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--aw-border);
+  background: rgb(0 0 0 / 0.4);
+  color: var(--aw-white);
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.nameInput:focus-visible { outline: 2px solid var(--aw-green); outline-offset: 1px; }
+.achNew { display: grid; gap: 0.4rem; margin: 0.4rem 0; }
+.achItem { display: flex; gap: 0.6rem; align-items: center; padding: 0.45rem 0.6rem; border-radius: 12px; border: 1px solid rgb(255 79 160 / 0.5); background: rgb(255 79 160 / 0.1); }
+.achEmoji { font-size: 1.5rem; }
+.reward { color: #ffd36a; font-size: 0.85rem; margin-top: 0.15rem; }
+.achGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; list-style: none; padding: 0; margin: 0.4rem 0 0; }
+.achGrid li { display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 0.6rem; border-radius: 12px; border: 1px solid var(--aw-border); font-size: 0.85rem; }
+.achLocked { border-style: dashed; }
+.achLocked .achEmoji { filter: grayscale(1); opacity: 0.55; }
+.tabs { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+.tabs button[aria-selected="true"] { border-color: var(--aw-green); color: var(--aw-green); }
+
+/* online lobby */
+.lobby { display: grid; gap: 0.6rem; margin: 0.4rem 0; }
+.lobbyOr { text-align: center; color: var(--aw-muted); font-size: 0.8rem; }
+.lobbyCodeLabel { color: var(--aw-muted); font-size: 0.85rem; text-align: center; }
+.lobbyCode { text-align: center; font-size: 2.6rem; font-weight: 900; letter-spacing: 0.35em; color: var(--aw-green); text-shadow: 0 0 20px rgb(57 255 136 / 0.5); font-variant-numeric: tabular-nums; user-select: all; -webkit-user-select: all; }
+.lobbyError { color: var(--aw-pink); margin: 0; font-size: 0.88rem; }
+.codeInput { letter-spacing: 0.3em; text-align: center; direction: ltr; font-variant-numeric: tabular-nums; }
+.onlineBadge { position: absolute; top: 0.5rem; inset-inline-start: 0.6rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; background: rgb(5 6 5 / 0.8); border: 1px solid var(--aw-green); pointer-events: none; z-index: 2; }
+.onlineBadge[data-warn="true"] { border-color: var(--aw-pink); color: var(--aw-pink); }
+
+/* ── controller challenge (gaming center): the station's TV above, its controller below */
+.padGame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #101315;
+}
+
+.padScreen {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 160px;
+}
+
+.padScreen canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.pad {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 12px;
+  width: min(560px, calc(100% - 24px));
+  padding: 14px 18px;
+  border-radius: 46px 46px 70px 70px;
+  background: linear-gradient(#1c1f24, #0d0f12);
+  border: 1px solid #2c3036;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  touch-action: none;
+  user-select: none;
+}
+
+.padPs5 {
+  background: linear-gradient(#f4f5f7, #d9dce1);
+  border-color: #c3c7cd;
+}
+
+.dpad,
+.face {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(44px, 58px));
+  grid-template-rows: repeat(3, minmax(44px, 58px));
+  justify-content: center;
+}
+
+.padBtn {
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: #24282e;
+  font: inherit;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.06s;
+}
+
+.dpad .padBtn {
+  border-radius: 10px;
+  font-size: 1.1rem;
+}
+
+.padPs5 .padBtn {
+  background: #2a2d33;
+}
+
+.padBtn:active,
+.padLit {
+  transform: scale(0.9);
+  filter: brightness(1.5);
+}
+
+.padBtn:focus-visible {
+  outline: 3px solid #39ff88;
+  outline-offset: 2px;
+}
+
+.at_up,
+.at_triangle {
+  grid-area: 1 / 2;
+}
+.at_left,
+.at_square {
+  grid-area: 2 / 1;
+}
+.at_right,
+.at_circle {
+  grid-area: 2 / 3;
+}
+.at_down,
+.at_cross {
+  grid-area: 3 / 2;
+}
+
+.padMid {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: #8f979f;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.padMid small {
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.padPs5 .padMid {
+  color: #4b525a;
+}
+
+@media (max-width: 380px) {
+  .dpad,
+  .face {
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+  }
+  .pad {
+    padding: 10px;
+  }
+}
+
+/* ── city game touch buttons */
+.cityBtn {
+  min-height: 52px;
+  min-width: 120px;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(5 6 5 / 0.8);
+  color: var(--aw-white);
+  font: inherit;
+  font-weight: 800;
+  touch-action: none;
+  user-select: none;
+}
+.cityBtnMain { border-color: var(--aw-green); background: rgb(57 255 136 / 0.18); }
+.cityBtn:focus-visible { outline: 2px solid var(--aw-green); outline-offset: 2px; }
+/* desktop: in the bottom corner, away from the job banner */
+.cityKeyBtn { position: absolute; bottom: 0.8rem; left: 0.8rem; z-index: 2; direction: rtl; }
+
+/* ── console home screen (PS4: blue waves, PS5: dark) */
+.home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  overflow: auto;
+  color: #fff;
+  background:
+    radial-gradient(120% 60% at 20% 110%, rgb(64 140 255 / 0.45), transparent 60%),
+    radial-gradient(90% 50% at 90% 0%, rgb(0 180 255 / 0.25), transparent 60%),
+    linear-gradient(160deg, #0b3a8c, #041537 70%);
+}
+.homePs5 {
+  background:
+    radial-gradient(100% 60% at 80% 0%, rgb(120 140 170 / 0.25), transparent 60%),
+    linear-gradient(170deg, #1d2330, #07080b 70%);
+}
+.homeTop { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; opacity: 0.9; }
+.homeUser { font-weight: 700; }
+.homeRow { display: flex; gap: 0.9rem; padding: 0.5rem 0.2rem; overflow-x: auto; }
+.homeTile {
+  flex: 0 0 auto;
+  width: 132px;
+  height: 132px;
+  border-radius: 14px;
+  border: 2px solid rgb(255 255 255 / 0.15);
+  background: rgb(255 255 255 / 0.08);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.3rem;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.homeTileOn { transform: scale(1.1); border-color: #fff; background: rgb(255 255 255 / 0.16); box-shadow: 0 10px 30px rgb(0 0 0 / 0.4); }
+.homeTile:focus-visible { outline: 3px solid var(--aw-green); outline-offset: 3px; }
+.homeArt { font-size: 3rem; line-height: 1; }
+.homeName { font-size: 0.85rem; font-weight: 700; }
+.homeInfo h3 { margin: 0 0 0.3rem; font-size: 1.3rem; }
+.homeInfo h3 small { font-size: 0.75rem; font-weight: 500; opacity: 0.75; margin-inline-start: 0.4rem; }
+.homeInfo p { margin: 0 0 0.8rem; max-width: 36rem; line-height: 1.8; opacity: 0.9; }
+/* `.home` first: beats the page-wide `.root button { color: inherit }` */
+.home .homePlay {
+  min-height: 46px;
+  padding: 0.4rem 1.6rem;
+  border-radius: 999px;
+  border: 0;
+  background: #fff;
+  color: #0b1e45;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+.homePlay:focus-visible { outline: 3px solid var(--aw-green); outline-offset: 3px; }
+.homeHint { font-size: 0.8rem; opacity: 0.7; }

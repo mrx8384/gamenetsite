@@ -25,10 +25,15 @@ mkdir -p "$BACKUP_DIR"
 
 pg_dump --format=custom --no-owner --file="$BACKUP_DIR/db-$STAMP.dump" "$DB_URL"
 tar -czf "$BACKUP_DIR/uploads-$STAMP.tar.gz" -C "$(dirname "$UPLOAD_DIR")" "$(basename "$UPLOAD_DIR")"
+# 3D world editor data (layout, texts, photos), kept beside the uploads once the manager has saved
+WORLD_DIR="${ATOM_WORLD_DATA_DIR:-$(dirname "$UPLOAD_DIR")/atom-world}"
+if [[ -d "$WORLD_DIR" ]]; then
+  tar -czf "$BACKUP_DIR/atom-world-$STAMP.tar.gz" -C "$(dirname "$WORLD_DIR")" "$(basename "$WORLD_DIR")"
+fi
 
 # Sanity check: the dump must be readable.
 pg_restore --list "$BACKUP_DIR/db-$STAMP.dump" > /dev/null
 
-find "$BACKUP_DIR" -maxdepth 1 -type f \( -name 'db-*.dump' -o -name 'uploads-*.tar.gz' \) -mtime +"$KEEP_DAYS" -delete
+find "$BACKUP_DIR" -maxdepth 1 -type f \( -name 'db-*.dump' -o -name 'uploads-*.tar.gz' -o -name 'atom-world-*.tar.gz' \) -mtime +"$KEEP_DAYS" -delete
 
 echo "backup ok: $BACKUP_DIR/db-$STAMP.dump, $BACKUP_DIR/uploads-$STAMP.tar.gz"
