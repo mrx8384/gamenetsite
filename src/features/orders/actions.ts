@@ -66,7 +66,7 @@ async function startPayment(orderId: string, mobile: string | null): Promise<str
   const { authority, redirectUrl } = await provider.createPayment({
     paymentId: payment.id,
     amount: order.total,
-    description: `سفارش ${order.number} — آتم گیم کلاب`,
+    description: `سفارش ${order.number} — اتم گیم کلاب`,
     callbackUrl,
     mobile,
   });

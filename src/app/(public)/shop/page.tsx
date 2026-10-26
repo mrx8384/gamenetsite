@@ -14,7 +14,7 @@ import { formatNumber, toEnglishDigits } from "@/lib/format";
 import { normalizePersian } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "فروشگاه", description: "محصولات گیمینگ آتم گیم کلاب" };
+export const metadata: Metadata = { title: "فروشگاه", description: "محصولات گیمینگ اتم گیم کلاب" };
 
 type SP = Record<string, string | string[] | undefined>;
 

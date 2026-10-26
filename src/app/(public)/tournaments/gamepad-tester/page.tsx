@@ -11,7 +11,7 @@ import { canUseGamepadTester, getGamepadAccess, type GamepadAccess } from "@/fea
 import { getSiteSettings } from "@/features/settings/site";
 import { getCurrentUser } from "@/lib/auth/dal";
 
-export const metadata: Metadata = { title: "تست دسته", description: "ابزار تست دسته (Gamepad Tester) ویژهٔ همکاران آتم" };
+export const metadata: Metadata = { title: "تست دسته", description: "ابزار تست دسته (Gamepad Tester) ویژهٔ همکاران اتم" };
 
 export default async function GamepadTesterPage() {
   const t = await getSiteSettings("tournaments");

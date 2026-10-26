@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-10-26 (28) — Brand spelling «اتم» everywhere (owner request: «همه اون آتم ها رو به اتم تبدیل کن»)
+
+- Code: every «آتم» → «اتم» (49 places in 29 files: page titles and meta descriptions, JSON-LD names, brand
+  constants, admin panel header, email subjects and bodies, payment description, empty states, form hints, the
+  502/503/504 page in `deploy/errors/`, the 3D world's default organizer name, tests, DEPLOYMENT/ROADMAP examples).
+  Older entries of this log are left as written (history).
+- Data: migration `20261026090000_brand_spelling_atom` (data only, idempotent) updates texts already saved from the
+  admin panel: `site_settings` values and the `pages` table (title, HTML, JSON). News, products, FAQs and other content
+  written in the admin panel are not touched.
+- Not in this repo: SMS.ir templates hold their own text; templates created with «آتم» must be edited in the SMS.ir panel.
+- Verified: migration on a local DB (old texts in settings + About page → «اتم», other values unchanged, second run
+  no-op) · `pnpm check` ✓ (354 tests) · `pnpm build` ✓ · smoke 84/84 · no «آتم» in the HTML of /, /about, /shop,
+  /news, /contact, /partners, /tournaments, /tournaments/gamepad-tester, /game-catalog, /game-catalog/ps4, /login,
+  /atom-world.
+
 ## 2026-10-26 (27) — 3D world merged (owner request: one button «ورود به دنیای سه‌بعدی اتم گیم»)
 
 ### Scope

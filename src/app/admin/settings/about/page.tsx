@@ -19,5 +19,5 @@ export default function AboutEditorPage() {
 async function Editor() {
   await requireRole(["ADMIN"], "/admin/settings/about");
   const page = await getPage("about");
-  return <PageEditor slug="about" publicHref="/about" initialTitle={page?.title ?? "دربارهٔ آتم گیم کلاب"} initialContent={(page?.contentJson as JSONContent | null) ?? null} />;
+  return <PageEditor slug="about" publicHref="/about" initialTitle={page?.title ?? "دربارهٔ اتم گیم کلاب"} initialContent={(page?.contentJson as JSONContent | null) ?? null} />;
 }

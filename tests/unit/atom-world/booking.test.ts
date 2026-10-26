@@ -45,7 +45,7 @@ describe("club info from the site", () => {
 import { boardTournaments, formatStart, parseEvents } from "../../../src/atom-world/data/events";
 
 describe("tournaments & news from the site", () => {
-  const base = { slug: "fc-cup", name: "جام FC", game: "EA FC 25", platform: "PS5", format: "SINGLE_ELIMINATION", status: "REGISTRATION", startsAt: "2026-11-01T15:00:00.000Z", participantCount: 6, maxParticipants: 16, organizerName: "آتم گیم کلاب", prize: "۲ میلیون تومان" };
+  const base = { slug: "fc-cup", name: "جام FC", game: "EA FC 25", platform: "PS5", format: "SINGLE_ELIMINATION", status: "REGISTRATION", startsAt: "2026-11-01T15:00:00.000Z", participantCount: 6, maxParticipants: 16, organizerName: "اتم گیم کلاب", prize: "۲ میلیون تومان" };
 
   it("keeps valid tournaments with the site's fields", () => {
     const { tournaments } = parseEvents({ version: 1, tournaments: [base, { ...base, slug: "BAD SLUG" }, { ...base, status: "DRAFT" }, { ...base, slug: "x2", format: "POKER" }] });

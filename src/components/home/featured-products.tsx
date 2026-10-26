@@ -13,7 +13,7 @@ export async function FeaturedProducts() {
       <EmptyState
         icon={ShoppingBag}
         title="محصولات به‌زودی اضافه می‌شوند"
-        description="فروشگاه آتم در حال آماده‌سازی است. به‌زودی محصولات منتخب را اینجا می‌بینید."
+        description="فروشگاه اتم در حال آماده‌سازی است. به‌زودی محصولات منتخب را اینجا می‌بینید."
       />
     );
   }

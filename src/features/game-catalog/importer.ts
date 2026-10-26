@@ -36,7 +36,7 @@ export function readSourceDatabase(filePath: string): { version: number; categor
     const integrity = (src.prepare("PRAGMA integrity_check").get() as { integrity_check?: string } | undefined)?.integrity_check;
     if (integrity !== "ok") throw new CatalogImportError("فایل دیتابیس آسیب دیده است (integrity_check ناموفق).");
     const tables = new Set((src.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((t) => t.name));
-    if (!tables.has("games") || !tables.has("categories")) throw new CatalogImportError("این فایل دیتابیس کاتالوگ آتم نیست (جدول games یا categories پیدا نشد).");
+    if (!tables.has("games") || !tables.has("categories")) throw new CatalogImportError("این فایل دیتابیس کاتالوگ اتم نیست (جدول games یا categories پیدا نشد).");
     const version = Number((src.prepare("PRAGMA user_version").get() as { user_version: number }).user_version ?? 0);
     const cols = (t: string) => new Set((src.prepare(`PRAGMA table_info(${t})`).all() as { name: string }[]).map((c) => c.name));
     const catHasPlatform = cols("categories").has("platform");

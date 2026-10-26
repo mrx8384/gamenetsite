@@ -17,7 +17,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/game-catalog/[platform]">): Promise<Metadata> {
   const platform = platformFromSlug((await params).platform);
   if (!platform) return { title: "پیدا نشد" };
-  return { title: `کاتالوگ بازی‌های ${platform}`, description: `فهرست بازی‌های ${platform} گیم‌نت آتم` };
+  return { title: `کاتالوگ بازی‌های ${platform}`, description: `فهرست بازی‌های ${platform} گیم‌نت اتم` };
 }
 
 export default function PlatformCatalogPage({ params }: PageProps<"/game-catalog/[platform]">) {

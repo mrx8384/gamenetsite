@@ -60,7 +60,7 @@ export async function issueCode(id: Identifier, purpose: VerificationPurpose, us
     } else {
       await sendMail({
         to: id.value,
-        subject: `کد ${purposeLabel[purpose]} — آتم گیم کلاب`,
+        subject: `کد ${purposeLabel[purpose]} — اتم گیم کلاب`,
         text: `کد ${purposeLabel[purpose]} شما: ${code}\nاین کد تا ۱۵ دقیقه معتبر است. اگر این درخواست را شما نداده‌اید، این پیام را نادیده بگیرید.`,
       });
     }

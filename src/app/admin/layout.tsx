@@ -21,7 +21,7 @@ async function AdminGate({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between gap-3 p-4 lg:block">
           <Link href="/admin" className="flex items-center gap-2.5">
             <Logo size={36} />
-            <span className="text-sm font-bold">پنل مدیریت آتم</span>
+            <span className="text-sm font-bold">پنل مدیریت اتم</span>
           </Link>
           <Link href="/" className="inline-flex items-center gap-1 text-xs text-brand-cream/60 hover:text-brand-green lg:mt-3">
             <ExternalLink className="size-3.5" /> مشاهدهٔ سایت

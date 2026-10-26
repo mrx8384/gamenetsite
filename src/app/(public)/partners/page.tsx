@@ -14,7 +14,7 @@ import { getSiteSettings } from "@/features/settings/site";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 
-export const metadata: Metadata = { title: "همکاران", description: "همکاری گیم‌نت‌ها، فروشگاه‌ها و تیم‌های ای‌اسپورت با آتم گیم کلاب" };
+export const metadata: Metadata = { title: "همکاران", description: "همکاری گیم‌نت‌ها، فروشگاه‌ها و تیم‌های ای‌اسپورت با اتم گیم کلاب" };
 
 export default async function PartnersPage() {
   const [t, home] = await Promise.all([getSiteSettings("partners"), getSiteSettings("home")]);

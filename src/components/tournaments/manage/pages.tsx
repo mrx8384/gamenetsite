@@ -46,7 +46,7 @@ export async function ManagedTournamentList({ user, basePath, canCreate }: { use
                 <TableCell>{formatNumber(t._count.participants)}{t.maxParticipants ? ` / ${formatNumber(t.maxParticipants)}` : ""}</TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{t.startsAt ? formatDateTime(t.startsAt) : "—"}</TableCell>
                 <TableCell><Badge variant={STATUS_BADGE[t.status]}>{STATUS_LABELS[t.status]}</Badge></TableCell>
-                {user.role === "ADMIN" ? <TableCell className="text-sm">{t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "آتم"}</TableCell> : null}
+                {user.role === "ADMIN" ? <TableCell className="text-sm">{t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "اتم"}</TableCell> : null}
               </TableRow>
             ))}
           </TableBody>

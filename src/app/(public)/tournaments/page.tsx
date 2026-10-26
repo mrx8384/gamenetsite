@@ -12,7 +12,7 @@ import { FORMAT_LABELS, STATUS_BADGE, STATUS_LABELS } from "@/features/tournamen
 import { getPublicTournaments, type TournamentCard } from "@/features/tournaments/queries";
 import { formatDateTime, formatNumber } from "@/lib/format";
 
-export const metadata: Metadata = { title: "تورنومنت‌ها", description: "تورنومنت‌های FC و بازی‌های دیگر در آتم گیم کلاب و گیم‌نت‌های همکار" };
+export const metadata: Metadata = { title: "تورنومنت‌ها", description: "تورنومنت‌های FC و بازی‌های دیگر در اتم گیم کلاب و گیم‌نت‌های همکار" };
 
 export default async function TournamentsPage() {
   const t = await getSiteSettings("tournaments");

@@ -86,8 +86,8 @@ export async function notifyCustomer(conversationId: string): Promise<void> {
   } else {
     await sendMail({
       to: email!,
-      subject: "پاسخ پشتیبانی آتم گیم کلاب",
-      text: `${name} عزیز،\n\nبه پیام شما در پشتیبانی آنلاین آتم گیم کلاب پاسخ داده شد.\nبرای دیدن پاسخ وارد سایت شوید:\n${env.APP_URL}/?support=open\n\nآتم گیم کلاب`,
+      subject: "پاسخ پشتیبانی اتم گیم کلاب",
+      text: `${name} عزیز،\n\nبه پیام شما در پشتیبانی آنلاین اتم گیم کلاب پاسخ داده شد.\nبرای دیدن پاسخ وارد سایت شوید:\n${env.APP_URL}/?support=open\n\nاتم گیم کلاب`,
     });
   }
 }

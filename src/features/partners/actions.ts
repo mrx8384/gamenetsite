@@ -70,6 +70,6 @@ export async function savePartnerApplication(input: unknown): Promise<ActionResu
       await audit({ actorId: user.id, action: "partners.profile_updated", entity: "partner", entityId: existing.id, ip });
       return ok({ status: "APPROVED" }, "اطلاعات همکار ذخیره شد.");
     default:
-      return fail("حساب همکاری شما تعلیق شده است. برای پیگیری با آتم تماس بگیرید.");
+      return fail("حساب همکاری شما تعلیق شده است. برای پیگیری با اتم تماس بگیرید.");
   }
 }

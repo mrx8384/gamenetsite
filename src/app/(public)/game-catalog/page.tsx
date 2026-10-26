@@ -5,7 +5,7 @@ import { CatalogPreview, CatalogPreviewSkeleton } from "@/components/home/catalo
 
 export const metadata: Metadata = {
   title: "کاتالوگ بازی‌ها",
-  description: "فهرست بازی‌های PS4 و PS5 قابل اجرا در گیم‌نت آتم",
+  description: "فهرست بازی‌های PS4 و PS5 قابل اجرا در گیم‌نت اتم",
 };
 
 export default function GameCatalogPage() {

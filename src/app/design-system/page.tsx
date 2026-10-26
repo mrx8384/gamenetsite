@@ -60,7 +60,7 @@ export default function DesignSystemPage() {
 
       <Section title="تایپوگرافی">
         <div className="space-y-2">
-          <p className="text-4xl font-black">باشگاه گیمینگ آتم</p>
+          <p className="text-4xl font-black">باشگاه گیمینگ اتم</p>
           <p className="text-2xl font-bold">تیتر سطح دوم</p>
           <p className="text-lg font-semibold">تیتر سطح سوم</p>
           <p className="max-w-2xl leading-8 text-muted-foreground">

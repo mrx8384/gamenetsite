@@ -63,7 +63,7 @@ export function PartnerForm({ initial, lockIdentity = false, submitLabel }: { in
           </NativeSelect>
           {err("businessType")}
         </div>
-        {lockIdentity ? <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">برای تغییر نام یا نوع کسب‌وکار با آتم تماس بگیرید.</p> : null}
+        {lockIdentity ? <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">برای تغییر نام یا نوع کسب‌وکار با اتم تماس بگیرید.</p> : null}
         <div className="grid gap-1.5">
           <Label htmlFor="p-province">استان</Label>
           <NativeSelect id="p-province" value={v.province} onChange={set("province")} {...aria("province")}>

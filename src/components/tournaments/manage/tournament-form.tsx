@@ -88,7 +88,7 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5 sm:col-span-2">
             <Label htmlFor="t-name">نام تورنومنت</Label>
-            <Input id="t-name" value={v.name} onChange={text("name")} maxLength={120} placeholder="مثلاً جام هفتگی FC آتم" aria-invalid={!!errors.name} />
+            <Input id="t-name" value={v.name} onChange={text("name")} maxLength={120} placeholder="مثلاً جام هفتگی FC اتم" aria-invalid={!!errors.name} />
             {err("name")}
           </div>
           <div className="grid gap-1.5">

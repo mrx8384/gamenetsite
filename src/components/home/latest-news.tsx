@@ -9,7 +9,7 @@ export async function LatestNews() {
   await connection();
   const posts = await getLatestNews(3);
   if (posts.length === 0) {
-    return <EmptyState icon={Newspaper} title="هنوز خبری منتشر نشده" description="اخبار و رویدادهای آتم به‌زودی اینجا منتشر می‌شوند." />;
+    return <EmptyState icon={Newspaper} title="هنوز خبری منتشر نشده" description="اخبار و رویدادهای اتم به‌زودی اینجا منتشر می‌شوند." />;
   }
   return (
     <div className="grid gap-5 md:grid-cols-3">

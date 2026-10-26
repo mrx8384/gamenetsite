@@ -46,7 +46,7 @@ export interface TournamentView {
 }
 
 function toView(t: Row): TournamentView {
-  const organizerName = t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "آتم گیم کلاب";
+  const organizerName = t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "اتم گیم کلاب";
   return {
     id: t.id,
     slug: t.slug,
@@ -116,7 +116,7 @@ export async function getPublicTournaments(): Promise<TournamentCard[]> {
     startsAt: t.startsAt?.toISOString() ?? null,
     participantCount: t._count.participants,
     maxParticipants: t.maxParticipants,
-    organizerName: t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "آتم گیم کلاب",
+    organizerName: t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "اتم گیم کلاب",
     prize: t.prize,
   }));
 }

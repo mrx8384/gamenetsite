@@ -13,7 +13,7 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "اخبار", description: "اخبار دنیای بازی و رویدادهای آتم گیم کلاب" };
+export const metadata: Metadata = { title: "اخبار", description: "اخبار دنیای بازی و رویدادهای اتم گیم کلاب" };
 
 type SP = Record<string, string | string[] | undefined>;
 

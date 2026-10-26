@@ -16,8 +16,8 @@ export default async function HomePage() {
   const origin = new URL(env.APP_URL).origin;
   // Site name and logo for search results (WebSite + Organization structured data).
   const jsonLd = [
-    { "@context": "https://schema.org", "@type": "WebSite", name: "ATOM GAME CLUB", alternateName: ["آتم گیم کلاب", "Atom Game Club"], url: `${origin}/` },
-    { "@context": "https://schema.org", "@type": "Organization", name: "ATOM GAME CLUB", alternateName: "آتم گیم کلاب", url: `${origin}/`, logo: `${origin}/brand/atom-logo-256.png` },
+    { "@context": "https://schema.org", "@type": "WebSite", name: "ATOM GAME CLUB", alternateName: ["اتم گیم کلاب", "Atom Game Club"], url: `${origin}/` },
+    { "@context": "https://schema.org", "@type": "Organization", name: "ATOM GAME CLUB", alternateName: "اتم گیم کلاب", url: `${origin}/`, logo: `${origin}/brand/atom-logo-256.png` },
   ];
   return (
     <>

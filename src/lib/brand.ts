@@ -15,8 +15,8 @@ export const brand = {
 
 export const siteConfig = {
   name: "ATOM GAME CLUB",
-  nameFa: "آتم گیم کلاب",
-  description: "باشگاه گیمینگ آتم؛ فروشگاه، کاتالوگ بازی‌ها، تورنومنت‌ها و خدمات همکاران.",
+  nameFa: "اتم گیم کلاب",
+  description: "باشگاه گیمینگ اتم؛ فروشگاه، کاتالوگ بازی‌ها، تورنومنت‌ها و خدمات همکاران.",
   locale: "fa-IR",
   logo: {
     full: "/brand/atom-logo.webp",

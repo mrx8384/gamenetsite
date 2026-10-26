@@ -77,7 +77,7 @@ export function parseEvents(json: unknown): { tournaments: TournamentItem[]; new
         startsAt: dateOk(r.startsAt),
         participantCount: intOk(r.participantCount, 10000) ?? 0,
         maxParticipants: intOk(r.maxParticipants, 10000),
-        organizerName: str(r.organizerName, 80) ?? "آتم گیم کلاب",
+        organizerName: str(r.organizerName, 80) ?? "اتم گیم کلاب",
         prize: str(r.prize, 500),
       });
     }
