@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-10-27 (29) — 3D world achievements, points and discount cards (owner request)
+
+### Scope
+- Owner: several achievements per game with one hidden, points that buy discount cards (e.g. 1000 → 10 %), all editable
+  by the manager. Answers: points from achievements + every round; site accounts only; the manager picks in-store /
+  online per card. Details: `docs/GAME_REWARDS.md`.
+- New: models `GamePointsEntry`, `GameAchievementUnlock`, `RewardCard`, `RewardRedemption` (migration `game_rewards`,
+  tables only, no change to existing columns); `src/features/game-rewards/` (pure rules, service, admin and checkout
+  actions); `/api/game-rewards` (status, round, redeem); admin `/admin/game-rewards` (rules + achievement points, cards,
+  code check + manual points); checkout field «کد کارت تخفیف اتم»; cancelled orders give the card back.
+- World (gameatom): 26 achievements (≥ 3 per game + 1 hidden each, 2 for the whole world), points per achievement,
+  «⭐ امتیاز و جایزه» tab, points on the result card, «دستاورد مخفی» display.
+- Risks handled: fake rounds (server re-checks achievement stats, daily cap, gap, rate limits, login, same-origin);
+  double spending (user row lock; parallel test); 100 % online discounts (max 90 %); cards of other users at checkout.
+
+### Verification
+- `pnpm check` ✓ (369 tests incl. `game-rewards.test.ts`) · `pnpm build` ✓ · smoke 84/84 · world suites on the site:
+  gaming center 39/39, mini-games 46/46, accessibility 30/30 (one camera-timing check failed once on the first visit
+  after a build, passed on the re-run).
+- Local DB checks of every transaction (see the doc) ✓; browser flow admin → world → counter (17 checks) ✓; checkout with
+  the sandbox gateway in dev: −10 % in the summary, failed payment → card back, paid → card used, order totals correct ✓.
+
+### Next (owner)
+- Run the update on the server (it applies the migration). Then Admin → دستاوردها و جوایز: check the rules and create
+  the first card (nothing is offered until a card exists).
+
 ## 2026-10-26 (28) — Brand spelling «اتم» everywhere (owner request: «همه اون آتم ها رو به اتم تبدیل کن»)
 
 - Code: every «آتم» → «اتم» (49 places in 29 files: page titles and meta descriptions, JSON-LD names, brand

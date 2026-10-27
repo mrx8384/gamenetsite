@@ -444,3 +444,16 @@
 }
 .homePlay:focus-visible { outline: 3px solid var(--aw-green); outline-offset: 3px; }
 .homeHint { font-size: 0.8rem; opacity: 0.7; }
+
+/* points and reward cards (the site account) */
+.pointsLine { color: #ffd36a; font-weight: 700; font-size: 0.9rem; margin: 0.3rem 0; }
+.rewardsBox { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.3rem; }
+.rewardsBox > a { align-self: flex-start; text-decoration: none; }
+.balance { font-size: 1.1rem; }
+.balance strong { color: #ffd36a; font-size: 1.5rem; }
+.rewardsHead { margin: 0.6rem 0 0; font-size: 1rem; }
+.cardList { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.cardItem { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; padding: 0.6rem 0.7rem; border: 1px solid var(--aw-border); border-radius: 12px; font-size: 0.88rem; }
+.cardItem .cardActions { margin-top: 0; }
+.cardFresh { border: 1px solid #ffd36a; border-radius: 12px; padding: 0.7rem; display: grid; gap: 0.3rem; background: rgb(255 211 106 / 0.08); }
+.cardCode { font-family: ui-monospace, monospace; font-size: 1.15rem; letter-spacing: 0.08em; color: var(--aw-white); text-align: start; }

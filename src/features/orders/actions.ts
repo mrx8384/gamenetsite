@@ -13,6 +13,8 @@ import { getRequestInfo } from "@/lib/request-info";
 import { getPaymentProvider } from "@/features/payments";
 import { getCommerceSettings } from "@/features/settings/commerce";
 import { findCartId } from "@/features/cart/service";
+import { attachToOrder, lockCodeForOrder, REWARD_ERROR_TEXT, RewardError } from "@/features/game-rewards/service";
+import { orderDiscount } from "@/features/game-rewards/rules";
 import { addressSchema, placeOrderSchema } from "./schemas";
 import { cancelOrderTx, expireStaleOrders, generateOrderNumber, OrderError, PAYMENT_WINDOW_MINUTES } from "./service";
 
@@ -122,6 +124,19 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
       });
       // پس‌کرایه: the carrier collects shipping on delivery, so nothing is charged online for it.
       const shippingCost = shipping.type === "PREPAID" ? shipping.price : BigInt(0);
+      // discount card from the 3D world: locked with the order, used only if the order is created
+      let discount = BigInt(0);
+      let redemptionId: string | null = null;
+      if (parsed.data.rewardCode) {
+        try {
+          const card = await lockCodeForOrder(tx, s.user.id, parsed.data.rewardCode);
+          discount = orderDiscount(subtotal, card.discountPercent);
+          redemptionId = card.id;
+        } catch (e) {
+          if (e instanceof RewardError) throw new OrderError(`کارت تخفیف: ${REWARD_ERROR_TEXT[e.code]}`);
+          throw e;
+        }
+      }
       const number = await generateOrderNumber(tx);
 
       const order = await tx.order.create({
@@ -131,7 +146,8 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           status: "AWAITING_PAYMENT",
           subtotal,
           shippingCost,
-          total: subtotal + shippingCost,
+          discount,
+          total: subtotal - discount + shippingCost,
           recipientName: address.recipientName,
           phone: address.phone,
           province: address.province,
@@ -150,6 +166,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
         },
         select: { id: true },
       });
+      if (redemptionId) await attachToOrder(tx, redemptionId, order.id);
       for (const l of lines) {
         await tx.product.update({ where: { id: l.p.id }, data: { stock: { decrement: l.quantity } } });
         await tx.inventoryMovement.create({ data: { productId: l.p.id, delta: -l.quantity, reason: "ORDER", orderId: order.id, actorId: s.user.id } });

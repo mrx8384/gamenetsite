@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { MapPin, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteAddress, placeOrder } from "@/features/orders/actions";
+import { checkRewardCode } from "@/features/game-rewards/checkout-actions";
+import { orderDiscount } from "@/features/game-rewards/rules";
 import { formatNumber, formatToman, toPersianDigits } from "@/lib/format";
 import { OrderSummary, type SummaryShipping } from "@/components/cart/order-summary";
 import type { ShippingOption } from "@/features/shipping/queries";
@@ -53,11 +56,27 @@ export function CheckoutForm({
       ? { kind: "collect", carrier: method.name }
       : { kind: "prepaid", amount: method.price };
   const [pending, startTransition] = React.useTransition();
+  // discount card from the 3D world (optional)
+  const [codeInput, setCodeInput] = React.useState("");
+  const [card, setCard] = React.useState<{ code: string; title: string; discountPercent: number } | null>(null);
+  const [checking, startChecking] = React.useTransition();
+  const discount = card ? orderDiscount(BigInt(subtotal), card.discountPercent) : BigInt(0);
+  function applyCode() {
+    startChecking(async () => {
+      const res = await checkRewardCode(codeInput);
+      if (!res.ok) {
+        setCard(null);
+        return void toast.error(res.error);
+      }
+      setCard(res.data);
+      toast.success(`کارت «${res.data.title}» اعمال شد.`);
+    });
+  }
   const selected = addresses.some((a) => a.id === addressId) ? addressId : (addresses[0]?.id ?? "");
 
   function pay() {
     startTransition(async () => {
-      const res = await placeOrder({ addressId: selected, shippingMethodId: shippingId, note });
+      const res = await placeOrder({ addressId: selected, shippingMethodId: shippingId, note, rewardCode: card?.code ?? "" });
       if (!res.ok) {
         toast.error(res.error);
         router.refresh();
@@ -133,12 +152,36 @@ export function CheckoutForm({
         )}
       </section>
       <section className="grid gap-1.5">
+        <Label htmlFor="reward-code">کد کارت تخفیف اتم (اختیاری)</Label>
+        {card ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-success-soft p-3 text-sm">
+            <span>
+              🎟️ {card.title} — {formatNumber(card.discountPercent)}٪ تخفیف روی کالاها{" "}
+              <span className="ltr font-mono" dir="ltr">
+                {card.code}
+              </span>
+            </span>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setCard(null)}>
+              حذف کارت
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input id="reward-code" dir="ltr" className="font-mono" placeholder="ATOM-XXXX-XXXX" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} maxLength={40} autoComplete="off" />
+            <Button type="button" variant="outline" loading={checking} disabled={codeInput.trim().length < 4} onClick={applyCode}>
+              اعمال
+            </Button>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">کارت‌هایی که با امتیاز دنیای سه‌بعدی اتم گرفته‌اید.</p>
+      </section>
+      <section className="grid gap-1.5">
         <Label htmlFor="order-note">توضیحات سفارش (اختیاری)</Label>
         <Textarea id="order-note" rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
       </section>
     </div>
       <div className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-        <OrderSummary subtotal={subtotal} shipping={summaryShipping}>
+        <OrderSummary subtotal={subtotal} shipping={summaryShipping} discount={card ? { amount: discount.toString(), label: `تخفیف کارت اتم (${formatNumber(card.discountPercent)}٪)` } : undefined}>
           <ul className="space-y-1 border-t pt-3 text-xs text-muted-foreground">
             {lines.map((l) => (
               <li key={l.id} className="flex justify-between gap-2"><span className="truncate">{l.title}</span><span>× {formatNumber(l.quantity)}</span></li>

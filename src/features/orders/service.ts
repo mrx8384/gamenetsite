@@ -2,6 +2,7 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { releaseForOrderTx } from "@/features/game-rewards/service";
 
 export const PAYMENT_WINDOW_MINUTES = 20;
 type Tx = Prisma.TransactionClient;
@@ -31,6 +32,8 @@ export async function cancelOrderTx(tx: Tx, orderId: string, actorId: string | n
     await tx.inventoryMovement.create({ data: { productId: item.productId, delta: item.quantity, reason: "ORDER_CANCEL", orderId, actorId } });
   }
   await tx.orderStatusHistory.create({ data: { orderId, from: order.status, to: "CANCELLED", actorId, note } });
+  // a discount card used by this order can be used again (until it expires)
+  await releaseForOrderTx(tx, orderId);
   return true;
 }
 

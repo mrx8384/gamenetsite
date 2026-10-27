@@ -10,7 +10,8 @@ import { audio } from "../systems/AudioManager";
 import ui from "../styles/atomWorld.module.css";
 import styles from "./minigames.module.css";
 import { GAME_COMPONENTS, MINI_GAMES } from "./registry";
-import { type Achievement, recordRound } from "./achievements";
+import { ACHIEVEMENTS, type Achievement, recordRound } from "./achievements";
+import { loadRewards, reportRound, type RoundReward, rewardsStore } from "./rewards";
 import { NewAchievements, SubmitScore } from "./ScoreBoard";
 import { localTop } from "./scores";
 import { type Difficulty, fa, type HudItem, type MiniGameResult } from "./types";
@@ -47,11 +48,23 @@ function Host({ id }: { id: MiniGameId }) {
   const setPlayers = (p: 1 | 2) => setMode(p === 1 ? "solo" : "local");
   const [hud, setHud] = useState<HudItem[]>([]);
   const [result, setResult] = useState<{ r: MiniGameResult; fresh: Achievement[]; record: boolean } | null>(null);
+  // points on the site account for this round (null: not logged in / no site)
+  const [points, setPoints] = useState<RoundReward | null>(null);
+  const playStart = useRef(0);
   const [best] = useState(() => bestScore(id));
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const primary = useRef<HTMLButtonElement>(null);
 
   const exit = useCallback(() => worldStore.set({ miniGame: null }), []);
+
+  // is the player logged in on the site (points for rounds)?
+  useEffect(() => {
+    const r = rewardsStore.get();
+    if (!r.available && !r.loading) void loadRewards();
+  }, []);
+  useEffect(() => {
+    if (phase === "play") playStart.current = performance.now();
+  }, [phase]);
 
   // online play: is the room server there? (not in the stand-alone preview)
   useEffect(() => {
@@ -130,9 +143,20 @@ function Host({ id }: { id: MiniGameId }) {
       const fresh = r.twoPlayer ? [] : recordRound(id, r.stats);
       audio.result(r.won ?? true);
       setResult({ r, fresh, record });
+      setPoints(null);
       setPhase("result");
+      if (!r.twoPlayer && !meta.menu) {
+        const seconds = (performance.now() - playStart.current) / 1000;
+        void reportRound(id, r.stats, seconds).then((p) => {
+          if (!p) return;
+          setPoints(p);
+          // achievements new on the account (e.g. earned on this phone before logging in) are shown too
+          const extra = ACHIEVEMENTS.filter((a) => p.achievements.some((x) => x.id === a.id));
+          if (extra.length) setResult((cur) => (cur && cur.r === r ? { ...cur, fresh: [...cur.fresh, ...extra.filter((a) => !cur.fresh.includes(a))] } : cur));
+        });
+      }
     },
-    [id],
+    [id, meta.menu],
   );
 
   const playing = phase === "play" || phase === "countdown";
@@ -277,6 +301,12 @@ function Host({ id }: { id: MiniGameId }) {
                     امتیاز: {fa(Math.round(result.r.score))}
                     {result.record ? " — 🏆 رکورد جدید این دستگاه" : ""}
                   </p>
+                  {points && (
+                    <p className={styles.pointsLine} role="status">
+                      ⭐ {points.roundPoints > 0 ? `+${fa(points.roundPoints)} امتیاز برای این دور` : "سقف امتیاز دورهای امروز پر شده"}
+                      {points.achievements.length > 0 && ` · +${fa(points.achievements.reduce((t, a) => t + a.points, 0))} برای دستاورد`} — امتیاز شما: {fa(points.balance)}
+                    </p>
+                  )}
                   <NewAchievements list={result.fresh} />
                   <SubmitScore game={id} result={result.r} />
                 </>

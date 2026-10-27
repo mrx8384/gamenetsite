@@ -107,7 +107,10 @@ export function NewAchievements({ list }: { list: Achievement[] }) {
             {a.emoji}
           </span>
           <div>
-            <strong>دستاورد جدید: {a.title}</strong>
+            <strong>
+              {a.hidden ? "🎉 دستاورد مخفی پیدا شد: " : "دستاورد جدید: "}
+              {a.title}
+            </strong>
             {rewards[a.id] && <div className={styles.reward}>🎁 {rewards[a.id]} — این صفحه را به پیشخوان مجموعه نشان دهید.</div>}
           </div>
         </div>

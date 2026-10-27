@@ -24,6 +24,8 @@ export const placeOrderSchema = z.object({
   addressId: z.string().min(1, "آدرس تحویل را انتخاب کنید"),
   shippingMethodId: z.string().min(1, "روش ارسال را انتخاب کنید"),
   note: z.string().trim().max(500).default(""),
+  /** A discount card from the 3D world (Admin → دستاوردها و جوایز), checked again on the server. */
+  rewardCode: z.string().trim().max(40).default(""),
 });
 
 export const ORDER_STATUS_LABEL = {

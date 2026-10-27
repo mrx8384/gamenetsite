@@ -59,6 +59,10 @@ model User {
   tournamentEntries    TournamentParticipant[]
   supportConversation  SupportConversation?
   supportMessages      SupportMessage[]
+  gamePoints           GamePointsEntry[]
+  gameAchievements     GameAchievementUnlock[]
+  rewardRedemptions    RewardRedemption[]      @relation("RewardOwner")
+  rewardsChecked       RewardRedemption[]      @relation("RewardStaff")
 
   @@index([role])
   @@map("users")
@@ -394,6 +398,7 @@ model Order {
   statusHistory      OrderStatusHistory[]
   payments           Payment[]
   inventoryMovements InventoryMovement[]
+  rewardRedemption   RewardRedemption?
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -911,4 +916,112 @@ model SupportFaq {
 
   @@index([isActive, sortOrder])
   @@map("support_faqs")
+}
+
+// ───────────── 3D world: points, achievements, reward cards (docs/GAME_REWARDS.md) ─────────────
+
+enum PointsEntryKind {
+  ROUND
+  ACHIEVEMENT
+  REDEEM
+  REFUND
+  ADJUST
+}
+
+enum RewardChannel {
+  IN_STORE
+  ONLINE
+  BOTH
+}
+
+/// ACTIVE past `expiresAt` is shown as expired; it is never stored as such.
+enum RewardCodeStatus {
+  ACTIVE
+  USED
+  CANCELLED
+}
+
+/// Points ledger: the balance is the sum of `amount` (earn +, spend −). Rows are never edited.
+model GamePointsEntry {
+  id            String          @id @default(cuid())
+  userId        String
+  kind          PointsEntryKind
+  amount        Int
+  game          String?         @db.VarChar(40)
+  achievementId String?         @db.VarChar(60)
+  redemptionId  String?
+  note          String?         @db.VarChar(200)
+  actorId       String?
+  createdAt     DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, kind, createdAt])
+  @@map("game_points_entries")
+}
+
+/// One row per achievement per account (the unique key stops double points).
+model GameAchievementUnlock {
+  userId        String
+  achievementId String   @db.VarChar(60)
+  points        Int
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@map("game_achievement_unlocks")
+}
+
+/// A discount card the manager offers for points.
+model RewardCard {
+  id              String        @id @default(cuid())
+  title           String        @db.VarChar(80)
+  description     String        @default("") @db.VarChar(300)
+  pointsCost      Int
+  discountPercent Int
+  channel         RewardChannel @default(IN_STORE)
+  validDays       Int           @default(30)
+  /// How many of this card one account may take in 30 days (0 = no limit).
+  limitPer30Days  Int           @default(1)
+  isActive        Boolean       @default(true)
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  redemptions RewardRedemption[]
+
+  @@index([isActive, sortOrder])
+  @@map("reward_cards")
+}
+
+/// A card a player took: its code, a snapshot of the card, and where it was used.
+model RewardRedemption {
+  id              String           @id @default(cuid())
+  code            String           @unique @db.VarChar(20)
+  userId          String
+  cardId          String?
+  title           String           @db.VarChar(80)
+  discountPercent Int
+  channel         RewardChannel
+  pointsSpent     Int
+  status          RewardCodeStatus @default(ACTIVE)
+  expiresAt       DateTime
+  usedAt          DateTime?
+  /// Staff member who accepted it at the counter (in-store use).
+  usedById        String?
+  /// Online order that used it (cancelled orders give it back).
+  orderId         String?          @unique
+  createdAt       DateTime         @default(now())
+
+  user   User        @relation("RewardOwner", fields: [userId], references: [id], onDelete: Cascade)
+  card   RewardCard? @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  usedBy User?       @relation("RewardStaff", fields: [usedById], references: [id], onDelete: SetNull)
+  order  Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([cardId, userId, createdAt])
+  @@index([status, createdAt])
+  @@map("reward_redemptions")
 }

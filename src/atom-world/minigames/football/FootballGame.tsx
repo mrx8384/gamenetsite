@@ -103,7 +103,7 @@ export default function FootballGame({ paused, difficulty, onHud, onEnd }: MiniG
         ],
         score: r.points,
         detail: `${fa(r.gf)} – ${fa(r.ga)} (${DIFF[s.difficulty]})`,
-        stats: { goalsFor: r.gf, goalsAgainst: r.ga, won: r.won, shots: s.shots, tackles: s.tackles },
+        stats: { goalsFor: r.gf, goalsAgainst: r.ga, won: r.won, shots: s.shots, tackles: s.tackles, hard: s.difficulty === "hard" },
       });
     }
   });

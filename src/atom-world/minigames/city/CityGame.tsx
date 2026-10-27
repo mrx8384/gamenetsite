@@ -117,7 +117,7 @@ export default function CityGame({ paused, difficulty, onHud, onEnd }: MiniGameP
         ],
         score: s.money,
         detail: `${fa(s.deliveries)} مسافر · ${fa(s.money)} (${DIFF[s.difficulty]})`,
-        stats: { money: s.money, deliveries: s.deliveries, crashes: s.crashes, coins: s.coinsTaken },
+        stats: { money: s.money, deliveries: s.deliveries, crashes: s.crashes, coins: s.coinsTaken, hard: s.difficulty === "hard" },
       });
     }
   };

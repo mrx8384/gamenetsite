@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   FolderTree,
   Gamepad2,
+  Gift,
   Handshake,
   Headset,
   LayoutDashboard,
@@ -48,6 +49,7 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/messages", label: "پیام‌ها", icon: Mail },
   { href: "/admin/game-catalog", label: "کاتالوگ بازی‌ها", icon: Gamepad2 },
   { href: "/admin/tournaments", label: "تورنومنت", icon: Trophy },
+  { href: "/admin/game-rewards", label: "دستاوردها و جوایز", icon: Gift },
   { href: "/admin/settings", label: "تنظیمات سایت", icon: Settings },
 ];
 
