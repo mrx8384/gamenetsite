@@ -9,7 +9,7 @@ existing site is one button in the homepage hero: «ورود به دنیای س�
 | Path | What |
 |---|---|
 | `src/atom-world/` | The whole module (game, mini-games, world editor, server helpers). CSS modules only, no Tailwind. |
-| `src/atom-world/server/adminAuth.ts` | **The only file that differs from gameatom**: the world editor uses the site's own ADMIN login (`getCurrentUser()` from `src/lib/auth/dal.ts`) instead of gameatom's separate password. |
+| `src/atom-world/server/adminAuth.ts` | **The only file that differs from gameatom**: the world editor accepts the site's own ADMIN login (`getCurrentUser()` from `src/lib/auth/dal.ts`) or the editor password from `.env`. |
 | `src/app/atom-world/page.tsx` | The game, full screen (outside `(public)`, so no site header/footer). |
 | `src/app/atom-world/admin/page.tsx` | World editor (layout, wall art, texts, machine info, versions). Not linked anywhere; open it directly. |
 | `src/app/api/atom-world/…` | `world` (public read), `admin/{session,world,versions,upload}` (ADMIN only), `media/[file]` (uploaded images), `rooms/…` (online play between two phones, in memory). |
@@ -21,9 +21,15 @@ Dependencies added (reason: 3D rendering): `three@0.186.1`, `@react-three/fiber@
 
 ## World editor
 
-- Open `/atom-world/admin`. Not logged in → «ورود با حساب مدیر سایت» → the site's `/login` → back to the editor.
-- Only role `ADMIN` may read the drafts or save (`isAdmin` is checked on the server in every editor route;
-  SUPPORT/PARTNER/USER are refused). Writes also require a same-origin request.
+- Open `/atom-world/admin`. Two ways in (either is enough):
+  - a site `ADMIN` account: «ورود با حساب مدیر سایت» → the site's `/login` → back to the editor;
+  - the **editor password set on the VPS**: `sudo bash /srv/atom/app/scripts/set-world-password.sh` (asks twice,
+    at least 10 characters, writes `ATOM_WORLD_ADMIN_PASSWORD` to `.env`, restarts `atom`; `--remove` turns it off).
+    The installer never overwrites `.env`, so the password survives updates. Login = HttpOnly, SameSite=Strict
+    cookie for 12 h, 5 tries a minute per address; changing the password signs everyone out
+    (`src/atom-world/server/passwordLogin.ts`, shared with gameatom).
+- Without a password or an ADMIN session nothing can be read or saved (`isAdmin` is checked on the server in every
+  editor route; SUPPORT/PARTNER/USER are refused). Writes also require a same-origin request.
 - Data: one folder **beside `UPLOAD_DIR`**, e.g. `/srv/atom/atom-world` (or `ATOM_WORLD_DATA_DIR` if set):
   `world-config.json`, the last 20 versions, uploaded images (stored by content hash, type sniffed; SVG/HTML refused).
   It is outside the app folder, so updates (`git reset --hard`) keep it; `scripts/backup.sh` backs it up as

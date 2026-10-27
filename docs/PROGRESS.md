@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-10-27 (30) — 3D world editor password set on the VPS (owner request)
+
+- `/atom-world/admin` now also accepts a password from `.env` (`ATOM_WORLD_ADMIN_PASSWORD`), besides site ADMIN accounts.
+  Set / change / remove it on the server with `sudo bash scripts/set-world-password.sh` (hidden input twice, ≥ 10
+  characters, `.env` stays 600, restarts `atom`). Shared code: `src/atom-world/server/passwordLogin.ts` (HMAC cookie 12 h,
+  SameSite=Strict, constant-time check, 5 tries / minute); the editor shows the password form plus «یا ورود با حساب مدیر سایت».
+- Verified: `pnpm check` ✓ (369 tests; `siteAdminAuth.test.ts` covers no password → site login only, wrong / right
+  password, cookie invalid after a password change, logout) · `pnpm build` ✓ · browser: password form, wrong password
+  refused, VPS password opens the editor, save works, «خروج» ends it · script tested on a throwaway `.env` (save,
+  too short refused, remove, permissions 600).
+
 ## 2026-10-27 (29) — 3D world achievements, points and discount cards (owner request)
 
 ### Scope

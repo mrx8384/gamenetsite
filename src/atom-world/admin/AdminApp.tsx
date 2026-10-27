@@ -101,8 +101,8 @@ export function AdminApp() {
         </div>
       </div>
     );
-  if (!session.admin && session.loginUrl) return <SiteLogin loginUrl={session.loginUrl} />;
-  if (!session.admin) return <Login onDone={() => setSession({ ...session, admin: true })} onLoad={load} />;
+  if (!session.admin && session.loginUrl && !session.password) return <SiteLogin loginUrl={session.loginUrl} />;
+  if (!session.admin) return <Login siteLoginUrl={session.loginUrl} onDone={() => setSession({ ...session, admin: true })} onLoad={load} />;
 
   const save = async () => {
     setSaving(true);
@@ -147,13 +147,14 @@ export function AdminApp() {
         <button type="button" className={styles.btn} onClick={openWorld} disabled={backend.mode === "local" && dirty}>
           👁 دیدن در دنیا
         </button>
-        {backend.mode === "server" && !session.loginUrl && (
+        {backend.mode === "server" && session.password && (
           <button
             type="button"
             className={styles.btn}
             onClick={async () => {
               await backend.logout();
-              setSession({ ...session, admin: false });
+              // on the site, a logged-in site ADMIN stays in the editor
+              setSession(await backend.session().catch(() => ({ ...session, admin: false })));
             }}
           >
             خروج
@@ -219,7 +220,7 @@ function SiteLogin({ loginUrl }: { loginUrl: string }) {
   );
 }
 
-function Login({ onDone, onLoad }: { onDone: () => void; onLoad: () => Promise<void> }) {
+function Login({ onDone, onLoad, siteLoginUrl }: { onDone: () => void; onLoad: () => Promise<void>; siteLoginUrl?: string }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -253,6 +254,11 @@ function Login({ onDone, onLoad }: { onDone: () => void; onLoad: () => Promise<v
         <button type="submit" className={`${styles.btn} ${styles.primary}`} disabled={busy || !pw} style={{ width: "100%" }}>
           ورود
         </button>
+        {siteLoginUrl && (
+          <a className={styles.btn} href={siteLoginUrl} style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 8 }}>
+            یا ورود با حساب مدیر سایت
+          </a>
+        )}
       </form>
     </div>
   );

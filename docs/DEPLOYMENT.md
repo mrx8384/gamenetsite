@@ -11,6 +11,7 @@ No external CDN, font or script is used at runtime, so the site works on Iranian
 | `AUTH_SECRET` | `openssl rand -base64 32` (changing it invalidates pending one-time codes) |
 | `APP_URL` | Exact public HTTPS origin, e.g. `https://atomgameclub.ir` — enables `__Host-` secure cookies, HSTS and `upgrade-insecure-requests`, and is checked as `Origin` by the catalog restore route. **Set before `pnpm build`** (security headers are computed at build time). |
 | `UPLOAD_DIR` | `/srv/atom/uploads` (outside the app directory) |
+| `ATOM_WORLD_ADMIN_PASSWORD` | Optional. Password of the 3D world editor (`/atom-world/admin`), at least 10 characters. Set it with `sudo bash scripts/set-world-password.sh` (restarts the site). Site ADMIN accounts work without it. |
 | `ATOM_WORLD_DATA_DIR` | Optional. Folder of the 3D world editor (layout, texts, photos). Default: `atom-world` beside `UPLOAD_DIR` (`/srv/atom/atom-world`), created on the first save; backed up by `scripts/backup.sh`. See `docs/ATOM_WORLD.md`. |
 | `SMS_PROVIDER` | `smsir` |
 | `SMS_API_KEY` | SMS.ir key. **Regenerate the key that was shared in chat** and put only the new one here. |

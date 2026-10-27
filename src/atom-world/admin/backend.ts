@@ -12,8 +12,10 @@ import { prepareImage } from "./image";
 export interface AdminSession {
   enabled: boolean;
   admin: boolean;
-  /** The site's own login page (the main site: its ADMIN accounts); unset = manager password. */
+  /** The site's own login page (the main site: its ADMIN accounts). */
   loginUrl?: string;
+  /** A manager password is set on the server (ATOM_WORLD_ADMIN_PASSWORD). */
+  password?: boolean;
 }
 
 export interface AdminBackend {
@@ -43,7 +45,7 @@ const serverBackend: AdminBackend = {
     const s = await call<AdminSession>(`${API}/admin/session`);
     // only a page of this site (never another address) may be offered as the login
     const loginUrl = typeof s.loginUrl === "string" && /^\/(?!\/)/.test(s.loginUrl) ? s.loginUrl : undefined;
-    return { enabled: !!s.enabled, admin: !!s.admin, ...(loginUrl ? { loginUrl } : {}) };
+    return { enabled: !!s.enabled, admin: !!s.admin, password: s.password !== false, ...(loginUrl ? { loginUrl } : {}) };
   },
   async login(password) {
     try {
