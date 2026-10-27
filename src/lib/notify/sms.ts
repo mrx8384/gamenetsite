@@ -20,7 +20,9 @@ export async function sendTemplateSms(mobile: string, templateId: number, parame
     body: JSON.stringify({ mobile, templateId, parameters }),
     signal: AbortSignal.timeout(10_000),
   }).catch((e: unknown) => {
-    throw new SmsError(`SMS.ir request failed: ${e instanceof Error ? e.message : String(e)}`);
+    // Node's fetch hides the network reason in `cause` (e.g. ENOTFOUND, ECONNREFUSED, timeout).
+    const cause = e instanceof Error && e.cause instanceof Error ? ` (${(e.cause as NodeJS.ErrnoException).code ?? e.cause.message})` : "";
+    throw new SmsError(`SMS.ir request failed: ${e instanceof Error ? e.message : String(e)}${cause}`);
   });
 
   const body = (await res.json().catch(() => null)) as { status?: number; message?: string } | null;

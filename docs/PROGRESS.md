@@ -1,5 +1,10 @@
 # Progress Log
 
+## 2026-10-27 (33) — Admin SMS status + test tool
+
+- Admin → تنظیمات سایت → «پیامک» (`/admin/settings/sms`, ADMIN only): shows SMS_PROVIDER, whether a key is set (never the key), template IDs; sends one test SMS (OTP template with code 12345, or either support template) and shows SMS.ir's exact answer; rate limited 5/10 min; audit entries `sms.test_sent` / `sms.test_failed`.
+- `sendTemplateSms` network errors now include the cause code (ENOTFOUND, ECONNREFUSED, …).
+- Verified (production build): log mode → explanatory message; smsir with a fake key → error with cause shown; invalid mobile rejected; key not in page HTML or server log; normal user 404; typecheck/lint/214 tests ✓. A real send could not be tested (SMS.ir unreachable from the dev environment).
 ## 2026-10-27 (32) — 3D world: online room button always visible (owner request)
 
 - Owner: «ساخت روم برای بازی انلاین چرا حذف شده بزار باشه». The «🌐 آنلاین با دوست» button was hidden whenever the
