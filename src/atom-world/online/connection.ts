@@ -133,7 +133,7 @@ async function post(url: string, body: unknown): Promise<{ ok: true; data: Recor
 export async function onlineAvailable() {
   if (!ONLINE_ENABLED) return false;
   try {
-    const r = await fetch(API, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    const r = await fetch(API, { cache: "no-store", signal: AbortSignal.timeout(10000) });
     if (!r.ok) return false;
     return ((await r.json()) as { online?: boolean }).online === true;
   } catch {

@@ -1,5 +1,13 @@
 # Progress Log
 
+## 2026-10-27 (32) — 3D world: online room button always visible (owner request)
+
+- Owner: «ساخت روم برای بازی انلاین چرا حذف شده بزار باشه». The «🌐 آنلاین با دوست» button was hidden whenever the
+  room check (`GET /api/atom-world/rooms`) did not answer within 5 s (stand-alone preview, slow connection). It is now
+  always shown in two-player games; without a server it says why and offers «دوباره امتحان»; the check waits 10 s.
+- Verified: `pnpm check` ✓ (373) · `pnpm build` ✓ · smoke 84/84 · online suite on this site 27/27 (create room, join by
+  code, play) · blocked room server → explanation, retry → lobby.
+
 ## 2026-10-27 (31) — 3D world: the rival walks in, NPCs with different builds (owner request)
 
 - Owner: «وقتی مینی گیم ها رو با کامپیوتر بازی میکنی یکی از npc ها بیاد باهات بازی … اگه پسر اتم بود اون دختر … این npc ها

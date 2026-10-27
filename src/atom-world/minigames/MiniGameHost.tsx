@@ -4,7 +4,7 @@ import { useDialogFocus } from "../components/useDialogFocus";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameId } from "../data/machines";
 import { useWorld, worldStore } from "../store";
-import { onlineAvailable, type OnlineGame, type RoomLink } from "../online/connection";
+import { ONLINE_ENABLED, onlineAvailable, type OnlineGame, type RoomLink } from "../online/connection";
 import { Lobby } from "../online/Lobby";
 import { audio } from "../systems/AudioManager";
 import ui from "../styles/atomWorld.module.css";
@@ -42,7 +42,9 @@ function Host({ id }: { id: MiniGameId }) {
   const [paused, setPaused] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [mode, setMode] = useState<"solo" | "local" | "online">(() => (worldStore.get().pendingRoom ? "online" : "solo"));
-  const [canOnline, setCanOnline] = useState(false);
+  // null: still checking the room server; the online button is always shown (it explains when it cannot connect)
+  const [canOnline, setCanOnline] = useState<boolean | null>(null);
+  const [onlineCheck, setOnlineCheck] = useState(0);
   const [link, setLink] = useState<RoomLink | null>(null);
   const [joinCode] = useState(() => worldStore.get().pendingRoom?.code);
   const players: 1 | 2 = mode === "solo" ? 1 : 2;
@@ -76,11 +78,17 @@ function Host({ id }: { id: MiniGameId }) {
     if (!meta.twoPlayer) return;
     let live = true;
     void onlineAvailable().then((ok) => live && setCanOnline(ok));
-    if (worldStore.get().pendingRoom) worldStore.set({ pendingRoom: null });
     return () => {
       live = false;
     };
-  }, [meta.twoPlayer]);
+  }, [meta.twoPlayer, onlineCheck]);
+  useEffect(() => {
+    if (worldStore.get().pendingRoom) worldStore.set({ pendingRoom: null });
+  }, []);
+  const recheckOnline = () => {
+    setCanOnline(null);
+    setOnlineCheck((n) => n + 1);
+  };
   useEffect(() => () => link?.close(), [link]);
 
   const begin = useCallback(() => {
@@ -238,7 +246,7 @@ function Host({ id }: { id: MiniGameId }) {
                   <button type="button" className={ui.btn} aria-pressed={mode === "local"} onClick={() => setPlayers(2)}>
                     👥 دونفره روی یک گوشی
                   </button>
-                  {canOnline && (
+                  {ONLINE_ENABLED && (
                     <button type="button" className={ui.btn} aria-pressed={mode === "online"} onClick={() => setMode("online")}>
                       🌐 آنلاین با دوست
                     </button>
@@ -264,7 +272,18 @@ function Host({ id }: { id: MiniGameId }) {
               )}
               {best > 0 && <p className={styles.best}>بهترین امتیاز این دستگاه: {fa(best)}</p>}
               {meta.note && (!two || id !== "foot-pool") && <p className={styles.note}>{meta.note}</p>}
-              {mode === "online" && <Lobby game={id as OnlineGame} link={link} setLink={setLink} onStart={start} joinCode={joinCode} />}
+              {mode === "online" && canOnline === true && <Lobby game={id as OnlineGame} link={link} setLink={setLink} onStart={start} joinCode={joinCode} />}
+              {mode === "online" && canOnline === null && <p className={styles.note} role="status">در حال اتصال به سرور بازی آنلاین…</p>}
+              {mode === "online" && canOnline === false && (
+                <div role="status">
+                  <p className={styles.note}>
+                    سرور بازی آنلاین در دسترس نیست. ساخت اتاق فقط روی سایت اتم گیم کلاب کار می‌کند (نه در پیش‌نمایش)؛ اینترنت را بررسی کنید و دوباره امتحان کنید.
+                  </p>
+                  <button type="button" className={ui.btn} onClick={recheckOnline}>
+                    دوباره امتحان
+                  </button>
+                </div>
+              )}
               <div className={styles.cardActions}>
                 {mode !== "online" && (
                   <button ref={primary} type="button" className={`${ui.btn} ${ui.btnPrimary}`} onClick={start}>
