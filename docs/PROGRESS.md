@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-10-27 (31) — 3D world: the rival walks in, NPCs with different builds (owner request)
+
+- Owner: «وقتی مینی گیم ها رو با کامپیوتر بازی میکنی یکی از npc ها بیاد باهات بازی … اگه پسر اتم بود اون دختر … این npc ها
+  رو مدل مختلف باشه یکی چاق یکی لاغر داخل سطح شهر باشه». Synced from gameatom (phase 19; only `src/atom-world/` changed).
+- Before the first round against the computer (ایرهاکی, فوتبال اتم) the other ATOM character walks in, turns to the
+  player and gestures: «👋 دختر اتم / پسر اتم آمد با شما بازی کند!» (~3 s, «رد کردن» skips, short still with reduced
+  motion; not in two-player / online mode). Visitors now have body builds (heavy, slim, tall, short); four passers-by
+  walk on the sidewalk outside the club.
+- Verified: `pnpm check` ✓ (373 tests incl. `atom-world/bodyBuilds.test.ts`) · `pnpm build` ✓ · smoke 84/84 · world suites on
+  this site: mini-games 49/49 (rival = girl when playing as the boy), gaming center ✓ (rival = boy when playing as the
+  girl, heavy + slim passers-by on the sidewalk), accessibility 30/30.
+
 ## 2026-10-27 (30) — 3D world editor password set on the VPS (owner request)
 
 - `/atom-world/admin` now also accepts a password from `.env` (`ATOM_WORLD_ADMIN_PASSWORD`), besides site ADMIN accounts.

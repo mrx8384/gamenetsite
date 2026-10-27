@@ -30,7 +30,20 @@ export interface ToonRig {
 
 export const TOON_SCALE = 0.93;
 
-export function buildToonCharacter(look: CharacterLook, castShadow = true): ToonRig {
+/**
+ * Body shapes for the background people (the two ATOM characters always use "average"):
+ * girth = width of the torso and arms, legs = thickness of the legs, height = overall height.
+ */
+export type BodyBuild = "average" | "heavy" | "slim" | "tall" | "short";
+export const BUILDS: Record<BodyBuild, { girth: number; legs: number; height: number; belly: boolean }> = {
+  average: { girth: 1, legs: 1, height: 1, belly: false },
+  heavy: { girth: 1.42, legs: 1.3, height: 0.98, belly: true },
+  slim: { girth: 0.78, legs: 0.82, height: 1.04, belly: false },
+  tall: { girth: 0.94, legs: 0.95, height: 1.13, belly: false },
+  short: { girth: 1.06, legs: 1.05, height: 0.86, belly: false },
+};
+
+export function buildToonCharacter(look: CharacterLook, castShadow = true, build: BodyBuild = "average"): ToonRig {
   const geometries: THREE.BufferGeometry[] = [];
   const materials = new Map<string, THREE.Material>();
   const textures: THREE.Texture[] = [];
@@ -259,6 +272,20 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true): Toon
       mesh(box, clip, face, [-0.15, 0.13, 0.1], [0.06, 0.018, 0.018], [0, -0.6, 0.5]);
       mesh(box, clip, face, [-0.16, 0.09, 0.105], [0.06, 0.018, 0.018], [0, -0.6, 0.5]);
     }
+  }
+
+  // ── Body shape (wider / thinner torso and limbs, taller / shorter; the head keeps its size)
+  const shape = BUILDS[build];
+  if (shape.belly) mesh(sphere, jacket, torso, [0, 0.22, 0.07], [0.165, 0.17, 0.15]);
+  if (build !== "average") {
+    torso.scale.x = shape.girth;
+    torso.scale.z = shape.girth * (shape.belly ? 1.12 : 1);
+    head.scale.set(1 / torso.scale.x, 1, 1 / torso.scale.z);
+    for (const leg of [L.leg, R.leg]) {
+      leg.scale.x = leg.scale.z = shape.legs;
+      leg.position.x *= 0.55 + 0.45 * shape.girth;
+    }
+    scaled.scale.y *= shape.height;
   }
 
   mergeStatic(root, geometries);

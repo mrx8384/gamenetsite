@@ -13,6 +13,7 @@ export const MINI_GAMES: Record<MiniGameId, MiniGameMeta> = {
       desktop: ["دسته با حرکت ماوس جابه‌جا می‌شود (یا با کلیدهای جهت‌نما / WASD).", "دیسک را به سمت دروازهٔ حریف بزنید. Esc = توقف."],
     },
     difficulty: true,
+    opponent: true,
     twoPlayer: {
       solo: "🤖 با کامپیوتر",
       intro: "دو نفر روی یک گوشی یا تبلت: دستگاه را صاف روی میز بگذارید و هر نفر یک طرف آن بنشیند. هر کس زودتر ۵ گل بزند برنده است.",
@@ -101,6 +102,7 @@ export const MINI_GAMES: Record<MiniGameId, MiniGameMeta> = {
       desktop: ["کلیدهای جهت‌نما یا W A S D: حرکت.", "Space یا K: شوت / تکل — E یا J: پاس / تعویض بازیکن — Esc: توقف."],
     },
     difficulty: true,
+    opponent: true,
     console: true,
     note: "بازی نمایشی است و تیم‌ها و بازیکن‌ها خیالی‌اند؛ بازی‌های فوتبال واقعی روی PS4 و PS5 گیم‌نت اجرا می‌شوند.",
   },

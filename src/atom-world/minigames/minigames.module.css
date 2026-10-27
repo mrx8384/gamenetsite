@@ -457,3 +457,17 @@
 .cardItem .cardActions { margin-top: 0; }
 .cardFresh { border: 1px solid #ffd36a; border-radius: 12px; padding: 0.7rem; display: grid; gap: 0.3rem; background: rgb(255 211 106 / 0.08); }
 .cardCode { font-family: ui-monospace, monospace; font-size: 1.15rem; letter-spacing: 0.08em; color: var(--aw-white); text-align: start; }
+
+/* the rival ATOM character arrives before a round against the computer */
+.opponent { position: absolute; inset: 0; z-index: 3; background: #050605; }
+.opponentText {
+  position: absolute;
+  inset-inline: 0;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 0 1rem;
+  text-align: center;
+}
+.opponentText p { margin: 0; font-size: clamp(1.05rem, 4.2vmin, 1.5rem); font-weight: 800; text-shadow: 0 2px 10px rgb(0 0 0 / 0.8); }

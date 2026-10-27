@@ -13,10 +13,11 @@ import { GAME_COMPONENTS, MINI_GAMES } from "./registry";
 import { ACHIEVEMENTS, type Achievement, recordRound } from "./achievements";
 import { loadRewards, reportRound, type RoundReward, rewardsStore } from "./rewards";
 import { NewAchievements, SubmitScore } from "./ScoreBoard";
+import { OpponentIntro } from "./OpponentIntro";
 import { localTop } from "./scores";
 import { type Difficulty, fa, type HudItem, type MiniGameResult } from "./types";
 
-type Phase = "intro" | "countdown" | "play" | "result";
+type Phase = "intro" | "opponent" | "countdown" | "play" | "result";
 
 const DIFFICULTY_LABEL: Record<Difficulty, string> = { easy: "آسان", normal: "معمولی", hard: "سخت" };
 
@@ -56,6 +57,10 @@ function Host({ id }: { id: MiniGameId }) {
   const primary = useRef<HTMLButtonElement>(null);
 
   const exit = useCallback(() => worldStore.set({ miniGame: null }), []);
+  const character = useWorld((s) => s.character);
+  const reducedMotion = useWorld((s) => s.reducedMotion);
+  // the rival walks in once, before the first round against the computer
+  const metRival = useRef(false);
 
   // is the player logged in on the site (points for rounds)?
   useEffect(() => {
@@ -78,8 +83,7 @@ function Host({ id }: { id: MiniGameId }) {
   }, [meta.twoPlayer]);
   useEffect(() => () => link?.close(), [link]);
 
-  const start = useCallback(() => {
-    audio.unlock();
+  const begin = useCallback(() => {
     setResult(null);
     setPaused(false);
     setHud([]);
@@ -87,6 +91,15 @@ function Host({ id }: { id: MiniGameId }) {
     setCount(3);
     setPhase("countdown");
   }, []);
+  const start = useCallback(() => {
+    audio.unlock();
+    if (meta.opponent && mode === "solo" && !metRival.current) {
+      metRival.current = true;
+      setPhase("opponent");
+      return;
+    }
+    begin();
+  }, [begin, meta.opponent, mode]);
 
   // the friend's phone starts / restarts together with the host
   useEffect(() => {
@@ -204,6 +217,8 @@ function Host({ id }: { id: MiniGameId }) {
             <Game key={round} paused={(paused && !online) || phase !== "play"} difficulty={difficulty} players={two ? 2 : 1} online={online ? link : null} onHud={setHud} onEnd={onEnd} />
           </Suspense>
         )}
+
+        {phase === "opponent" && <OpponentIntro me={character} reduced={reducedMotion} onDone={begin} />}
 
         {phase === "countdown" && (
           <div className={styles.countdown} aria-live="assertive">

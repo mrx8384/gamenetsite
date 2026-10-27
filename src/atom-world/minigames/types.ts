@@ -49,6 +49,8 @@ export interface MiniGameMeta {
   note?: string;
   /** A menu (the console home screen): no intro card, countdown, pause or result. */
   menu?: boolean;
+  /** Played against the computer: the rival ATOM character walks in before the first solo round. */
+  opponent?: boolean;
   /** Runs on a gaming-center console: «🏠» goes back to the console home screen. */
   console?: boolean;
 }

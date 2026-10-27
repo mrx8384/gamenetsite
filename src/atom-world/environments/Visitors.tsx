@@ -4,10 +4,11 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { applyPose, buildToonCharacter } from "../characters/buildToonCharacter";
+import { applyPose, type BodyBuild, buildToonCharacter } from "../characters/buildToonCharacter";
 import { type AnimInput, blendPose, neutralPose, type Pose, targetPose } from "../characters/CharacterAnimations";
 import type { CharacterLook } from "../data/characters";
 import { AIR_HOCKEY_SIZE } from "../data/environment";
+import { FACADE_Z, STREET_Y } from "../data/exterior";
 import { toWorldXZ } from "../world/items";
 import { worldItems } from "../world/registry";
 import { FOOT_POOL, UPPER_Y } from "../data/upperFloor";
@@ -18,8 +19,9 @@ import { toonGradient } from "../systems/textures";
 /**
  * Decorative visitors that make the hall feel alive (not real people or staff of the club):
  * two playing at the middle air-hockey table, one strolling along the walkway, and people watching
- * the foot-pool field upstairs. Generic casual clothes, so they never look like the two ATOM
- * characters. Fewer of them on lighter graphics settings.
+ * the foot-pool field upstairs, and passers-by on the sidewalk outside. Generic casual clothes, so
+ * they never look like the two ATOM characters, and different body builds (heavy, slim, tall,
+ * short). Fewer of them on lighter graphics settings.
  */
 const base = { plain: true, hairStyle: "short-messy", sole: "#eeeeee", headphones: "#222222", headphonesAccent: "#222222", logo: "#222222" } as const;
 const LOOKS: CharacterLook[] = [
@@ -28,6 +30,11 @@ const LOOKS: CharacterLook[] = [
   { ...base, skin: "#d9a57e", hair: "#151210", jacket: "#5c6b3a", jacketAccent: "#cfd8b8", hoodie: "#4b5730", shirt: "#e9e4d8", pants: "#5a4a3a", pantsAccent: "#5a4a3a", shoe: "#3a3a3a", shoeAccent: "#777777" },
   { ...base, hairStyle: "long-wavy", skin: "#e6b48f", hair: "#1d1512", jacket: "#6a4c93", jacketAccent: "#e6dcf3", hoodie: "#57407a", shirt: "#f5f5f5", pants: "#23252b", pantsAccent: "#23252b", shoe: "#e8e8e8", shoeAccent: "#bdbdbd" },
   { ...base, skin: "#f2cdb0", hair: "#6b4a2b", jacket: "#e0a43a", jacketAccent: "#fff1d2", hoodie: "#c98d2c", shirt: "#ffffff", pants: "#2f3a52", pantsAccent: "#2f3a52", shoe: "#ffffff", shoeAccent: "#cccccc" },
+  // street passers-by
+  { ...base, skin: "#c98f68", hair: "#1a1410", jacket: "#3f6f73", jacketAccent: "#d4e7e8", hoodie: "#335c60", shirt: "#f4f4f4", pants: "#3a3a40", pantsAccent: "#3a3a40", shoe: "#2c2c2c", shoeAccent: "#6a6a6a" },
+  { ...base, hairStyle: "long-wavy", skin: "#efc2a0", hair: "#2a1a12", jacket: "#8b5e3c", jacketAccent: "#f0e0cf", hoodie: "#744d31", shirt: "#fdfaf4", pants: "#1f2733", pantsAccent: "#1f2733", shoe: "#f5f5f5", shoeAccent: "#cfcfcf" },
+  { ...base, skin: "#e3ad86", hair: "#3b2a1c", jacket: "#9a9fa8", jacketAccent: "#eef0f3", hoodie: "#7f848c", shirt: "#ffffff", pants: "#2b3b5c", pantsAccent: "#2b3b5c", shoe: "#ffffff", shoeAccent: "#c4c4c4" },
+  { ...base, hairStyle: "long-wavy", skin: "#d8a27c", hair: "#120e0c", jacket: "#2f5d3a", jacketAccent: "#d8ecd9", hoodie: "#264c30", shirt: "#f3f3f3", pants: "#4a3b33", pantsAccent: "#4a3b33", shoe: "#3a3a3a", shoeAccent: "#808080" },
 ];
 
 type Mode = { kind: "hockey"; side: 1 | -1 } | { kind: "watch" } | { kind: "walk"; from: [number, number]; to: [number, number] };
@@ -39,6 +46,7 @@ interface Spec {
   z: number;
   heading: number;
   scale: number;
+  build: BodyBuild;
   mode: Mode;
   minQuality: QualityLevel;
 }
@@ -54,17 +62,41 @@ function hockeyPlayers(): Spec[] {
   const [ax, az] = toWorldXZ(t, -reach, 0);
   const [bx, bz] = toWorldXZ(t, reach, 0);
   return [
-    { id: "hockey-a", look: LOOKS[0], x: ax, y: 0, z: az, heading: Math.PI / 2 + t.rotY, scale: 1.0, mode: { kind: "hockey", side: -1 }, minQuality: "low" },
-    { id: "hockey-b", look: LOOKS[1], x: bx, y: 0, z: bz, heading: -Math.PI / 2 + t.rotY, scale: 0.95, mode: { kind: "hockey", side: 1 }, minQuality: "low" },
+    { id: "hockey-a", look: LOOKS[0], x: ax, y: 0, z: az, heading: Math.PI / 2 + t.rotY, scale: 1.0, build: "average", mode: { kind: "hockey", side: -1 }, minQuality: "low" },
+    { id: "hockey-b", look: LOOKS[1], x: bx, y: 0, z: bz, heading: -Math.PI / 2 + t.rotY, scale: 0.95, build: "slim", mode: { kind: "hockey", side: 1 }, minQuality: "low" },
   ];
 }
 
 export const visitorSpecs = (): Spec[] => [...hockeyPlayers(), ...OTHERS];
 
+/** Passers-by on the sidewalk in front of the club (between the shop front and the road). */
+function streetPeople(): Spec[] {
+  const z = (d: number) => FACADE_Z + d;
+  const walk = (id: string, look: number, build: BodyBuild, from: [number, number], to: [number, number], minQuality: QualityLevel): Spec => ({
+    id,
+    look: LOOKS[look],
+    x: from[0],
+    y: STREET_Y,
+    z: from[1],
+    heading: Math.atan2(to[0] - from[0], to[1] - from[1]),
+    scale: 1,
+    build,
+    mode: { kind: "walk", from, to },
+    minQuality,
+  });
+  return [
+    walk("street-heavy", 5, "heavy", [-10.5, z(2.7)], [10.5, z(2.7)], "low"),
+    walk("street-slim", 6, "slim", [9.6, z(3.7)], [-10.4, z(3.7)], "low"),
+    walk("street-tall", 7, "tall", [-2.4, z(2.2)], [-10.8, z(2.2)], "medium"),
+    { id: "street-short", look: LOOKS[8], x: 3.4, y: STREET_Y, z: z(2.1), heading: Math.PI - 0.35, scale: 1, build: "short", mode: { kind: "watch" }, minQuality: "medium" },
+  ];
+}
+
 const OTHERS: Spec[] = [
-  { id: "walker", look: LOOKS[2], x: 0.85, y: 0, z: 6.5, heading: Math.PI, scale: 1.03, mode: { kind: "walk", from: [0.85, 6.8], to: [0.85, -2.2] }, minQuality: "medium" },
-  { id: "watch-a", look: LOOKS[3], x: -2.6, y: UPPER_Y, z: FOOT_POOL.zMax + 0.85, heading: Math.PI, scale: 0.94, mode: { kind: "watch" }, minQuality: "medium" },
-  { id: "watch-b", look: LOOKS[4], x: -1.6, y: UPPER_Y, z: FOOT_POOL.zMax + 0.95, heading: Math.PI + 0.25, scale: 1.0, mode: { kind: "watch" }, minQuality: "high" },
+  { id: "walker", look: LOOKS[2], x: 0.85, y: 0, z: 6.5, heading: Math.PI, scale: 1.0, build: "heavy", mode: { kind: "walk", from: [0.85, 6.8], to: [0.85, -2.2] }, minQuality: "medium" },
+  { id: "watch-a", look: LOOKS[3], x: -2.6, y: UPPER_Y, z: FOOT_POOL.zMax + 0.85, heading: Math.PI, scale: 1.0, build: "short", mode: { kind: "watch" }, minQuality: "medium" },
+  { id: "watch-b", look: LOOKS[4], x: -1.6, y: UPPER_Y, z: FOOT_POOL.zMax + 0.95, heading: Math.PI + 0.25, scale: 0.97, build: "tall", mode: { kind: "watch" }, minQuality: "high" },
+  ...streetPeople(),
 ];
 
 export function Visitors({ quality, castShadow }: { quality: QualityLevel; castShadow: boolean }) {
@@ -80,14 +112,17 @@ export function Visitors({ quality, castShadow }: { quality: QualityLevel; castS
 
 const PUSH_R = 0.48;
 const WALK_SPEED = 1.05;
+/** Heavier people stroll a little slower, slim ones a little faster. */
+const BUILD_SPEED: Record<BodyBuild, number> = { average: 1, heavy: 0.8, slim: 1.12, tall: 1.08, short: 0.92 };
 
 function Visitor({ spec, seed, castShadow }: { spec: Spec; seed: number; castShadow: boolean }) {
   const rig = useMemo(() => {
-    const r = buildToonCharacter(spec.look, castShadow);
+    const r = buildToonCharacter(spec.look, castShadow, spec.build);
     r.root.scale.multiplyScalar(spec.scale);
+    r.root.name = `visitor-${spec.id}`;
     const baked = bakeColors(r.root, castShadow);
     return { ...r, dispose: () => (r.dispose(), baked.forEach((g) => g.dispose())) };
-  }, [spec.look, spec.scale, castShadow]);
+  }, [spec.look, spec.scale, spec.build, spec.id, castShadow]);
   useEffect(() => () => rig.dispose(), [rig]);
   const rtRef = useRuntimeRef();
   const st = useRef({ x: spec.x, z: spec.z, heading: spec.heading, t: seed, phase: 0, leg: 0, wait: 0 });
@@ -128,12 +163,13 @@ function Visitor({ spec, seed, castShadow }: { spec: Spec; seed: number; castSha
         dh = Math.atan2(Math.sin(dh), Math.cos(dh));
         s.heading += dh * (1 - Math.exp(-dt * 5));
         if (Math.abs(dh) < 0.6) {
-          const step = Math.min(d, WALK_SPEED * dt);
+          const speed = WALK_SPEED * BUILD_SPEED[spec.build];
+          const step = Math.min(d, speed * dt);
           s.x += Math.sin(s.heading) * step;
           s.z += Math.cos(s.heading) * step;
           s.phase += step * 3.1;
           a.state = "walk";
-          a.speed = WALK_SPEED;
+          a.speed = speed;
         }
       }
       if (blocked) headY = Math.atan2(px, pz) - s.heading; // look at the player
