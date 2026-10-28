@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isTestPath } from "../../../src/atom-world/config";
-import { allow, readJson } from "../../../src/atom-world/server/http";
+import { allow, readJson, sameOrigin } from "../../../src/atom-world/server/http";
 import { validBalls, validEnd } from "../../../src/atom-world/minigames/footPool/FootPoolGame";
 import { validSnapshot } from "../../../src/atom-world/minigames/airHockey/AirHockeyGame";
 
@@ -53,5 +53,24 @@ describe("messages from a friend's phone are checked before use", () => {
     expect(validSnapshot({ ...snap, p: [0, 0, "1", 1] })).toBe(false);
     expect(validSnapshot({ ...snap, s: [1] })).toBe(false);
     expect(validSnapshot("x")).toBe(false);
+  });
+});
+
+describe("sameOrigin behind a CDN / reverse proxy", () => {
+  const post = (url: string, h: Record<string, string>) => new Request(url, { method: "POST", headers: h });
+  it("accepts the site's own address although the app sees http://127.0.0.1", () => {
+    // ArvanCloud (https) → nginx (Host kept, X-Forwarded-Proto http) → app on 127.0.0.1
+    expect(sameOrigin(post("http://127.0.0.1:3000/api/atom-world/rooms", { origin: "https://www.atomgclub.ir", host: "www.atomgclub.ir", "x-forwarded-proto": "http" }))).toBe(true);
+    expect(sameOrigin(post("http://127.0.0.1:3000/x", { origin: "https://site.example", host: "127.0.0.1:3000", "x-forwarded-host": "site.example" }))).toBe(true);
+  });
+  it("accepts APP_URL's host", () => {
+    const old = process.env.APP_URL;
+    process.env.APP_URL = "https://www.atomgclub.ir";
+    expect(sameOrigin(post("http://127.0.0.1:3000/x", { origin: "https://www.atomgclub.ir", host: "127.0.0.1:3000" }))).toBe(true);
+    process.env.APP_URL = old;
+  });
+  it("still refuses other sites", () => {
+    expect(sameOrigin(post("http://127.0.0.1:3000/x", { origin: "https://evil.example", host: "www.atomgclub.ir" }))).toBe(false);
+    expect(sameOrigin(post("http://127.0.0.1:3000/x", { origin: "null", host: "www.atomgclub.ir" }))).toBe(false);
   });
 });

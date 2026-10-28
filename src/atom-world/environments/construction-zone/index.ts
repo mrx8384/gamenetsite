@@ -3,9 +3,9 @@ import { COUNTER_TOP, PIT, PIT_COUNTERS, ZONE_EXIT, ZONE_INTERACTABLES, ZONE_ORI
 import type { EnvironmentDef } from "../../world/types";
 
 /**
- * 🚜 The RC construction-machines club, after construction-zone/construction-zone.jpg. Its place in
- * the building is not confirmed, so it is a separate environment reached from the menu / list; when
- * the real doorway is known, replace the "menu" portal with a "door" or "corridor" one.
+ * 🚜 The RC construction-machines club, after construction-zone/construction-zone.jpg. Built at its own
+ * origin; reached through the wooden door at the back of the hall's ground floor (owner request
+ * 2026-10-28) and still from the menu.
  */
 export function buildConstructionZoneColliders(): Box[] {
   const ox = ZONE_ORIGIN.x;
@@ -34,11 +34,25 @@ export const constructionZone: EnvironmentDef = {
   interactables: ZONE_INTERACTABLES,
   levels: [{ id: "main", y: 0, label: "ماشین‌آلات راه‌سازی" }],
   items: [],
-  spawns: { default: { x: ZONE_ORIGIN.x + ZONE_SPAWN.x, y: 0, z: ZONE_ORIGIN.z + ZONE_SPAWN.z, heading: ZONE_SPAWN.heading } },
+  spawns: {
+    default: { x: ZONE_ORIGIN.x + ZONE_SPAWN.x, y: 0, z: ZONE_ORIGIN.z + ZONE_SPAWN.z, heading: ZONE_SPAWN.heading },
+    // just inside the door, coming from the hall (looking into the room)
+    "from-hall": { x: ZONE_ORIGIN.x + ZONE_EXIT.x, y: 0, z: ZONE_ORIGIN.z + ZONE_ROOM.zMax - 1.25, heading: Math.PI },
+  },
   portals: [
-    // no confirmed doorway yet: the exit marker in the room takes you back next to the hall's counter
-    { id: "zone-exit", kind: "menu", at: [ZONE_ORIGIN.x + ZONE_EXIT.x, 1.0, ZONE_ORIGIN.z + ZONE_EXIT.z], radius: 1.4, to: { env: "amusement", spawn: "counter" }, prompt: "🚪 بازگشت به سالن اصلی" },
+    // the door in the front wall leads to the wooden door at the back of the hall's ground floor (walk out)
+    {
+      id: "zone-exit",
+      kind: "door",
+      at: [ZONE_ORIGIN.x + ZONE_EXIT.x, 1.0, ZONE_ORIGIN.z + ZONE_ROOM.zMax - 0.35],
+      radius: 0.6,
+      promptRadius: 1.9,
+      to: { env: "amusement", spawn: "zone-door" },
+      prompt: "🚪 بازگشت به سالن اصلی",
+      walkThrough: true,
+    },
   ],
+  walkable: (x, z) => x > ZONE_ORIGIN.x + ZONE_ROOM.xMin && x < ZONE_ORIGIN.x + ZONE_ROOM.xMax && z > ZONE_ORIGIN.z + ZONE_ROOM.zMin && z < ZONE_ORIGIN.z + ZONE_ROOM.zMax,
   areaAt: () => "zone",
   areaLabels: { zone: "🚜 ماشین‌آلات راه‌سازی" },
   scene: () => import("./Scene"),

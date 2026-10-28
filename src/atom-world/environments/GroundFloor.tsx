@@ -11,6 +11,7 @@ import {
   PILASTER_SIZE,
   PILASTERS,
   STAIRS,
+  ZONE_DOOR,
 } from "../data/environment";
 import { InteractiveMachine } from "../interactions/InteractiveMachine";
 import { useOwnedTexture, usePhotoTextures, useRepeatedTexture } from "../systems/AssetLoader";
@@ -23,6 +24,7 @@ import {
   clockTexture,
   floorTilesTexture,
   netTexture,
+  signTexture,
   woodTexture,
 } from "../systems/textures";
 import { Entrance } from "./Entrance";
@@ -64,6 +66,7 @@ export function GroundFloor({ castShadow, floorTexSize }: { castShadow: boolean;
   const woodTex = useRepeatedTexture(woodTexture, W / 1.2, 2);
   const carpet = useRepeatedTexture(carpetTexture, 1.5, 2.5);
   const clock = useOwnedTexture(clockTexture);
+  const zoneSign = useOwnedTexture(() => signTexture(["🚜 ماشین‌آلات راه‌سازی"]));
 
   return (
     <StaticBatch>
@@ -108,15 +111,23 @@ export function GroundFloor({ castShadow, floorTexSize }: { castShadow: boolean;
           <planeGeometry args={[W, MEZZANINE.top - MEZZANINE.thickness]} />
           <meshStandardMaterial map={woodTex} roughness={0.7} />
         </mesh>
-        <mesh position={[1.6, 1.05, 0.005]}>
-          <planeGeometry args={[0.95, 2.1]} />
-          <meshStandardMaterial color="#5a3b22" roughness={0.6} />
-        </mesh>
         <mesh position={[0, (MEZZANINE.top + h) / 2, 0]}>
           <planeGeometry args={[W, h - MEZZANINE.top]} />
           <meshStandardMaterial {...DARK_WALL} />
         </mesh>
       </group>
+
+      {/* wooden door to the construction-machines zone (walk through it) */}
+      <InteractiveMachine id="zone-door" markerHeight={ZONE_DOOR.height + 0.35} markerAt={[ZONE_DOOR.x, -hl + 0.3]}>
+        <mesh position={[ZONE_DOOR.x, ZONE_DOOR.height / 2, -hl + 0.005]}>
+          <planeGeometry args={[ZONE_DOOR.width, ZONE_DOOR.height]} />
+          <meshStandardMaterial color="#5a3b22" roughness={0.6} />
+        </mesh>
+        <mesh position={[ZONE_DOOR.x, ZONE_DOOR.height + 0.2, -hl + 0.01]}>
+          <planeGeometry args={[0.9, 0.3]} />
+          <meshBasicMaterial map={zoneSign} toneMapped={false} />
+        </mesh>
+      </InteractiveMachine>
 
       {/* pilasters */}
       {PILASTERS.map((p) => {

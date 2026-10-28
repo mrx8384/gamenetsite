@@ -137,3 +137,18 @@ describe("ground floor layout", () => {
     expect(b.y).toBe(0);
   });
 });
+
+describe("ceilings never throw the player out of the building", () => {
+  // jumping on the upper-floor foot-pool field puts the head into the hall's ceiling slab
+  const world = new CollisionWorld(buildGroundFloorColliders());
+  it("a head inside the ceiling slab is not pushed sideways", () => {
+    const body = { x: -2, y: HALL.height - 1.2, z: -11, radius: 0.3, height: 1.65, stepHeight: 0.33 };
+    world.resolve(body);
+    expect([body.x, body.z]).toEqual([-2, -11]);
+  });
+  it("finds the ceiling above the head (the jump stops there)", () => {
+    expect(world.ceilingAbove(-2, -11, 0.25, 3.35 + 1.65)).toBeCloseTo(HALL.height);
+    // under the mezzanine, from the ground floor, the slab underside is the ceiling
+    expect(world.ceilingAbove(-2, -11, 0.25, 1.65)).toBeCloseTo(MEZZANINE.top - MEZZANINE.thickness);
+  });
+});

@@ -12,11 +12,25 @@ export const errorStatus = (e: string) => STATUS[e] ?? 400;
 export function sameOrigin(req: Request) {
   const origin = req.headers.get("origin");
   if (!origin) return true; // non-browser clients / same-origin navigations
+  let host: string;
   try {
-    return new URL(origin).host === new URL(req.url).host || origin === `${req.headers.get("x-forwarded-proto") ?? "http"}://${req.headers.get("host")}`;
+    host = new URL(origin).host;
   } catch {
     return false;
   }
+  // Behind a CDN / reverse proxy (ArvanCloud → nginx → app) the scheme and the URL the app sees differ from the
+  // browser's: compare host names only, against every name this request or the site's own address can carry.
+  const allowed = new Set<string>();
+  const add = (v: string | null | undefined) => v && allowed.add(v.split(",")[0].trim().toLowerCase());
+  add(req.headers.get("host"));
+  add(req.headers.get("x-forwarded-host"));
+  try {
+    add(new URL(req.url).host);
+  } catch {}
+  try {
+    if (process.env.APP_URL) add(new URL(process.env.APP_URL).host);
+  } catch {}
+  return allowed.has(host.toLowerCase());
 }
 
 export async function readJson(req: Request, maxBytes = 64 * 1024): Promise<Record<string, unknown> | null> {

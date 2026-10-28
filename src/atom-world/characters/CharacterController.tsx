@@ -91,8 +91,26 @@ export function CharacterController({ def, castShadow }: { def: CharacterDef; ca
       b.z += (vel.current.z * dt) / steps;
       rt.world.resolve(b);
     }
+    // never leave the building / street into the empty space around it
+    const here = envAt(px, pz);
+    let rescued = false;
+    if (here.walkable) {
+      if (!here.walkable(px, pz)) {
+        // found outside (e.g. after an old collision glitch): back to the environment's start
+        const s0 = here.spawns.default;
+        b.x = s0.x;
+        b.y = s0.y;
+        b.z = s0.z;
+        p.vy = 0;
+        rescued = true;
+      } else if (!here.walkable(b.x, b.z)) {
+        b.x = px;
+        b.z = pz;
+      }
+    }
     // keep velocity consistent with what actually happened (slide along walls)
-    if (dt > 0) {
+    if (rescued) vel.current.x = vel.current.z = 0;
+    else if (dt > 0) {
       vel.current.x = (b.x - px) / dt;
       vel.current.z = (b.z - pz) / dt;
     }
@@ -112,6 +130,14 @@ export function CharacterController({ def, castShadow }: { def: CharacterDef; ca
     p.vy -= MOVE.gravity * dt;
     const prevY = b.y;
     b.y += p.vy * dt;
+    if (p.vy > 0) {
+      // head against the ceiling: the jump stops there
+      const ceiling = rt.world.ceilingAbove(b.x, b.z, MOVE.radius * 0.8, prevY + MOVE.height);
+      if (b.y + MOVE.height > ceiling) {
+        b.y = Math.max(prevY, ceiling - MOVE.height);
+        p.vy = 0;
+      }
+    }
     const ground = rt.world.groundHeight(b.x, b.z, MOVE.footRadius, Math.max(prevY, b.y), MOVE.stepHeight);
     if (b.y <= ground) {
       b.y = ground;

@@ -33,6 +33,11 @@ export interface EnvironmentDef {
   spawns: Record<string, Spawn> & { default: Spawn };
   /** Doors, corridors, stairs or paths to other environments (see PortalDef). */
   portals: PortalDef[];
+  /**
+   * Where the player may stand (x / z). A move that would leave it is undone, and a player found
+   * outside is brought back to the default spawn — never wandering in the empty space around a building.
+   */
+  walkable?: (x: number, z: number) => boolean;
   /** Finer place inside the environment (HUD floor label, mini-map). */
   areaAt: (x: number, y: number, z: number) => string;
   /** Persian label for each area id returned by areaAt. */

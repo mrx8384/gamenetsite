@@ -104,6 +104,9 @@ export const PLANTS: { x: number; z: number }[] = [
 /** Second white & gold sofa, inside on the right of the doorway (entrance/exterior-facade-night.jpg). */
 export const RIGHT_SOFA = { x: 4.0, z: 10.6, length: 1.9, depth: 0.85 } as const;
 
+/** Wooden door in the back wall under the mezzanine: walk through it to the construction-machines zone. */
+export const ZONE_DOOR = { x: 1.6, width: 0.95, height: 2.1 } as const;
+
 /** Open doorway in the façade, on the right of the shop window (entrance/exterior-facade-night.jpg). */
 export const ENTRANCE_DOOR = { xMin: 2.0, xMax: 4.4, height: 2.6 } as const;
 

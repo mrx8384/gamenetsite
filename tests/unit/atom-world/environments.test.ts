@@ -87,10 +87,29 @@ describe("environment registry", () => {
     expect(areaLabel("zone")).toContain("ماشین‌آلات");
   });
 
+  it("walkable areas hold every spawn and exclude the space around the buildings", () => {
+    for (const e of ENVIRONMENTS) {
+      if (!e.walkable) continue;
+      for (const [k, sp] of Object.entries(e.spawns)) expect(e.walkable(sp.x, sp.z), `${e.id}/${k}`).toBe(true);
+    }
+    const hall = ENVIRONMENTS.find((e) => e.id === "amusement")!;
+    expect(hall.walkable!(6, 0)).toBe(false); // beside the hall
+    expect(hall.walkable!(0, -14)).toBe(false); // behind it
+    expect(hall.walkable!(13, 14)).toBe(false); // past the end of the sidewalk
+    expect(hall.walkable!(-11, 16)).toBe(true); // sidewalk
+    const zone = ENVIRONMENTS.find((e) => e.id === "construction-zone")!;
+    expect(zone.walkable!(40, 6)).toBe(false); // outside the machines room
+  });
+
   it("every doorway is an interactable with a travel machine", () => {
     for (const i of worldInteractables()) expect(getMachine(i.machineId), i.id).toBeTruthy();
     const exit = worldInteractables().find((i) => i.id === "zone-exit")!;
-    expect(getMachine(exit.machineId)?.travel).toEqual({ env: "amusement", spawn: "counter" });
+    expect(getMachine(exit.machineId)?.travel).toEqual({ env: "amusement", spawn: "zone-door" });
+    // the wooden door at the back of the hall leads into the zone, and back out next to it
+    const door = worldInteractables().find((i) => i.id === "zone-door")!;
+    expect(getMachine(door.machineId)?.travel).toEqual({ env: "construction-zone", spawn: "from-hall" });
+    expect(walkThroughPortalAt(1.6, 0, -12.7)?.id).toBe("zone-door");
+    expect(walkThroughPortalAt(1.6, 0, -11.7)).toBeNull(); // the return spot does not bounce you back in
   });
 
   it("travel moves only the player: same session, spawns from the target environment", () => {

@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-10-28 (33) — 3D world: owner's bug report (connection, foot-pool, side view, machines door)
+
+- **Online rooms, editor saves, editor password login and game points were refused on the live site** (403 →
+  «اتصال برقرار نشد» / «ذخیره انجام نشد»). Cause: behind ArvanCloud → nginx the app sees `http://127.0.0.1` with
+  `X-Forwarded-Proto: http`, so `sameOrigin()` (`src/atom-world/server/http.ts`, also used by `/api/game-rewards/*`)
+  rejected the browser's `https://www.atomgclub.ir` Origin. Now host names only, against Host / X-Forwarded-Host, the
+  request URL and `APP_URL`; other sites still get 403. Reproduced locally with the live headers, then fixed.
+- **Foot-pool throws you out of the building**: a jump on the upper-floor field put the head into the ceiling slab
+  and the collision step pushed the player out through the nearest face (old code: z −33). Ceilings no longer push
+  sideways; jumps stop at the ceiling. A walkable-area guard brings anyone outside back (no more side view into the
+  hall). The wooden door at the back of the ground floor now leads to the machines room and back.
+- Verified: `pnpm check` ✓ (379) · `pnpm build` ✓ · smoke 84/84 · world suites on this site: bounds 9/9 (new),
+  gaming center 41/41, mini-games 49/49, online 27/27, accessibility 30/30 · editor suite (gameatom) 27/27 ·
+  CDN-style requests: own Origin 200, other site 403, editor save without login 401.
+
 ## 2026-10-27 (32) — 3D world: online room button always visible (owner request)
 
 - Owner: «ساخت روم برای بازی انلاین چرا حذف شده بزار باشه». The «🌐 آنلاین با دوست» button was hidden whenever the

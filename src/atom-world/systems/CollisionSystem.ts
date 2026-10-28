@@ -60,14 +60,35 @@ export class CollisionWorld {
     return ground;
   }
 
-  /** Pushes the body out of every box that blocks it horizontally. Returns true if anything was hit. */
+  /**
+   * Lowest ceiling (underside of a "slab") above a head that is at `headY`, over the body's footprint;
+   * Infinity if there is none. Jumps stop there.
+   */
+  ceilingAbove(x: number, z: number, radius: number, headY: number): number {
+    let ceiling = Infinity;
+    for (const b of this.boxes) {
+      if (b.tag !== "slab" || !this.active(b)) continue;
+      const bottom = b.min[1];
+      if (bottom < headY - EPS || bottom >= ceiling) continue;
+      if (x + radius < b.min[0] || x - radius > b.max[0]) continue;
+      if (z + radius < b.min[2] || z - radius > b.max[2]) continue;
+      ceiling = bottom;
+    }
+    return ceiling;
+  }
+
+  /**
+   * Pushes the body out of every box that blocks it horizontally. Returns true if anything was hit.
+   * Ceilings and floors ("slab") never push sideways: a head bumping the ceiling (a jump on the
+   * foot-pool field) would otherwise "leave the box through the nearest face", i.e. out of the building.
+   */
   resolve(body: Body, iterations = 3): boolean {
     let hit = false;
     const r = body.radius;
     for (let it = 0; it < iterations; it++) {
       let moved = false;
       for (const b of this.boxes) {
-        if (!this.active(b)) continue;
+        if (b.tag === "slab" || !this.active(b)) continue;
         // Vertical overlap with the part of the body above the step height
         if (b.max[1] <= body.y + body.stepHeight + EPS) continue;
         if (b.min[1] >= body.y + body.height) continue;

@@ -43,7 +43,7 @@ export function ConstructionZone({ castShadow }: { castShadow: boolean }) {
   const wood = useRepeatedTexture(woodTexture, 2, 2);
   const sand = useRepeatedTexture(() => soilTexture([186, 178, 164], 30, 3), 3, 3);
   const soil = useRepeatedTexture(() => soilTexture([88, 72, 58], 34, 8), 3, 3);
-  const exitSign = useOwnedTexture(() => signTexture(["بازگشت به سالن اصلی", "دکمهٔ تعامل / E"]));
+  const exitSign = useOwnedTexture(() => signTexture(["بازگشت به سالن اصلی", "از این در بروید"]));
   const pitW = PIT.xMax - PIT.xMin;
   const pitD = PIT.zMax - PIT.zMin;
 
@@ -183,7 +183,7 @@ export function ConstructionZone({ castShadow }: { castShadow: boolean }) {
         </mesh>
       </group>
 
-      {/* way back to the hall (no confirmed doorway in the building yet) */}
+      {/* door back to the hall (leads to the wooden door at the back of the ground floor) */}
       <group position={[ZONE_EXIT.x, 0, ZONE_EXIT.z]}>
         <InteractiveMachine id="zone-exit" markerHeight={2.35}>
           <mesh position={[0, 1.05, 0.68]} rotation-y={Math.PI}>
