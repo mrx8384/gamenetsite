@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import { Container } from "@/components/layout/container";
 import { CatalogPreview, CatalogPreviewSkeleton } from "@/components/home/catalog-preview";
 
-export const metadata: Metadata = {
-  title: "کاتالوگ بازی‌ها",
-  description: "فهرست بازی‌های PS4 و PS5 قابل اجرا در گیم‌نت اتم",
-};
+export const metadata: Metadata = pageMetadata({ title: "کاتالوگ بازی‌های PS4 و PS5", description: "فهرست کامل بازی‌های PS4 و PS5 قابل اجرا در گیم‌نت اتم، با جست‌وجو و دسته‌بندی.", path: "/game-catalog" });
 
 export default function GameCatalogPage() {
   return (

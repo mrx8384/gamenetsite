@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Logo } from "@/components/logo";
 import { Container } from "@/components/layout/container";
 import { RichTextContent } from "@/components/rich-text/rich-text-content";
@@ -7,7 +8,8 @@ import { getSiteSettings } from "@/features/settings/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPage("about");
-  return { title: page?.title ?? "درباره ما" };
+  const home = await getSiteSettings("home");
+  return pageMetadata({ title: page?.title ?? "درباره ما", description: home.aboutBody.slice(0, 160) || undefined, path: "/about" });
 }
 
 export default async function AboutPage() {

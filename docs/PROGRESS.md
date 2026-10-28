@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-10-28 (35) — Technical SEO (owner request: «سئو سایت خودت انجام میدی»)
+
+- `src/lib/seo.ts`: `pageMetadata()` (title, description, **canonical**, complete Open Graph + Twitter block — a page's
+  `openGraph` replaces the layout's whole block), `seoPath()` (encoded Persian slugs), `metaDescription()`,
+  `breadcrumbJsonLd()`, `jsonLdHtml()`. Used by every public page (home, shop, product, news, article, catalog,
+  tournaments, tournament, gamepad tester, partners, about, contact) + canonical on `/atom-world`.
+- Titles: template `%s | اتم گیم کلاب` (Persian brand, as people search); homepage title editable in
+  Admin → تنظیمات سایت → عمومی و فوتر («عنوان صفحهٔ اصلی در گوگل», new `general.homeTitle`); better default
+  site description; keyword-bearing titles/descriptions on section pages.
+- Structured data: homepage Organization gets description, phone, email, map, social `sameAs` from contact settings and
+  becomes `EntertainmentBusiness` (LocalBusiness) once an address is set; BreadcrumbList on product and news pages;
+  NewsArticle gets `author`; news pages emit `article:published_time`/`modified_time`.
+- Sitemap: + public tournaments (`/tournaments/[slug]`) and `/atom-world`. robots.txt: **bug fixed** — `Disallow: /partner`
+  also blocked the public `/partners` page (prefix match); now `/partner/` + `/partner$`; + `/atom-world/admin`,
+  internal shop search (`/shop?*q=`).
+- Verified: `pnpm check` ✓ (386, new `tests/unit/seo.test.ts` incl. a robots matcher) · `pnpm build` ✓ · smoke 84/84 ·
+  production server: titles/canonical/og tags on pages, JSON-LD, sitemap, robots; a temporary `[TEST]` news post showed
+  canonical, article tags, breadcrumbs and sitemap entry (removed afterwards).
+- Owner-side (not code): Google Search Console + sitemap submission, filling contact/address/socials, real content
+  (products, news), Google Business Profile / Neshan / Balad listings, backlinks.
+
 ## 2026-10-28 (34) — 3D world: owner's bug report (connection, foot-pool, side view, machines door)
 
 - **Online rooms, editor saves, editor password login and game points were refused on the live site** (403 →

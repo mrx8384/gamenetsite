@@ -40,6 +40,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://www.atomgclub.ir (Iranian server; ArvanCloud redirects the apex to www, so `APP_URL` must be the www origin, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
 - 3D world «دنیای سه‌بعدی اتم» (owner request 2026-10-26: merge it, show only one button): **done** — `/atom-world` + world editor `/atom-world/admin` (site ADMIN login), homepage hero button «ورود به دنیای سه‌بعدی اتم گیم». See `docs/ATOM_WORLD.md`, PROGRESS 27. Built in `mrx8384/gameatom`; copy updates from there (all of `src/atom-world/` except `server/adminAuth.ts`).
 - 3D world points & discount cards (owner request 2026-10-27): **done** — points per round (capped) and per achievement on site accounts, cards bought with points, in-store code check and online checkout code, all set in Admin → دستاوردها و جوایز. See `docs/GAME_REWARDS.md`, PROGRESS 29. Points/cards change only via `src/features/game-rewards/service.ts` (user row lock); never trust client stats without `computeRound`.
+- Technical SEO (owner request 2026-10-28): **done** — public pages use `pageMetadata()` from `src/lib/seo.ts` (canonical + full OG); new public pages must too, and go into `src/app/sitemap.ts`. PROGRESS 35.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

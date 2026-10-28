@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/features/settings/site";
 import { siteConfig } from "@/lib/brand";
 import { env } from "@/lib/env";
 import { toEnglishDigits } from "@/lib/format";
+import { SEO_SITE_NAME } from "@/lib/seo";
 import "./globals.css";
 
 // Self-hosted (no external CDN): reliable on Iranian hosting.
@@ -22,14 +23,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const enamad = toEnglishDigits(general.enamadCode).replace(/\D/g, "");
   return {
     ...(enamad ? { other: { enamad } } : {}),
-    title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
+    title: { default: general.homeTitle || `${SEO_SITE_NAME} | ${siteConfig.name}`, template: `%s | ${SEO_SITE_NAME}` },
     description: general.siteDescription,
-    applicationName: siteConfig.name,
+    applicationName: SEO_SITE_NAME,
     metadataBase: new URL(env.APP_URL),
     openGraph: {
       type: "website",
       locale: "fa_IR",
-      siteName: siteConfig.name,
+      siteName: SEO_SITE_NAME,
       description: general.siteDescription,
       images: [{ url: "/brand/atom-logo-256.png", width: 256, height: 256, alt: siteConfig.name }],
     },

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Clock, Mail, MapPin, Phone, Smartphone } from "lucide-react";
 import { ContactForm } from "@/components/contact/contact-form";
 import { OpenSupportButton } from "@/components/support/open-support-button";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSiteSettings } from "@/features/settings/site";
 import { toPersianDigits } from "@/lib/format";
 
-export const metadata: Metadata = { title: "تماس با ما" };
+export const metadata: Metadata = pageMetadata({ title: "تماس با ما", description: "نشانی، تلفن، ساعات کاری و راه‌های ارتباط با اتم گیم کلاب؛ پیام خود را از همین صفحه بفرستید.", path: "/contact" });
 
 export default async function ContactPage() {
   const c = await getSiteSettings("contact");

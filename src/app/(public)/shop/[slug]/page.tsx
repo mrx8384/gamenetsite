@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { breadcrumbJsonLd, jsonLdHtml, metaDescription, pageMetadata, seoPath } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -26,11 +27,12 @@ function decodeSlug(raw: string): string {
 export async function generateMetadata({ params }: PageProps<"/shop/[slug]">): Promise<Metadata> {
   const product = await getProductBySlug(decodeSlug((await params).slug));
   if (!product) return { title: "محصول پیدا نشد" };
-  return {
+  return pageMetadata({
     title: product.title,
-    description: product.shortDescription ?? undefined,
-    openGraph: product.images[0] ? { images: [mediaUrl(product.images[0].key)] } : undefined,
-  };
+    description: metaDescription(product.shortDescription) ?? `خرید ${product.title} از فروشگاه اتم گیم کلاب`,
+    path: seoPath("shop", product.slug),
+    image: product.images[0] ? mediaUrl(product.images[0].key) : undefined,
+  });
 }
 
 export default function ProductPage({ params }: PageProps<"/shop/[slug]">) {
@@ -61,13 +63,18 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
       priceCurrency: "IRR",
       price: product.price,
       availability: inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: new URL(`/shop/${product.slug}`, env.APP_URL).toString(),
+      url: new URL(seoPath("shop", product.slug), env.APP_URL).toString(),
     },
   };
+  const crumbs: [string, string][] = [["فروشگاه", "/shop"]];
+  if (product.category?.parent) crumbs.push([product.category.parent.name, `/shop?category=${encodeURIComponent(product.category.parent.slug)}`]);
+  if (product.category) crumbs.push([product.category.name, `/shop?category=${encodeURIComponent(product.category.slug)}`]);
+  crumbs.push([product.title, seoPath("shop", product.slug)]);
+  const breadcrumbs = breadcrumbJsonLd(env.APP_URL, crumbs);
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />
       <nav aria-label="مسیر" className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
         <Link href="/shop" className="hover:text-foreground">
           فروشگاه

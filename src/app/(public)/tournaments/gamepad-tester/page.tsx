@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Clock, Gamepad, Lock } from "lucide-react";
@@ -11,7 +12,7 @@ import { canUseGamepadTester, getGamepadAccess, type GamepadAccess } from "@/fea
 import { getSiteSettings } from "@/features/settings/site";
 import { getCurrentUser } from "@/lib/auth/dal";
 
-export const metadata: Metadata = { title: "تست دسته", description: "ابزار تست دسته (Gamepad Tester) ویژهٔ همکاران اتم" };
+export const metadata: Metadata = pageMetadata({ title: "تست دسته (Gamepad Tester)", description: "تست آنلاین دسته‌های PS4، PS5 و Xbox در مرورگر: دکمه‌ها، آنالوگ، دریفت و لرزش — ابزار ویژهٔ همکاران اتم گیم کلاب.", path: "/tournaments/gamepad-tester" });
 
 export default async function GamepadTesterPage() {
   const t = await getSiteSettings("tournaments");

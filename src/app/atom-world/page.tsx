@@ -4,6 +4,7 @@ import { AtomWorldLoader } from "@/atom-world/AtomWorldLoader";
 export const metadata: Metadata = {
   title: "دنیای سه‌بعدی اتم",
   description: "با شخصیت پسر یا دختر اتم در فضای بازسازی‌شدهٔ مجموعهٔ ATOM GAME CLUB حرکت کنید.",
+  alternates: { canonical: "/atom-world" },
   // installable on phones; works offline after «ذخیره برای اجرا بدون اینترنت» (public/atom-world/sw.js)
   manifest: "/atom-world/manifest.webmanifest",
   icons: { apple: "/atom-world/icons/apple-touch-icon.png" },

@@ -201,6 +201,7 @@ Rollback: `git checkout <previous commit>`, `pnpm install`, `pnpm build`, restar
 - [ ] Online sales stay **closed** until the gateway is implemented (Admin → تنظیمات سایت → فروش).
 - [ ] Cron jobs installed; one backup restored on a test database.
 - [ ] `robots.txt` and `sitemap.xml` show the real domain.
+- [ ] Google Search Console: verify the `https://www.atomgclub.ir` property (DNS TXT in ArvanCloud), submit `/sitemap.xml`, request indexing of the homepage.
 
 ## 10. Notes
 

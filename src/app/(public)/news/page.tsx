@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,7 +14,7 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "اخبار", description: "اخبار دنیای بازی و رویدادهای اتم گیم کلاب" };
+export const metadata: Metadata = pageMetadata({ title: "اخبار بازی و گیمینگ", description: "تازه‌ترین اخبار دنیای بازی، کنسول‌ها و رویدادهای اتم گیم کلاب.", path: "/news" });
 
 type SP = Record<string, string | string[] | undefined>;
 

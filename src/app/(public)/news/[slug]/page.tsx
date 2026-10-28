@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { breadcrumbJsonLd, jsonLdHtml, metaDescription, pageMetadata, seoPath } from "@/lib/seo";
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,11 +21,15 @@ const decode = (s: string) => { try { return decodeURIComponent(s); } catch { re
 export async function generateMetadata({ params }: PageProps<"/news/[slug]">): Promise<Metadata> {
   const post = await getNewsBySlug(decode((await params).slug));
   if (!post) return { title: "خبر پیدا نشد" };
-  return {
+  return pageMetadata({
     title: post.title,
-    description: post.excerpt ?? undefined,
-    openGraph: { type: "article", title: post.title, description: post.excerpt ?? undefined, images: post.coverKey ? [mediaUrl(post.coverKey)] : undefined },
-  };
+    description: metaDescription(post.excerpt),
+    path: seoPath("news", post.slug),
+    image: post.coverKey ? mediaUrl(post.coverKey) : undefined,
+    type: "article",
+    publishedTime: post.publishedAt,
+    modifiedTime: post.updatedAt,
+  });
 }
 
 export default function NewsArticlePage({ params }: PageProps<"/news/[slug]">) {
@@ -41,7 +46,7 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
   const post = await getNewsBySlug(decode((await params).slug));
   if (!post) notFound();
   const related = await getRelatedNews(post.id, post.categorySlug);
-  const url = new URL(`/news/${post.slug}`, env.APP_URL).toString();
+  const url = new URL(seoPath("news", post.slug), env.APP_URL).toString();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -51,11 +56,16 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
     dateModified: post.updatedAt.toISOString(),
     image: post.coverKey ? [new URL(mediaUrl(post.coverKey), env.APP_URL).toString()] : undefined,
     mainEntityOfPage: url,
+    author: post.authorName ? { "@type": "Person", name: post.authorName } : { "@type": "Organization", name: siteConfig.name, url: new URL("/", env.APP_URL).toString() },
     publisher: { "@type": "Organization", name: siteConfig.name, logo: { "@type": "ImageObject", url: new URL(siteConfig.logo.small, env.APP_URL).toString() } },
   };
+  const crumbs: [string, string][] = [["اخبار", "/news"]];
+  if (post.categorySlug && post.categoryName) crumbs.push([post.categoryName, `/news?category=${encodeURIComponent(post.categorySlug)}`]);
+  crumbs.push([post.title, seoPath("news", post.slug)]);
+  const breadcrumbs = breadcrumbJsonLd(env.APP_URL, crumbs);
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />
       <article className="mx-auto max-w-3xl">
         <nav aria-label="مسیر" className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
           <Link href="/news" className="hover:text-foreground">اخبار</Link>

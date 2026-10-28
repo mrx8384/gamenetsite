@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata, seoPath } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,7 +19,8 @@ import { formatDateTime, formatNumber } from "@/lib/format";
 export async function generateMetadata({ params }: PageProps<"/tournaments/[slug]">): Promise<Metadata> {
   const t = await getPublicTournament(decodeURIComponent((await params).slug));
   if (!t) return { title: "پیدا نشد", robots: { index: false } };
-  return { title: t.name, description: `${t.game} — ${FORMAT_LABELS[t.format]} — برگزارکننده: ${t.organizerName}` };
+  const title = t.name.includes("تورنومنت") ? t.name : `تورنومنت ${t.name}`;
+  return pageMetadata({ title, description: `تورنومنت ${t.game} — ${FORMAT_LABELS[t.format]} — برگزارکننده: ${t.organizerName}. جدول مسابقات، نتایج و ثبت‌نام.`, path: seoPath("tournaments", t.slug) });
 }
 
 export default function TournamentPage({ params }: PageProps<"/tournaments/[slug]">) {

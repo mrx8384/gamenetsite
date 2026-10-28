@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag } from "lucide-react";
@@ -14,7 +15,7 @@ import { formatNumber, toEnglishDigits } from "@/lib/format";
 import { normalizePersian } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "فروشگاه", description: "محصولات گیمینگ اتم گیم کلاب" };
+export const metadata: Metadata = pageMetadata({ title: "فروشگاه محصولات گیمینگ", description: "خرید دسته، لوازم جانبی و محصولات گیمینگ PS4 و PS5 از فروشگاه اتم گیم کلاب با قیمت شفاف و ارسال مطمئن.", path: "/shop" });
 
 type SP = Record<string, string | string[] | undefined>;
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,7 +18,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/game-catalog/[platform]">): Promise<Metadata> {
   const platform = platformFromSlug((await params).platform);
   if (!platform) return { title: "پیدا نشد" };
-  return { title: `کاتالوگ بازی‌های ${platform}`, description: `فهرست بازی‌های ${platform} گیم‌نت اتم` };
+  return pageMetadata({ title: `بازی‌های ${platform}`, description: `فهرست بازی‌های ${platform} قابل اجرا در گیم‌نت اتم گیم کلاب؛ جست‌وجو بر اساس نام و دسته‌بندی.`, path: `/game-catalog/${platform.toLowerCase()}` });
 }
 
 export default function PlatformCatalogPage({ params }: PageProps<"/game-catalog/[platform]">) {

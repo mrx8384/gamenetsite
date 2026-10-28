@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -14,7 +15,7 @@ import { getSiteSettings } from "@/features/settings/site";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 
-export const metadata: Metadata = { title: "همکاران", description: "همکاری گیم‌نت‌ها، فروشگاه‌ها و تیم‌های ای‌اسپورت با اتم گیم کلاب" };
+export const metadata: Metadata = pageMetadata({ title: "همکاری با اتم", description: "همکاری گیم‌نت‌ها، فروشگاه‌ها و تیم‌های ای‌اسپورت با اتم گیم کلاب: پنل اختصاصی همکار، تست دسته و برگزاری تورنومنت.", path: "/partners" });
 
 export default async function PartnersPage() {
   const [t, home] = await Promise.all([getSiteSettings("partners"), getSiteSettings("home")]);
