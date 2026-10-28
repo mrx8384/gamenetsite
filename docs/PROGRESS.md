@@ -1,6 +1,6 @@
 # Progress Log
 
-## 2026-10-28 (33) — 3D world: owner's bug report (connection, foot-pool, side view, machines door)
+## 2026-10-28 (34) — 3D world: owner's bug report (connection, foot-pool, side view, machines door)
 
 - **Online rooms, editor saves, editor password login and game points were refused on the live site** (403 →
   «اتصال برقرار نشد» / «ذخیره انجام نشد»). Cause: behind ArvanCloud → nginx the app sees `http://127.0.0.1` with
@@ -14,6 +14,12 @@
 - Verified: `pnpm check` ✓ (379) · `pnpm build` ✓ · smoke 84/84 · world suites on this site: bounds 9/9 (new),
   gaming center 41/41, mini-games 49/49, online 27/27, accessibility 30/30 · editor suite (gameatom) 27/27 ·
   CDN-style requests: own Origin 200, other site 403, editor save without login 401.
+
+## 2026-10-27 (33) — Admin SMS status + test tool
+
+- Admin → تنظیمات سایت → «پیامک» (`/admin/settings/sms`, ADMIN only): shows SMS_PROVIDER, whether a key is set (never the key), template IDs; sends one test SMS (OTP template with code 12345, or either support template) and shows SMS.ir's exact answer; rate limited 5/10 min; audit entries `sms.test_sent` / `sms.test_failed`.
+- `sendTemplateSms` network errors now include the cause code (ENOTFOUND, ECONNREFUSED, …).
+- Verified (production build): log mode → explanatory message; smsir with a fake key → error with cause shown; invalid mobile rejected; key not in page HTML or server log; normal user 404; typecheck/lint/214 tests ✓. A real send could not be tested (SMS.ir unreachable from the dev environment).
 
 ## 2026-10-27 (32) — 3D world: online room button always visible (owner request)
 
