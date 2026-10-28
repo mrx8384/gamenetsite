@@ -7,7 +7,7 @@ import type { TravelTarget } from "../world/types";
  * machine by `id`. `price` stays null until the club records a real tariff on the site — the UI
  * then says the tariff is not registered yet (never show invented prices).
  */
-export type MiniGameId = "air-hockey" | "construction-excavator" | "foot-pool" | "gc-controller" | "gc-city" | "gc-football" | "gc-console";
+export type MiniGameId = "air-hockey" | "construction-excavator" | "foot-pool" | "gc-controller" | "gc-city" | "gc-football" | "gc-console" | "face-paint";
 
 export interface MachineInfo {
   id: string;
@@ -35,6 +35,17 @@ export interface MachineInfo {
 }
 
 export const machines = {
+  "face-paint": {
+    id: "face-paint",
+    name: "گریم صورت کودکان",
+    prompt: "🎨 گریم صورت",
+    emoji: "🎨",
+    description:
+      "میز آرایش با آینهٔ چراغ‌دار روی فرش گوشهٔ کودکان: بچه‌ها طرح دلخواهشان (ستاره، قلب، پروانه، گربه، رنگین‌کمان، ببر یا گل) را انتخاب می‌کنند و روی صورتشان نقاشی می‌شود. در مینی‌گیم، شما گریم‌کار هستید.",
+    photos: [],
+    price: null,
+    miniGame: "face-paint",
+  },
   "air-hockey": {
     id: "air-hockey",
     name: "ایرهاکی",

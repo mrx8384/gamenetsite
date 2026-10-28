@@ -48,10 +48,13 @@ describe("game rewards: rounds", () => {
   });
 
   it("«play every game» counts the games already on the account", () => {
-    const played = new Set(["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city"] as const);
-    const ids = computeRound(round("gc-football"), ctx({ played: new Set(played) })).achievements.map((a) => a.id);
+    const played = new Set(["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football"] as const);
+    const ids = computeRound(round("face-paint"), ctx({ played: new Set(played) })).achievements.map((a) => a.id);
     expect(ids).toEqual(expect.arrayContaining(["explorer", "explorer-all"]));
-    expect(computeRound(round("gc-football"), ctx({ played: new Set(played) })).firstOfGame).toBe(true);
+    expect(computeRound(round("face-paint"), ctx({ played: new Set(played) })).firstOfGame).toBe(true);
+    // without the newest game «همهٔ بازی‌ها» is not complete yet
+    played.delete("gc-football");
+    expect(computeRound(round("face-paint"), ctx({ played: new Set(played) })).achievements.map((a) => a.id)).not.toContain("explorer-all");
   });
 
   it("only real games and sane stats are accepted", () => {

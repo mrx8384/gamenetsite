@@ -21,7 +21,8 @@ export type ItemKindId =
   | "gray-sofa"
   | "gc-station"
   | "gc-sofa"
-  | "gc-armchair";
+  | "gc-armchair"
+  | "face-paint";
 
 export type Console = "ps4" | "ps5";
 
@@ -186,6 +187,22 @@ export const ITEM_KINDS: Record<ItemKindId, ItemKind> = {
     addTo: { "gaming-center": ["main"] },
     color: "#7c8792",
     defaults: { length: 1.9 },
+  },
+  "face-paint": {
+    id: "face-paint",
+    label: "میز گریم صورت",
+    // the vanity (with its mirror) and the child's stool in front of it
+    size: fixed(0.9, 0.45, 0.75),
+    collider: "furniture",
+    boxes: () => [
+      { x0: -0.45, x1: 0.45, z0: -0.225, z1: 0.225, h: 0.75 },
+      { x0: -0.18, x1: 0.18, z0: 0.42, z1: 0.78, h: 0.42 },
+    ],
+    machine: () => "face-paint",
+    interact: { ahead: 0.75, y: 0.9, radius: 1.3 },
+    markerHeight: 2.0,
+    addTo: { amusement: ["ground", "upper"] },
+    color: "#ff6fb5",
   },
   "gc-armchair": {
     id: "gc-armchair",

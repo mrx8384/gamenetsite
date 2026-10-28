@@ -106,6 +106,19 @@ export const MINI_GAMES: Record<MiniGameId, MiniGameMeta> = {
     console: true,
     note: "بازی نمایشی است و تیم‌ها و بازیکن‌ها خیالی‌اند؛ بازی‌های فوتبال واقعی روی PS4 و PS5 گیم‌نت اجرا می‌شوند.",
   },
+  "face-paint": {
+    id: "face-paint",
+    title: "گریم صورت",
+    emoji: "🎨",
+    intro:
+      "پشت میز گریم گوشهٔ کودکان نشسته‌اید. سه بچه یکی‌یکی می‌آیند و طرحی را که می‌خواهند روی کارت نشان می‌دهند؛ همان طرح را با همان رنگ‌ها روی صورتشان بکشید. هرچه شبیه‌تر و سریع‌تر، امتیاز بیشتر!",
+    howTo: {
+      touch: ["رنگ و اندازهٔ قلم‌مو را از پایین انتخاب کنید و با انگشت روی صورت بکشید.", "«پاک‌کن» و «از نو» برای اشتباه‌ها؛ وقتی تمام شد «✓ تمام شد» را بزنید."],
+      desktop: ["رنگ و اندازهٔ قلم‌مو را از پایین انتخاب کنید و با ماوس (کلیک و کشیدن) روی صورت نقاشی کنید.", "«پاک‌کن» و «از نو» برای اشتباه‌ها؛ «✓ تمام شد» برای تحویل صورت. Esc = توقف."],
+    },
+    difficulty: true,
+    note: "در سطح آسان طرح کم‌رنگ روی صورت دیده می‌شود، در معمولی فقط خط دور آن و در سخت هیچ راهنمایی نیست.",
+  },
   "gc-console": {
     id: "gc-console",
     title: "کنسول گیم‌نت",
@@ -124,5 +137,6 @@ export const GAME_COMPONENTS: Record<MiniGameId, React.LazyExoticComponent<React
   "gc-controller": lazy(() => import("./controller/ControllerGame")),
   "gc-city": lazy(() => import("./city/CityGame")),
   "gc-football": lazy(() => import("./football/FootballGame")),
+  "face-paint": lazy(() => import("./facePaint/FacePaintGame")),
   "gc-console": lazy(() => import("./console/ConsoleHome")),
 };

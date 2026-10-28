@@ -316,3 +316,76 @@ export function Plant({ castShadow }: { castShadow: boolean }) {
     </group>
   );
 }
+
+/**
+ * Face-painting corner (owner request 2026-10-28): white vanity with a round mirror ringed by bulbs,
+ * a paint palette, a cup of brushes and the child's pink stool in front. Built facing +z.
+ */
+export function FacePaintTable({ castShadow }: { castShadow: boolean }) {
+  const paints = ["#e8303a", "#ffd23a", "#2fbf5b", "#2f7bff", "#8b4dff", "#ff6fb5"];
+  return (
+    <group>
+      <mesh position={[0, 0.73, 0]} castShadow={castShadow} receiveShadow>
+        <boxGeometry args={[0.9, 0.04, 0.45]} />
+        <meshStandardMaterial color="#f4f1ec" roughness={0.5} />
+      </mesh>
+      {[-0.4, 0.4].map((x) => (
+        <mesh key={x} position={[x, 0.355, 0]} castShadow={castShadow}>
+          <boxGeometry args={[0.06, 0.71, 0.4]} />
+          <meshStandardMaterial color="#ece7df" roughness={0.6} />
+        </mesh>
+      ))}
+      {/* mirror with bulbs */}
+      <mesh position={[0, 1.22, -0.19]} rotation-x={Math.PI / 2}>
+        <cylinderGeometry args={[0.3, 0.3, 0.03, 32]} />
+        <meshStandardMaterial color="#f4f1ec" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 1.22, -0.172]}>
+        <circleGeometry args={[0.25, 32]} />
+        <meshStandardMaterial color="#cfe3ee" metalness={0.6} roughness={0.08} />
+      </mesh>
+      {Array.from({ length: 10 }, (_, i) => {
+        const a = (i / 10) * Math.PI * 2;
+        return (
+          <mesh key={i} position={[Math.cos(a) * 0.28, 1.22 + Math.sin(a) * 0.28, -0.165]}>
+            <sphereGeometry args={[0.022, 10, 8]} />
+            <meshStandardMaterial color="#fff1c4" emissive="#ffd98a" emissiveIntensity={1.2} />
+          </mesh>
+        );
+      })}
+      <mesh position={[0, 0.92, -0.2]} castShadow={castShadow}>
+        <boxGeometry args={[0.05, 0.36, 0.04]} />
+        <meshStandardMaterial color="#ece7df" roughness={0.6} />
+      </mesh>
+      {/* palette with paint dots, brush cup */}
+      <mesh position={[0.18, 0.76, 0.06]} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.11, 24]} />
+        <meshStandardMaterial color="#d8b98b" roughness={0.7} />
+      </mesh>
+      {paints.map((c, i) => {
+        const a = (i / paints.length) * Math.PI * 2;
+        return (
+          <mesh key={c} position={[0.18 + Math.cos(a) * 0.065, 0.765, 0.06 + Math.sin(a) * 0.065]}>
+            <cylinderGeometry args={[0.018, 0.018, 0.01, 12]} />
+            <meshStandardMaterial color={c} roughness={0.4} />
+          </mesh>
+        );
+      })}
+      <mesh position={[-0.25, 0.81, 0.02]} castShadow={castShadow}>
+        <cylinderGeometry args={[0.04, 0.035, 0.12, 14]} />
+        <meshStandardMaterial color="#39ff88" roughness={0.5} />
+      </mesh>
+      {[-0.015, 0.015, 0].map((dx, i) => (
+        <mesh key={i} position={[-0.25 + dx, 0.9, 0.02 + (i - 1) * 0.012]} rotation-z={dx * 6}>
+          <cylinderGeometry args={[0.006, 0.006, 0.2, 6]} />
+          <meshStandardMaterial color={paints[i * 2]} roughness={0.5} />
+        </mesh>
+      ))}
+      {/* the child's stool */}
+      <mesh position={[0, 0.21, 0.6]} castShadow={castShadow}>
+        <cylinderGeometry args={[0.17, 0.15, 0.42, 20]} />
+        <meshStandardMaterial color="#ff6fb5" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}

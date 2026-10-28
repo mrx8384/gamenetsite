@@ -5,7 +5,7 @@ import { EventBoard } from "../environments/EventBoard";
 import { GreySofa, MetalArmchair, TvStation } from "../environments/gaming-center/props";
 import { stationSignTexture } from "../environments/gaming-center/textures";
 import { AirHockeyTable } from "../environments/props/AirHockeyTable";
-import { BaroqueSofa, FoldingTableSet, Plant, RoundTable } from "../environments/props/Furniture";
+import { BaroqueSofa, FacePaintTable, FoldingTableSet, Plant, RoundTable } from "../environments/props/Furniture";
 import { FootballsTable, GraySofa } from "../environments/UpperFloor";
 import { useOwnedTexture, usePhotoTextures, useRepeatedTexture } from "../systems/AssetLoader";
 import { footballsLabelTexture, netTexture } from "../systems/textures";
@@ -70,6 +70,8 @@ export function ItemModel({ item, castShadow }: { item: WorldItem; castShadow: b
       return <GreySofa length={item.length ?? 1.9} depth={0.88} castShadow={castShadow} />;
     case "gc-armchair":
       return <MetalArmchair castShadow={castShadow} />;
+    case "face-paint":
+      return <FacePaintTable castShadow={castShadow} />;
   }
 }
 

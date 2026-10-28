@@ -19,7 +19,7 @@ export interface Achievement {
 }
 
 /** Mini-games that count for «همهٔ بازی‌ها» (the console home screen is a menu, not a game). */
-export const PLAYABLE_GAMES: MiniGameId[] = ["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football"];
+export const PLAYABLE_GAMES: MiniGameId[] = ["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football", "face-paint"];
 
 const n = (v: number | boolean | undefined) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
@@ -58,6 +58,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "ball-win", emoji: "🏆", title: "قهرمان زمین اتم", hint: "در فوتبال اتم یک بازی را ببرید.", game: "gc-football", points: 100, test: (g, s) => g === "gc-football" && s.won === true },
   { id: "ball-hat", emoji: "🎩", title: "هت‌تریک", hint: "در فوتبال اتم در یک بازی ۳ گل بزنید.", game: "gc-football", points: 150, test: (g, s) => g === "gc-football" && n(s.goalsFor) >= 3 },
   { id: "ball-wall", emoji: "🧤", title: "دیوار آهنین", hint: "یک برد ویژه در سخت‌ترین حالت.", game: "gc-football", points: 250, hidden: true, test: (g, s) => g === "gc-football" && s.won === true && s.hard === true && n(s.goalsAgainst) === 0 },
+  // ── face painting
+  { id: "paint-first", emoji: "🖌️", title: "اولین گریم", hint: "در گریم صورت یک طرح را دست‌کم ۴۰٪ شبیه بکشید.", game: "face-paint", points: 50, test: (g, s) => g === "face-paint" && n(s.best) >= 40 },
+  { id: "paint-artist", emoji: "🎨", title: "هنرمند گریم", hint: "در گریم صورت یک طرح را دست‌کم ۸۵٪ شبیه بکشید.", game: "face-paint", points: 100, test: (g, s) => g === "face-paint" && n(s.best) >= 85 },
+  { id: "paint-happy", emoji: "😊", title: "بچه‌های خوشحال", hint: "در یک دور گریم صورت هر سه بچه را دست‌کم ۶۵٪ راضی کنید.", game: "face-paint", points: 150, test: (g, s) => g === "face-paint" && n(s.faces) >= 3 && n(s.worst) >= 65 },
+  { id: "paint-master", emoji: "🌟", title: "استاد گریم", hint: "یک دور بی‌نقص در سخت‌ترین حالت.", game: "face-paint", points: 250, hidden: true, test: (g, s) => g === "face-paint" && s.hard === true && n(s.faces) >= 3 && n(s.worst) >= 85 },
   // ── the whole world
   { id: "explorer", emoji: "🧭", title: "گشت کامل اتم", hint: "دست‌کم سه مینی‌گیم مختلف را بازی کنید.", game: null, points: 100, test: (_g, _s, played) => played.size >= 3 },
   { id: "explorer-all", emoji: "🌍", title: "جهانگرد اتم", hint: "همهٔ بازی‌های دنیای اتم را امتحان کنید.", game: null, points: 200, hidden: true, test: (_g, _s, played) => PLAYABLE_GAMES.every((g) => played.has(g)) },

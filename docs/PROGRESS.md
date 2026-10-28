@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-10-28 (36) — 3D world: «گریم صورت» face-painting mini-game (owner request)
+
+- Owner (screenshot of the kids' carpet): «بیا اینجا یک مینی گیم گریم صورت هم اضافه کن». Synced from gameatom (phase 21):
+  a vanity with a lit mirror on the kids' carpet (movable item `face-paint` in the editor) opens the new mini-game.
+  Three children ask for a design on a card; the player paints it with 9 colours / 3 brushes / eraser; likeness
+  0–100 % on a grid of the face, points = likeness × 10 + time bonus. Four achievements (one hidden).
+- Site: `GAME_NAMES` row «🎨 گریم صورت»; `face-paint` is a playable game for points (from the shared list), so
+  «جهانگرد اتم» now also needs it (test updated). No schema change.
+- Verified: `pnpm check` ✓ (392) · `pnpm build` ✓ · smoke 84/84 · world suites on this site: mini-games 55/55 (incl.
+  face painting), gaming center 41/41, bounds 9/9, online 27/27, accessibility 30/30 (its camera-turn check now waits
+  for the turn: the test browser's software WebGL draws only a few frames a second right after loading).
+
 ## 2026-10-28 (35) — Technical SEO (owner request: «سئو سایت خودت انجام میدی»)
 
 - `src/lib/seo.ts`: `pageMetadata()` (title, description, **canonical**, complete Open Graph + Twitter block — a page's

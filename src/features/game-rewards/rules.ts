@@ -153,4 +153,5 @@ export const GAME_NAMES: Record<string, string> = {
   "gc-controller": "🎮 چالش دستهٔ گیم‌نت",
   "gc-city": "🏙️ شهر اتم",
   "gc-football": "⚽ فوتبال اتم",
+  "face-paint": "🎨 گریم صورت",
 };
