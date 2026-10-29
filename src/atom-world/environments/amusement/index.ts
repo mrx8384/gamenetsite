@@ -1,4 +1,4 @@
-import { buildGroundFloorColliders, HALL, INTERACTABLES, KIDS_CARPET, type Box, box, ZONE_DOOR } from "../../data/environment";
+import { BACK_OPENING, buildGroundFloorColliders, HALL, INTERACTABLES, KIDS_CARPET, type Box, box } from "../../data/environment";
 import { baseFloorAt, buildExteriorColliders, FACADE_Z, ROAD, SIDEWALK, STAIR_DOOR, STREET_SPAWN, STREET_Y } from "../../data/exterior";
 import { EDGE, FOOT_POOL, SCORE_STOOL, UPPER_INTERACTABLES, UPPER_Y, WOOD_PILLAR } from "../../data/upperFloor";
 import { AMUSEMENT_ITEMS } from "./items";
@@ -24,7 +24,9 @@ export function buildUpperFloorColliders(): Box[] {
 export const amusement: EnvironmentDef = {
   id: "amusement",
   name: "سالن شهربازی",
-  bounds: { xMin: -16, xMax: 16, zMin: -16, zMax: 28 },
+  // ends at the outer face of the back wall: the construction-machines room is behind it
+  neighbours: ["construction-zone"],
+  bounds: { xMin: -16, xMax: 16, zMin: -HALL.halfLength - HALL.wallThickness, zMax: 28 },
   colliders: () => [...buildGroundFloorColliders(), ...buildExteriorColliders(), ...buildUpperFloorColliders()],
   baseFloor: baseFloorAt,
   interactables: [...INTERACTABLES, ...UPPER_INTERACTABLES],
@@ -39,22 +41,9 @@ export const amusement: EnvironmentDef = {
     // inside, next to the counter (where you arrive from places that have no confirmed doorway yet)
     counter: { x: 1.6, y: 0, z: 3.0, heading: Math.PI },
     // on the sidewalk in front of the gaming-center door, looking along the street towards the hall
-    // in front of the back-wall door, coming back from the construction-machines zone
-    "zone-door": { x: ZONE_DOOR.x, y: 0, z: -HALL.halfLength + 1.3, heading: 0 },
     "gaming-door": { x: (STAIR_DOOR.xMin + STAIR_DOOR.xMax) / 2, y: STREET_Y, z: FACADE_Z + 1.5, heading: -Math.PI / 2 },
   },
   portals: [
-    // the wooden door at the back of the ground floor: the construction-machines zone (walk in)
-    {
-      id: "zone-door",
-      kind: "door",
-      at: [ZONE_DOOR.x, 1, -HALL.halfLength + 0.35],
-      radius: 0.6,
-      promptRadius: 1.9,
-      to: { env: "construction-zone", spawn: "from-hall" },
-      prompt: "🚜 ورود به ماشین‌آلات راه‌سازی",
-      walkThrough: true,
-    },
     // the street door under the orange sign: stairs down to the gaming center (walk in)
     {
       id: "gc-street-door",
@@ -69,7 +58,10 @@ export const amusement: EnvironmentDef = {
   ],
   // inside the hall (both floors), or on the sidewalk / road in front of it
   walkable: (x, z) =>
-    (Math.abs(x) < HALL.halfWidth && z > -HALL.halfLength && z <= FACADE_Z + 0.01) || (x > SIDEWALK.xMin && x < SIDEWALK.xMax && z >= FACADE_Z - 0.01 && z < ROAD.zMax),
+    (Math.abs(x) < HALL.halfWidth && z > -HALL.halfLength && z <= FACADE_Z + 0.01) ||
+    (x > SIDEWALK.xMin && x < SIDEWALK.xMax && z >= FACADE_Z - 0.01 && z < ROAD.zMax) ||
+    // through the back wall's doorway
+    (x > BACK_OPENING.xMin && x < BACK_OPENING.xMax && z >= -HALL.halfLength - HALL.wallThickness - 0.01),
   areaAt: (_x, y, z) => (z > FACADE_Z - 0.05 ? "street" : y > UPPER_Y - 0.4 ? "upper" : "ground"),
   areaLabels: { street: "ورودی مجموعه", ground: "طبقهٔ همکف", upper: "طبقهٔ دوم" },
   surfaceAt: (x, y, z, onStairs) => {

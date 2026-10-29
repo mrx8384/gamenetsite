@@ -9,7 +9,7 @@ import {
   PIT,
   PIT_COUNTERS,
   RIDGE_TOP,
-  ZONE_EXIT,
+  ZONE_OPENING,
   ZONE_ORIGIN,
   ZONE_PROPS,
   ZONE_ROOM,
@@ -43,7 +43,7 @@ export function ConstructionZone({ castShadow }: { castShadow: boolean }) {
   const wood = useRepeatedTexture(woodTexture, 2, 2);
   const sand = useRepeatedTexture(() => soilTexture([186, 178, 164], 30, 3), 3, 3);
   const soil = useRepeatedTexture(() => soilTexture([88, 72, 58], 34, 8), 3, 3);
-  const exitSign = useOwnedTexture(() => signTexture(["بازگشت به سالن اصلی", "از این در بروید"]));
+  const exitSign = useOwnedTexture(() => signTexture(["بازگشت به سالن اصلی"]));
   const pitW = PIT.xMax - PIT.xMin;
   const pitD = PIT.zMax - PIT.zMin;
 
@@ -89,10 +89,17 @@ export function ConstructionZone({ castShadow }: { castShadow: boolean }) {
         <planeGeometry args={[d, r.height]} />
         <meshStandardMaterial map={stoneSide} roughness={0.5} />
       </mesh>
-      <mesh position={[cx, r.height / 2, r.zMax]} rotation-y={Math.PI}>
-        <planeGeometry args={[w, r.height]} />
-        <meshStandardMaterial map={stoneBack} roughness={0.5} />
-      </mesh>
+      {/* front wall (the hall's back wall) with the open doorway */}
+      {[
+        [r.xMin, ZONE_OPENING.xMin, 0, r.height],
+        [ZONE_OPENING.xMax, r.xMax, 0, r.height],
+        [ZONE_OPENING.xMin, ZONE_OPENING.xMax, ZONE_OPENING.height, r.height],
+      ].map(([x0, x1, y0, y1]) => (
+        <mesh key={`${x0}${y0}`} position={[(x0 + x1) / 2, (y0 + y1) / 2, r.zMax]} rotation-y={Math.PI}>
+          <planeGeometry args={[x1 - x0, y1 - y0]} />
+          <meshStandardMaterial map={stoneBack} roughness={0.5} />
+        </mesh>
+      ))}
       {/* light panels */}
       {[-0.6, 2.2].map((x) =>
         [-1.6, 1.8].map((z) => (
@@ -183,19 +190,11 @@ export function ConstructionZone({ castShadow }: { castShadow: boolean }) {
         </mesh>
       </group>
 
-      {/* door back to the hall (leads to the wooden door at the back of the ground floor) */}
-      <group position={[ZONE_EXIT.x, 0, ZONE_EXIT.z]}>
-        <InteractiveMachine id="zone-exit" markerHeight={2.35}>
-          <mesh position={[0, 1.05, 0.68]} rotation-y={Math.PI}>
-            <planeGeometry args={[1.0, 2.1]} />
-            <meshStandardMaterial color="#5a3b22" roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 2.32, 0.66]} rotation-y={Math.PI}>
-            <planeGeometry args={[0.8, 0.4]} />
-            <meshBasicMaterial map={exitSign} toneMapped={false} />
-          </mesh>
-        </InteractiveMachine>
-      </group>
+      {/* sign over the doorway back to the hall */}
+      <mesh position={[(ZONE_OPENING.xMin + ZONE_OPENING.xMax) / 2, ZONE_OPENING.height + 0.3, r.zMax - 0.01]} rotation-y={Math.PI}>
+        <planeGeometry args={[1.0, 0.3]} />
+        <meshBasicMaterial map={exitSign} toneMapped={false} />
+      </mesh>
     </group>
   );
 }

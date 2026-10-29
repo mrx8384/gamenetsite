@@ -11,7 +11,7 @@ import {
   PILASTER_SIZE,
   PILASTERS,
   STAIRS,
-  ZONE_DOOR,
+  BACK_OPENING,
 } from "../data/environment";
 import { InteractiveMachine } from "../interactions/InteractiveMachine";
 import { useOwnedTexture, usePhotoTextures, useRepeatedTexture } from "../systems/AssetLoader";
@@ -105,29 +105,39 @@ export function GroundFloor({ castShadow, floorTexSize }: { castShadow: boolean;
         );
       })}
 
-      {/* back wall: wood panelling under the mezzanine, dark above */}
+      {/* back wall: wood panelling under the mezzanine (open doorway to the machines room), dark above */}
       <group position={[0, 0, -hl]}>
-        <mesh position={[0, (MEZZANINE.top - MEZZANINE.thickness) / 2, 0]}>
-          <planeGeometry args={[W, MEZZANINE.top - MEZZANINE.thickness]} />
-          <meshStandardMaterial map={woodTex} roughness={0.7} />
-        </mesh>
+        {[
+          [-hw, BACK_OPENING.xMin, 0, MEZZANINE.top - MEZZANINE.thickness],
+          [BACK_OPENING.xMax, hw, 0, MEZZANINE.top - MEZZANINE.thickness],
+          [BACK_OPENING.xMin, BACK_OPENING.xMax, BACK_OPENING.height, MEZZANINE.top - MEZZANINE.thickness],
+        ].map(([x0, x1, y0, y1]) => (
+          <mesh key={`${x0}${y0}`} position={[(x0 + x1) / 2, (y0 + y1) / 2, 0]}>
+            <planeGeometry args={[x1 - x0, y1 - y0]} />
+            <meshStandardMaterial map={woodTex} roughness={0.7} />
+          </mesh>
+        ))}
         <mesh position={[0, (MEZZANINE.top + h) / 2, 0]}>
           <planeGeometry args={[W, h - MEZZANINE.top]} />
           <meshStandardMaterial {...DARK_WALL} />
         </mesh>
       </group>
 
-      {/* wooden door to the construction-machines zone (walk through it) */}
-      <InteractiveMachine id="zone-door" markerHeight={ZONE_DOOR.height + 0.35} markerAt={[ZONE_DOOR.x, -hl + 0.3]}>
-        <mesh position={[ZONE_DOOR.x, ZONE_DOOR.height / 2, -hl + 0.005]}>
-          <planeGeometry args={[ZONE_DOOR.width, ZONE_DOOR.height]} />
-          <meshStandardMaterial color="#5a3b22" roughness={0.6} />
+      {/* the doorway's frame (through the wall's thickness) and its sign */}
+      {[BACK_OPENING.xMin, BACK_OPENING.xMax].map((x) => (
+        <mesh key={x} position={[x, BACK_OPENING.height / 2, -hl - HALL.wallThickness / 2]}>
+          <boxGeometry args={[0.06, BACK_OPENING.height, HALL.wallThickness + 0.02]} />
+          <meshStandardMaterial color="#ece7df" roughness={0.5} />
         </mesh>
-        <mesh position={[ZONE_DOOR.x, ZONE_DOOR.height + 0.2, -hl + 0.01]}>
-          <planeGeometry args={[0.9, 0.3]} />
-          <meshBasicMaterial map={zoneSign} toneMapped={false} />
-        </mesh>
-      </InteractiveMachine>
+      ))}
+      <mesh position={[(BACK_OPENING.xMin + BACK_OPENING.xMax) / 2, BACK_OPENING.height + 0.03, -hl - HALL.wallThickness / 2]}>
+        <boxGeometry args={[BACK_OPENING.xMax - BACK_OPENING.xMin + 0.06, 0.06, HALL.wallThickness + 0.02]} />
+        <meshStandardMaterial color="#ece7df" roughness={0.5} />
+      </mesh>
+      <mesh position={[(BACK_OPENING.xMin + BACK_OPENING.xMax) / 2, (BACK_OPENING.height + MEZZANINE.top - MEZZANINE.thickness) / 2 + 0.02, -hl + 0.01]}>
+        <planeGeometry args={[1.0, 0.24]} />
+        <meshBasicMaterial map={zoneSign} toneMapped={false} />
+      </mesh>
 
       {/* pilasters */}
       {PILASTERS.map((p) => {

@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-10-29 (38) — 3D world: machines room behind the hall, gaming-center stairs by station 5 (owner requests)
+
+- «این در هم وردار که به صورت مستقیم بشه رفت داخل بخش ماشین آلات»: the construction-machines room now stands right
+  behind the hall's back wall; the door is an open doorway (no travel). Hall and room are drawn together
+  (`EnvironmentDef.neighbours`), walkable areas let the doorway through.
+- Gaming center (owner's map): the stair corridor moved from north of the counter to the bottom right — the stair door
+  is in the east wall next to station 5 and the corridor runs east to the street door. Same stairs, turned into place
+  (`STAIR_FRAME` in `gaming-center/layout.ts`); map, spawns, street-door portal and colliders follow.
+- Verified: `pnpm check` ✓ (392) · `pnpm build` ✓ · world suites on this site: gaming center 41/41, bounds 9/9,
+  mini-games 55/55, accessibility 30/30 · smoke 84/84 · editor suite (gameatom) 27/27.
+
 ## 2026-10-29 (37) — 3D world: face-painting table under the stairs (owner request)
 
 - Owner (two phone screenshots): «این میز گریم ببر زیر پله ها جای اون میز». The face-painting table now stands under

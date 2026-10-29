@@ -33,6 +33,8 @@ export interface EnvironmentDef {
   spawns: Record<string, Spawn> & { default: Spawn };
   /** Doors, corridors, stairs or paths to other environments (see PortalDef). */
   portals: PortalDef[];
+  /** Environments joined to this one by an open doorway: drawn together, so each is seen from the other. */
+  neighbours?: string[];
   /**
    * Where the player may stand (x / z). A move that would leave it is undone, and a player found
    * outside is brought back to the default spawn — never wandering in the empty space around a building.

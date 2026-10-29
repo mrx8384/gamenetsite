@@ -12,7 +12,7 @@ import { audio } from "../systems/AudioManager";
 import { releasePhotoTextures } from "../systems/AssetLoader";
 import { CameraController } from "../systems/CameraController";
 import { QUALITY_PRESETS, type QualityLevel, type QualityPreset } from "../systems/QualityManager";
-import { ENVIRONMENTS, preloadDistanceTo } from "../world/registry";
+import { ENVIRONMENTS, envById, preloadDistanceTo } from "../world/registry";
 import type { EnvironmentDef, EnvSceneProps } from "../world/types";
 import { RuntimeContext, type RuntimeRef, useRuntimeRef } from "../systems/runtime";
 
@@ -92,10 +92,12 @@ const SCENES = new Map(ENVIRONMENTS.map((e) => [e.id, lazy(e.scene)]));
 /** Draws an environment's scene; hidden (but kept loaded) while the player is elsewhere. */
 function EnvSlot({ env, quality, preset }: { env: EnvironmentDef; quality: QualityLevel; preset: QualityPreset }) {
   const active = useWorld((s) => s.env === env.id);
+  // also drawn while the player is in a neighbouring environment (seen through an open doorway)
+  const visible = useWorld((s) => s.env === env.id || !!env.neighbours?.includes(s.env) || !!envById(s.env)?.neighbours?.includes(env.id));
   const scene = SCENES.get(env.id);
   const props: EnvSceneProps = { quality, preset, active };
   return (
-    <group visible={active} name={`env:${env.id}`}>
+    <group visible={visible} name={`env:${env.id}`}>
       {scene && createElement(scene, props)}
     </group>
   );

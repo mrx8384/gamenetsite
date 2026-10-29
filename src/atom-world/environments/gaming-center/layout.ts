@@ -9,8 +9,8 @@
  *
  * What the owner confirmed: station 1 is a PS5, stations 2–13 are PS4 (twelve); the train-mural
  * room is part of the gaming center and holds station 13; the entrance is the street door under the
- * orange «اتم گیم کلاب» sign, with stairs going down (photos 13–15), and coming in from the stairs the
- * counter is on your right — so the stair door is in the counter's wall, just east of it.
+ * orange «اتم گیم کلاب» sign, with stairs going down (photos 13–15). The owner placed the stair door
+ * in the east wall next to station 5 (2026-10-29, on the map); coming in, the counter is on your right.
  * Not seen in any photo (not drawn): number signs for stations 1 and 13.
  *
  * Local axes (metres): +x east, +z south, y up, y = 0 on the basement floor. Facing the counter you
@@ -26,7 +26,10 @@ export const ROOMS = {
   hall: { xMin: -5, xMax: 5, zMin: -7, zMax: 7 },
   /** Through the door left of the counter: couple-and-train mural (photos 01, 02). */
   train: { xMin: -5, xMax: -0.6, zMin: -12.2, zMax: -7 },
-  /** From the street door down to the hall (photos 13, 14); comes in through the north wall. */
+  /**
+   * From the street door down to the hall (photos 13, 14), in the STAIR FRAME: built as if its door were
+   * in the north wall (z = −7) and turned into place by `STAIR_FRAME` (east wall, next to station 5).
+   */
   stairs: { xMin: 2.45, xMax: 3.95, zMin: -15.6, zMax: -7 },
 } as const;
 
@@ -34,7 +37,32 @@ export const ROOMS = {
 export const TRAIN_DOOR = { xMin: -4.3, xMax: -3.3, height: 2.1 } as const; // wall z = -7
 /** Arch on the black panel (photo 05): a closed decoration — there is no room behind it (owner). */
 export const ARCH = { zMin: -2.15, zMax: -1.05, height: 2.25 } as const; // wall x = 5
-export const STAIR_DOOR = { xMin: 2.7, xMax: 3.7, height: 2.1 } as const; // wall z = -7, right of the counter seen from the door
+export const STAIR_DOOR = { xMin: 2.7, xMax: 3.7, height: 2.1 } as const; // stair frame: wall z = -7
+
+/**
+ * The stairs (door, corridor, steps, street door) are drawn and collided in their own frame and turned
+ * into the hall's frame: the stair-frame point `door` lands on `at` and the corridor runs east
+ * (owner 2026-10-29: «این راه رو … ببر پایین نزدیک سیستم ۵»). rotY = −90° maps stair −z to hall +x.
+ */
+export const STAIR_FRAME = { door: { x: 3.2, z: -7 }, at: { x: 5, z: 5.6 }, rotY: -Math.PI / 2 } as const;
+/** Stair frame → hall frame (local x / z). */
+export function fromStairFrame(x: number, z: number): [number, number] {
+  const f = STAIR_FRAME;
+  return [f.at.x - (z - f.door.z), f.at.z + (x - f.door.x)];
+}
+/** Hall frame → stair frame (local x / z). */
+export function toStairFrame(x: number, z: number): [number, number] {
+  const f = STAIR_FRAME;
+  return [f.door.x + (z - f.at.z), f.door.z - (x - f.at.x)];
+}
+/** A heading in the stair frame → the hall frame. */
+export const fromStairHeading = (h: number) => h + STAIR_FRAME.rotY;
+/** The stair door's gap in the hall's east wall (x = 5), along z. */
+export const EAST_STAIR_DOOR = {
+  zMin: fromStairFrame(STAIR_DOOR.xMin, -7)[1],
+  zMax: fromStairFrame(STAIR_DOOR.xMax, -7)[1],
+  height: STAIR_DOOR.height,
+} as const;
 
 /** Stairs from the street: 14 marble steps rising away from the hall (towards -z); zStart = front edge of the lowest. */
 export const STAIR_STEPS = { count: 14, zStart: -8.4, run: 0.28, rise: 0.18 } as const;
@@ -136,10 +164,15 @@ export const ARMCHAIRS: Seat[] = [
   { id: "gc-armchair-4", x: -4.3, z: -10.2, rotY: Math.PI * 0.8, length: 0.7 },
 ];
 
-/** Where you arrive: top of the stairs (from the street) and inside the stair door. */
-export const SPAWN_TOP = { x: 3.2, z: -13.4, heading: 0 } as const;
-export const SPAWN_HALL = { x: 3.2, z: -5.6, heading: 0 } as const;
-/** Street door at the top of the stairs (walk into it to go back out). */
-export const STREET_EXIT = { x: 3.2, z: -15.35, radius: 0.55 } as const;
+/** Where you arrive: top of the stairs (from the street) and inside the stair door — hall frame. */
+const spawn = (x: number, z: number, heading: number) => {
+  const [hx, hz] = fromStairFrame(x, z);
+  return { x: hx, z: hz, heading: fromStairHeading(heading) };
+};
+export const SPAWN_TOP = spawn(3.2, -13.4, 0);
+export const SPAWN_HALL = spawn(3.2, -5.6, 0);
+/** Street door at the top of the stairs (walk into it to go back out) — hall frame. */
+const exitAt = fromStairFrame(3.2, -15.35);
+export const STREET_EXIT = { x: exitAt[0], z: exitAt[1], radius: 0.55 } as const;
 
 export const toWorld = (x: number, z: number): [number, number] => [GC_ORIGIN.x + x, GC_ORIGIN.z + z];

@@ -1,14 +1,16 @@
+import { BACK_OPENING } from "./environment";
+
 /**
  * 🚜 Construction-machines zone, after construction-zone/construction-zone.jpg.
  *
- * ⚠️ Its real location inside the building is NOT confirmed, so it is built as a stand-alone module
- * at its own origin (far from the hall) and reached from the menu. Once the owner confirms where it
- * is, set ZONE_ORIGIN / ZONE_ROTATION to the real spot and add a doorway — no other change needed.
+ * Placed by the owner (2026-10-29) right behind the hall's back wall: its front wall is the hall's back
+ * wall, and the open doorway BACK_OPENING (data/environment.ts) leads straight in — no door, no travel.
  *
  * Local axes: looking at the sand pit from the visitor side, +x right, -z towards the mural wall.
  * The visitor stands in front of the white counter; the RC machines are toy scale (≈1:14).
  */
-export const ZONE_ORIGIN = { x: 40, z: 0 } as const;
+// the room's front wall (local zMax = 4.2) is the outer face of the hall's back wall (z = −13.3)
+export const ZONE_ORIGIN = { x: -1.8, z: -17.5 } as const;
 
 /** Room walls (local). */
 export const ZONE_ROOM = { xMin: -2.2, xMax: 4.2, zMin: -3, zMax: 4.2, height: 3.0 } as const;
@@ -54,9 +56,10 @@ export const ZONE_PROPS = {
   bucket: { x: 2.0, z: 0.1 },
 } as const;
 
-/** Where the player appears in the zone, and the exit spot back to the hall. */
+/** Where the player appears in the zone (menu travel). */
 export const ZONE_SPAWN = { x: -0.2, z: 2.6, heading: Math.PI } as const;
-export const ZONE_EXIT = { x: 3.4, z: 3.5 } as const;
+/** The doorway from the hall in local x (the gap in the room's front wall). */
+export const ZONE_OPENING = { xMin: BACK_OPENING.xMin - ZONE_ORIGIN.x, xMax: BACK_OPENING.xMax - ZONE_ORIGIN.x, height: BACK_OPENING.height } as const;
 
 export function zoneToWorld(x: number, z: number): [number, number] {
   return [ZONE_ORIGIN.x + x, ZONE_ORIGIN.z + z];

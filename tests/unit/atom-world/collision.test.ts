@@ -131,7 +131,7 @@ describe("ground floor layout", () => {
   it("construction zone: free spawn, counters stop the player at the pit", () => {
     const b = body(ZONE_ORIGIN.x + ZONE_SPAWN.x, ZONE_ORIGIN.z + ZONE_SPAWN.z);
     expect(world.resolve(b)).toBe(false);
-    expect(areaAt(b.x, b.y)).toBe("zone");
+    expect(areaAt(b.x, b.y, b.z)).toBe("zone");
     walk(world, b, 0, -0.05, 80);
     expect(b.z).toBeGreaterThan(ZONE_ORIGIN.z + 0.9);
     expect(b.y).toBe(0);

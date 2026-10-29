@@ -3,6 +3,7 @@ import type { EnvironmentDef, Interactable, MapShape } from "../../world/types";
 import { GC_ITEMS } from "./items";
 import {
   COUNTER,
+  EAST_STAIR_DOOR,
   EAST_WALL,
   FRIDGE,
   GC_HEIGHT,
@@ -16,6 +17,8 @@ import {
   STAIR_STEPS,
   STAIR_TOP_Y,
   STREET_EXIT,
+  fromStairFrame,
+  toStairFrame,
   TRAIN_DOOR,
   WALL_T,
   WEST_WALL,
@@ -43,6 +46,7 @@ export interface WallDef {
 const H = GC_HEIGHT;
 const { hall, train, stairs } = ROOMS;
 
+/** Walls of the hall and the train room (hall frame). */
 export const WALLS: WallDef[] = [
   {
     axis: "z",
@@ -50,23 +54,32 @@ export const WALLS: WallDef[] = [
     from: hall.xMin,
     to: hall.xMax,
     height: H,
-    gaps: [
-      { from: TRAIN_DOOR.xMin, to: TRAIN_DOOR.xMax, height: TRAIN_DOOR.height },
-      { from: STAIR_DOOR.xMin, to: STAIR_DOOR.xMax, height: STAIR_DOOR.height },
-    ],
+    gaps: [{ from: TRAIN_DOOR.xMin, to: TRAIN_DOOR.xMax, height: TRAIN_DOOR.height }],
   },
   { axis: "z", at: hall.zMax, from: hall.xMin, to: hall.xMax, height: H },
   { axis: "x", at: hall.xMin, from: hall.zMin, to: hall.zMax, height: H },
-  { axis: "x", at: hall.xMax, from: hall.zMin, to: hall.zMax, height: H },
+  // east wall, with the stair door next to station 5
+  { axis: "x", at: hall.xMax, from: hall.zMin, to: hall.zMax, height: H, gaps: [{ from: EAST_STAIR_DOOR.zMin, to: EAST_STAIR_DOOR.zMax, height: EAST_STAIR_DOOR.height }] },
   { axis: "x", at: train.xMin, from: train.zMin, to: train.zMax, height: H },
   { axis: "z", at: train.zMin, from: train.xMin, to: train.xMax, height: H },
   { axis: "x", at: train.xMax, from: train.zMin, to: train.zMax, height: H },
+];
+
+/** Walls of the stair corridor, in the STAIR FRAME (turned into place by STAIR_FRAME). */
+export const STAIR_WALLS: WallDef[] = [
   { axis: "x", at: stairs.xMin, from: stairs.zMin, to: stairs.zMax, height: STAIR_CEILING },
   { axis: "x", at: stairs.xMax, from: stairs.zMin, to: stairs.zMax, height: STAIR_CEILING },
   { axis: "z", at: stairs.zMin, from: stairs.xMin, to: stairs.xMax, height: STAIR_CEILING },
   // the stair hall is taller than the basement: wall above the stair door
   { axis: "z", at: hall.zMin, from: stairs.xMin, to: stairs.xMax, height: STAIR_CEILING, base: H },
 ];
+
+/** A box given in the stair frame → hall frame (corners turned, then sorted). */
+export function stairBox([x0, y0, z0, x1, y1, z1]: [number, number, number, number, number, number]): [number, number, number, number, number, number] {
+  const [ax, az] = fromStairFrame(x0, z0);
+  const [bx, bz] = fromStairFrame(x1, z1);
+  return [Math.min(ax, bx), y0, Math.min(az, bz), Math.max(ax, bx), y1, Math.max(az, bz)];
+}
 
 /** Axis-aligned footprint of something built facing +z and turned by rotY (multiples of 90° only). */
 export function footprint(x: number, z: number, rotY: number, width: number, depth: number) {
@@ -102,12 +115,17 @@ export function wallPieces(w: WallDef): [number, number, number, number, number,
 
 export function buildGamingCenterColliders(): Box[] {
   const out: Box[] = WALLS.flatMap(wallPieces).map(([x0, y0, z0, x1, y1, z1]) => lbox(x0, y0, z0, x1, y1, z1, "wall"));
+  const sbox = (b: [number, number, number, number, number, number], tag: Box["tag"], camera = true) => {
+    const [x0, y0, z0, x1, y1, z1] = stairBox(b);
+    return lbox(x0, y0, z0, x1, y1, z1, tag, camera);
+  };
+  out.push(...STAIR_WALLS.flatMap(wallPieces).map((p) => sbox(p, "wall")));
   // ceilings (the camera stays inside)
   for (const r of [hall, train]) out.push(lbox(r.xMin, H, r.zMin, r.xMax, H + 0.2, r.zMax, "slab"));
-  out.push(lbox(stairs.xMin, STAIR_CEILING, stairs.zMin, stairs.xMax, STAIR_CEILING + 0.2, stairs.zMax, "slab"));
+  out.push(sbox([stairs.xMin, STAIR_CEILING, stairs.zMin, stairs.xMax, STAIR_CEILING + 0.2, stairs.zMax], "slab"));
   // stairs: step k (1 = lowest) has its top at k·rise; the last one is the street-level landing
   for (let k = 1; k <= STAIR_STEPS.count; k++) {
-    out.push(lbox(stairs.xMin, 0, stairs.zMin, stairs.xMax, k * STAIR_STEPS.rise, STAIR_STEPS.zStart - (k - 1) * STAIR_STEPS.run, "stairs", false));
+    out.push(sbox([stairs.xMin, 0, stairs.zMin, stairs.xMax, k * STAIR_STEPS.rise, STAIR_STEPS.zStart - (k - 1) * STAIR_STEPS.run], "stairs", false));
   }
   // counter (the staff side behind it is closed), fridge, column
   out.push(lbox(COUNTER.xMin, 0, hall.zMin, COUNTER.xMax, COUNTER.height, COUNTER.zMax, "furniture", false));
@@ -128,7 +146,11 @@ export const GC_INTERACTABLES: Interactable[] = [
 export function gamingCenterAreaAt(x: number, _y: number, z: number): string {
   const lx = x - ox;
   const lz = z - oz;
-  if (lz < hall.zMin && lx > stairs.xMin - 0.2) return "gc-stairs";
+  if (lx > hall.xMax) {
+    // beyond the east wall: the stair corridor
+    const [, sz] = toStairFrame(lx, lz);
+    if (sz < hall.zMin) return "gc-stairs";
+  }
   if (lz < hall.zMin) return "gc-train";
   return "gc-hall";
 }
@@ -144,26 +166,31 @@ function mapShapes(): MapShape[] {
     ...extra,
   });
   const text = (x: number, z: number, t: string, size = 0.5, fill = "#111"): MapShape => ({ kind: "text", x: ox + x, z: oz + z, text: t, size, fill });
+  // a rectangle given in the stair frame
+  const rs = (x0: number, z0: number, x1: number, z1: number, fill: string): MapShape => {
+    const [a, , b, c, , d] = stairBox([x0, 0, z0, x1, 0, z1]);
+    return r(a, b, c, d, fill);
+  };
   const shapes: MapShape[] = [
     r(hall.xMin, hall.zMin, hall.xMax, hall.zMax, "#e9e9e6", { rx: 0.15 }),
     r(train.xMin, train.zMin, train.xMax, train.zMax, "#dcdcd8"),
-    r(stairs.xMin, stairs.zMin, stairs.xMax, stairs.zMax, "#c9bfae"),
+    rs(stairs.xMin, stairs.zMin, stairs.xMax, stairs.zMax, "#c9bfae"),
     r(TRAIN_DOOR.xMin, hall.zMin - 0.1, TRAIN_DOOR.xMax, hall.zMin + 0.1, "#e9e9e6"),
-    r(STAIR_DOOR.xMin, hall.zMin - 0.1, STAIR_DOOR.xMax, hall.zMin + 0.1, "#e9e9e6"),
-    r(stairs.xMin, stairs.zMin - 0.1, stairs.xMax, stairs.zMin + 0.25, "#39ff88"),
+    rs(STAIR_DOOR.xMin, hall.zMin - 0.1, STAIR_DOOR.xMax, hall.zMin + 0.1, "#e9e9e6"),
+    rs(stairs.xMin, stairs.zMin - 0.1, stairs.xMax, stairs.zMin + 0.25, "#39ff88"),
     r(COUNTER.xMin, COUNTER.zMin, COUNTER.xMax, COUNTER.zMax, "#8a5a32", { hot: "gc-counter" }),
     r(FRIDGE.xMin, FRIDGE.zMin, FRIDGE.xMax, FRIDGE.zMax, "#bdbdbd"),
     r(PILLAR.x - PILLAR.size / 2, PILLAR.z - PILLAR.size / 2, PILLAR.x + PILLAR.size / 2, PILLAR.z + PILLAR.size / 2, "#8b8f94"),
   ];
   for (let k = 0; k < STAIR_STEPS.count; k++) {
     const z = STAIR_STEPS.zStart - k * STAIR_STEPS.run;
-    shapes.push(r(stairs.xMin, z - 0.04, stairs.xMax, z, "#9a907f"));
+    shapes.push(rs(stairs.xMin, z - 0.04, stairs.xMax, z, "#9a907f"));
   }
   // stations and seats are items: the map draws them from the live item list
   shapes.push(
     text(-0.7, COUNTER.zMax + 0.6, "پیشخوان", 0.45, "#5a3b2e"),
     text((train.xMin + train.xMax) / 2, train.zMax - 0.5, "اتاق قطار", 0.45),
-    text((stairs.xMax + 1.5), stairs.zMin + 0.6, "به خیابان", 0.45, "#cfd3cf"),
+    text(STREET_EXIT.x - 0.4, STREET_EXIT.z - 1.3, "به خیابان", 0.45, "#cfd3cf"),
   );
   return shapes;
 }
@@ -171,10 +198,10 @@ function mapShapes(): MapShape[] {
 export const gamingCenter: EnvironmentDef = {
   id: "gaming-center",
   name: "گیم‌نت اتم",
-  bounds: { xMin: ox - 8, xMax: ox + 6, zMin: oz - 18, zMax: oz + 9 },
+  bounds: { xMin: ox - 8, xMax: ox + 15, zMin: oz - 14, zMax: oz + 9 },
   colliders: buildGamingCenterColliders,
   interactables: GC_INTERACTABLES,
-  levels: [{ id: "main", y: 0, label: "گیم‌نت", view: { xMin: ox - 5.5, xMax: ox + 5.5, zMin: oz - 16, zMax: oz + 7.5 } }],
+  levels: [{ id: "main", y: 0, label: "گیم‌نت", view: { xMin: ox - 5.5, xMax: ox + 14, zMin: oz - 12.8, zMax: oz + 7.5 } }],
   items: GC_ITEMS,
   spawns: {
     // inside the stair door (menu / list travel)
@@ -207,5 +234,5 @@ export const gamingCenter: EnvironmentDef = {
   preloadDistance: 5,
   menuTravel: { label: "🎮 گیم‌نت (زیرزمین)" },
   assets: ["envs/gaming-center/*"],
-  mapPlan: { viewBox: { x: ox - 6, y: oz - 16.4, w: 12, h: 24.2 }, shapes: mapShapes() },
+  mapPlan: { viewBox: { x: ox - 6, y: oz - 13, w: 20.4, h: 20.8 }, shapes: mapShapes() },
 };

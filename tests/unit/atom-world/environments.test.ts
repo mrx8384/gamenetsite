@@ -65,7 +65,11 @@ describe("environment registry", () => {
     expect(areaAt(80, 0, 0)).toBe("gc-hall");
     expect(areaAt(84, 0, -2)).toBe("gc-hall"); // no room behind the arch (owner)
     expect(areaAt(77, 0, -9)).toBe("gc-train");
-    expect(areaAt(83.2, 1, -10)).toBe("gc-stairs");
+    expect(areaAt(88, 1, 5.6)).toBe("gc-stairs"); // the stairs leave the hall through the east wall, by station 5
+    // the stair door is next to station 5 (owner's map, 2026-10-29)
+    const s5 = stations.find((i) => i.id === "gc-station-5")!;
+    const door = resolveSpawn({ env: "gaming-center" })!;
+    expect(Math.hypot(door.x - s5.position[0], door.z - s5.position[2])).toBeLessThan(2.5);
     expect(gc.mapPlan?.shapes.length).toBeGreaterThan(10);
   });
 
@@ -82,7 +86,7 @@ describe("environment registry", () => {
     expect(areaAt(0, 0, 18)).toBe("street");
     expect(areaAt(0, 0, 5)).toBe("ground");
     expect(areaAt(-1, 2.9, -8)).toBe("upper");
-    expect(areaAt(40, 0, 0)).toBe("zone");
+    expect(areaAt(-2, 0, -16)).toBe("zone"); // the machines room, behind the hall's back wall
     expect(areaLabel("upper")).toBe("طبقهٔ دوم");
     expect(areaLabel("zone")).toContain("ماشین‌آلات");
   });
@@ -98,18 +102,19 @@ describe("environment registry", () => {
     expect(hall.walkable!(13, 14)).toBe(false); // past the end of the sidewalk
     expect(hall.walkable!(-11, 16)).toBe(true); // sidewalk
     const zone = ENVIRONMENTS.find((e) => e.id === "construction-zone")!;
-    expect(zone.walkable!(40, 6)).toBe(false); // outside the machines room
+    expect(zone.walkable!(-2, -21)).toBe(false); // outside the machines room
+    // straight through the open doorway in the back wall: hall → wall thickness → room
+    expect(hall.walkable!(1.6, -13.2)).toBe(true);
+    expect(hall.walkable!(0, -13.2)).toBe(false); // the wall beside the doorway
+    expect(envAt(1.6, -13.5).id).toBe("construction-zone");
+    expect(zone.walkable!(1.6, -13.5)).toBe(true);
   });
 
   it("every doorway is an interactable with a travel machine", () => {
     for (const i of worldInteractables()) expect(getMachine(i.machineId), i.id).toBeTruthy();
-    const exit = worldInteractables().find((i) => i.id === "zone-exit")!;
-    expect(getMachine(exit.machineId)?.travel).toEqual({ env: "amusement", spawn: "zone-door" });
-    // the wooden door at the back of the hall leads into the zone, and back out next to it
-    const door = worldInteractables().find((i) => i.id === "zone-door")!;
-    expect(getMachine(door.machineId)?.travel).toEqual({ env: "construction-zone", spawn: "from-hall" });
-    expect(walkThroughPortalAt(1.6, 0, -12.7)?.id).toBe("zone-door");
-    expect(walkThroughPortalAt(1.6, 0, -11.7)).toBeNull(); // the return spot does not bounce you back in
+    // the machines room has no door any more: an open doorway, no travel
+    expect(allPortals().some((p) => p.to.env === "construction-zone" || p.id.startsWith("zone-"))).toBe(false);
+    expect(walkThroughPortalAt(1.6, 0, -13.2)).toBeNull();
   });
 
   it("travel moves only the player: same session, spawns from the target environment", () => {
@@ -168,9 +173,9 @@ describe("adding an environment needs no change in the core", () => {
     const bad = [
       ...ENVIRONMENTS,
       testEnv({
-        bounds: { xMin: 30, xMax: 60, zMin: -10, zMax: 10 }, // overlaps the RC club
+        bounds: { xMin: -10, xMax: 10, zMin: -30, zMax: -15 }, // overlaps the RC club
         spawns: { default: { x: 500, y: 0, z: 0, heading: 0 } },
-        portals: [{ id: "d", kind: "door", at: [40, 1, 0], radius: 1, to: { env: "missing" }, prompt: "x" }],
+        portals: [{ id: "d", kind: "door", at: [0, 1, -20], radius: 1, to: { env: "missing" }, prompt: "x" }],
         areaLabels: {},
       }),
     ];

@@ -1,11 +1,11 @@
 import { box, type Box } from "../../data/environment";
-import { COUNTER_TOP, PIT, PIT_COUNTERS, ZONE_EXIT, ZONE_INTERACTABLES, ZONE_ORIGIN, ZONE_ROOM, ZONE_SPAWN, ZONE_WOOD_WALL } from "../../data/constructionZone";
+import { COUNTER_TOP, PIT, PIT_COUNTERS, ZONE_INTERACTABLES, ZONE_ORIGIN, ZONE_ROOM, ZONE_SPAWN, ZONE_WOOD_WALL } from "../../data/constructionZone";
 import type { EnvironmentDef } from "../../world/types";
 
 /**
- * 🚜 The RC construction-machines club, after construction-zone/construction-zone.jpg. Built at its own
- * origin; reached through the wooden door at the back of the hall's ground floor (owner request
- * 2026-10-28) and still from the menu.
+ * 🚜 The RC construction-machines club, after construction-zone/construction-zone.jpg, right behind the
+ * hall's back wall: walk in through the open doorway at the back of the ground floor (owner 2026-10-29).
+ * The hall and the room are drawn together (`neighbours`), so each is seen through the doorway.
  */
 export function buildConstructionZoneColliders(): Box[] {
   const ox = ZONE_ORIGIN.x;
@@ -13,10 +13,10 @@ export function buildConstructionZoneColliders(): Box[] {
   const r = ZONE_ROOM;
   const t = 0.3;
   const out: Box[] = [
-    box([ox + r.xMin - t, 0, oz + r.zMin - t], [ox + r.xMin, r.height, oz + r.zMax + t], "wall"),
-    box([ox + r.xMax, 0, oz + r.zMin - t], [ox + r.xMax + t, r.height, oz + r.zMax + t], "wall"),
+    box([ox + r.xMin - t, 0, oz + r.zMin - t], [ox + r.xMin, r.height, oz + r.zMax], "wall"),
+    box([ox + r.xMax, 0, oz + r.zMin - t], [ox + r.xMax + t, r.height, oz + r.zMax], "wall"),
     box([ox + r.xMin, 0, oz + r.zMin - t], [ox + r.xMax, r.height, oz + r.zMin], "wall"),
-    box([ox + r.xMin, 0, oz + r.zMax], [ox + r.xMax, r.height, oz + r.zMax + t], "wall"),
+    // the front wall is the hall's back wall (data/environment.ts), with the open doorway
     box([ox + r.xMin, r.height, oz + r.zMin], [ox + r.xMax, r.height + t, oz + r.zMax], "slab"),
     // the pit itself is not walkable (toy-scale sand bed behind the counters)
     box([ox + PIT.xMin, 0, oz + PIT.zMin], [ox + PIT.xMax, COUNTER_TOP, oz + PIT.zMax], "furniture", false),
@@ -29,29 +29,17 @@ export function buildConstructionZoneColliders(): Box[] {
 export const constructionZone: EnvironmentDef = {
   id: "construction-zone",
   name: "دنیای ماشین‌آلات راه‌سازی",
-  bounds: { xMin: ZONE_ORIGIN.x - 10, xMax: ZONE_ORIGIN.x + 10, zMin: ZONE_ORIGIN.z - 10, zMax: ZONE_ORIGIN.z + 10 },
+  // behind the hall: up to the outer face of its back wall
+  bounds: { xMin: ZONE_ORIGIN.x + ZONE_ROOM.xMin - 1, xMax: ZONE_ORIGIN.x + ZONE_ROOM.xMax + 1, zMin: ZONE_ORIGIN.z + ZONE_ROOM.zMin - 1, zMax: ZONE_ORIGIN.z + ZONE_ROOM.zMax },
+  neighbours: ["amusement"],
   colliders: buildConstructionZoneColliders,
   interactables: ZONE_INTERACTABLES,
   levels: [{ id: "main", y: 0, label: "ماشین‌آلات راه‌سازی" }],
   items: [],
   spawns: {
     default: { x: ZONE_ORIGIN.x + ZONE_SPAWN.x, y: 0, z: ZONE_ORIGIN.z + ZONE_SPAWN.z, heading: ZONE_SPAWN.heading },
-    // just inside the door, coming from the hall (looking into the room)
-    "from-hall": { x: ZONE_ORIGIN.x + ZONE_EXIT.x, y: 0, z: ZONE_ORIGIN.z + ZONE_ROOM.zMax - 1.25, heading: Math.PI },
   },
-  portals: [
-    // the door in the front wall leads to the wooden door at the back of the hall's ground floor (walk out)
-    {
-      id: "zone-exit",
-      kind: "door",
-      at: [ZONE_ORIGIN.x + ZONE_EXIT.x, 1.0, ZONE_ORIGIN.z + ZONE_ROOM.zMax - 0.35],
-      radius: 0.6,
-      promptRadius: 1.9,
-      to: { env: "amusement", spawn: "zone-door" },
-      prompt: "🚪 بازگشت به سالن اصلی",
-      walkThrough: true,
-    },
-  ],
+  portals: [],
   walkable: (x, z) => x > ZONE_ORIGIN.x + ZONE_ROOM.xMin && x < ZONE_ORIGIN.x + ZONE_ROOM.xMax && z > ZONE_ORIGIN.z + ZONE_ROOM.zMin && z < ZONE_ORIGIN.z + ZONE_ROOM.zMax,
   areaAt: () => "zone",
   areaLabels: { zone: "🚜 ماشین‌آلات راه‌سازی" },

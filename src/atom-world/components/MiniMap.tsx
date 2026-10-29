@@ -3,7 +3,7 @@
 import { areaLabel, worldInteractables } from "../world/registry";
 import { useEffect, useRef, useState } from "react";
 import { useDialogFocus } from "./useDialogFocus";
-import { PIT, PIT_COUNTERS, ZONE_EXIT, ZONE_ORIGIN, ZONE_ROOM } from "../data/constructionZone";
+import { PIT, PIT_COUNTERS, ZONE_OPENING, ZONE_ORIGIN, ZONE_ROOM } from "../data/constructionZone";
 import {
   COUNTER,
   ENTRANCE_DOOR,
@@ -264,11 +264,11 @@ function ZonePlan({ labels, hot }: PlanProps) {
       {PIT_COUNTERS.map((c) => (
         <rect key={`${c.xMin}${c.zMin}`} {...rect(o.x + c.xMin, o.z + c.zMin, o.x + c.xMax, o.z + c.zMax)} fill="#ffffff" stroke="#bbb" strokeWidth={0.03} />
       ))}
-      <rect {...rect(o.x + ZONE_EXIT.x - 0.5, o.z + R.zMax - 0.15, o.x + ZONE_EXIT.x + 0.5, o.z + R.zMax + 0.2)} fill="#39ff88" stroke={hot("zone-exit")} strokeWidth={0.1} />
+      <rect {...rect(o.x + ZONE_OPENING.xMin, o.z + R.zMax - 0.15, o.x + ZONE_OPENING.xMax, o.z + R.zMax + 0.2)} fill="#39ff88" />
       {labels && (
         <g {...LABEL_PROPS} fontSize={0.32}>
           <text x={o.x - 0.3} y={o.z - 1.6}>محوطهٔ خاکی</text>
-          <text x={o.x + ZONE_EXIT.x} y={o.z + R.zMax - 0.35}>خروج</text>
+          <text x={o.x + (ZONE_OPENING.xMin + ZONE_OPENING.xMax) / 2} y={o.z + R.zMax - 0.35}>به سالن</text>
         </g>
       )}
     </>

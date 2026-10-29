@@ -103,7 +103,7 @@ export function CharacterController({ def, castShadow }: { def: CharacterDef; ca
         b.z = s0.z;
         p.vy = 0;
         rescued = true;
-      } else if (!here.walkable(b.x, b.z)) {
+      } else if (!(envAt(b.x, b.z).walkable ?? (() => true))(b.x, b.z)) {
         b.x = px;
         b.z = pz;
       }

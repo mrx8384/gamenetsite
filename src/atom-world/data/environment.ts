@@ -108,8 +108,11 @@ export const PLANTS: { x: number; z: number }[] = [
 /** Second white & gold sofa, inside on the right of the doorway (entrance/exterior-facade-night.jpg). */
 export const RIGHT_SOFA = { x: 4.0, z: 10.6, length: 1.9, depth: 0.85 } as const;
 
-/** Wooden door in the back wall under the mezzanine: walk through it to the construction-machines zone. */
-export const ZONE_DOOR = { x: 1.6, width: 0.95, height: 2.1 } as const;
+/**
+ * Open doorway in the back wall under the mezzanine: the construction-machines room is right behind it
+ * (owner 2026-10-29: «این در هم وردار که به صورت مستقیم بشه رفت داخل بخش ماشین آلات»).
+ */
+export const BACK_OPENING = { xMin: 0.9, xMax: 2.3, height: 2.3 } as const;
 
 /** Open doorway in the façade, on the right of the shop window (entrance/exterior-facade-night.jpg). */
 export const ENTRANCE_DOOR = { xMin: 2.0, xMax: 4.4, height: 2.6 } as const;
@@ -183,7 +186,10 @@ export function buildGroundFloorColliders({ stairsOpen = true }: { stairsOpen?: 
     // Shell
     box([-hw - t, 0, -hl - t], [-hw, h, hl + t], "wall"),
     box([hw, 0, -hl - t], [hw + t, h, hl + t], "wall"),
-    box([-hw, 0, -hl - t], [hw, h, -hl], "wall"),
+    // back wall, open to the construction-machines room
+    box([-hw, 0, -hl - t], [BACK_OPENING.xMin, h, -hl], "wall"),
+    box([BACK_OPENING.xMax, 0, -hl - t], [hw, h, -hl], "wall"),
+    box([BACK_OPENING.xMin, BACK_OPENING.height, -hl - t], [BACK_OPENING.xMax, h, -hl], "wall"),
     // glass shop window, left of the doorway (the doorway itself is open)
     box([-hw, 0, hl], [ENTRANCE_DOOR.xMin, h, hl + t], "glass"),
     box([ENTRANCE_DOOR.xMax, 0, hl], [hw, h, hl + t], "wall"),

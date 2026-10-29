@@ -7,10 +7,11 @@ import { useOwnedTexture, usePhotoTextures, useRepeatedTexture } from "../../sys
 import { StaticBatch } from "../../systems/StaticBatch";
 import { ceilingTilesTexture, floorTilesTexture, woodTexture } from "../../systems/textures";
 import type { EnvSceneProps } from "../../world/types";
-import { WALLS, wallPieces } from "./index";
+import { STAIR_WALLS, WALLS, wallPieces } from "./index";
 import {
   ARCH,
   COUNTER,
+  EAST_STAIR_DOOR,
   EAST_WALL,
   FRIDGE,
   GC_HEIGHT,
@@ -20,6 +21,7 @@ import {
   SHELVES,
   STAIR_CEILING,
   STAIR_DOOR,
+  STAIR_FRAME,
   STAIR_STEPS,
   STAIR_TOP_Y,
   STATIONS,
@@ -192,9 +194,7 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
         <Panel face="+z" at={hall.zMin} a={TRAIN_DOOR.xMin} b={TRAIN_DOOR.xMax} y0={TRAIN_DOOR.height} y1={H} color="#5a3b2e" />
         <Panel face="+z" at={hall.zMin} a={-2.75} b={1.35} y0={0} y1={H} color="#2b2019" />
         <Panel face="+z" at={hall.zMin} a={SHELVES.xMin} b={SHELVES.xMax} y0={SHELVES.yMin} y1={SHELVES.yMax} map={shelves} emissive={0.55} lift={0.01} />
-        <Panel face="+z" at={hall.zMin} a={1.35} b={STAIR_DOOR.xMin} y0={0} y1={H} map={woodNorth} color="#c9935c" />
-        <Panel face="+z" at={hall.zMin} a={STAIR_DOOR.xMax} b={hall.xMax} y0={0} y1={H} map={woodNorth} color="#c9935c" />
-        <Panel face="+z" at={hall.zMin} a={STAIR_DOOR.xMin} b={STAIR_DOOR.xMax} y0={STAIR_DOOR.height} y1={H} map={woodNorth} color="#c9935c" />
+        <Panel face="+z" at={hall.zMin} a={1.35} b={hall.xMax} y0={0} y1={H} map={woodNorth} color="#c9935c" />
 
         {/* east wall: wood planks (controllers, chalkboard, sign 2), black arch panel, castle mural, dark wall */}
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.wood.zMin} b={EAST_WALL.wood.zMax} y0={0} y1={H} map={woodEast} color="#c9935c" />
@@ -203,7 +203,10 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.black.zMin} b={EAST_WALL.black.zMax} y0={0} y1={H} color="#141414" />
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.castle.zMin} b={EAST_WALL.castle.zMax} y0={0} y1={0.63} color="#7d6e55" />
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.castle.zMin} b={EAST_WALL.castle.zMax} y0={0.63} y1={H} map={castle} />
-        <Panel face="-x" at={hall.xMax} a={EAST_WALL.dark.zMin} b={EAST_WALL.dark.zMax} y0={0} y1={H} color="#1d2026" />
+        {/* dark wall with the stair door next to station 5 */}
+        <Panel face="-x" at={hall.xMax} a={EAST_WALL.dark.zMin} b={EAST_STAIR_DOOR.zMin} y0={0} y1={H} color="#1d2026" />
+        <Panel face="-x" at={hall.xMax} a={EAST_STAIR_DOOR.zMax} b={EAST_WALL.dark.zMax} y0={0} y1={H} color="#1d2026" />
+        <Panel face="-x" at={hall.xMax} a={EAST_STAIR_DOOR.zMin} b={EAST_STAIR_DOOR.zMax} y0={EAST_STAIR_DOOR.height} y1={H} color="#1d2026" />
         <Panel face="-x" at={hall.xMax} a={5.4} b={6.3} y0={1.6} y1={2.2} map={paintingParis} lift={0.02} />
 
         {/* west wall: stone cladding under the AC, Paris mural, white pilaster with the deer poster, portrait wall */}
@@ -324,7 +327,16 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
           </mesh>
         ))}
 
-        {/* ── stairs to the street (north of the hall): white panelled walls, 14 marble steps, WELCOME paddle */}
+        {/* ── stairs to the street, built in the stair frame and turned into place (door in the east wall by
+             station 5): white panelled walls, 14 marble steps, WELCOME paddle */}
+        <group position={[STAIR_FRAME.at.x, 0, STAIR_FRAME.at.z]} rotation-y={STAIR_FRAME.rotY}>
+          <group position={[-STAIR_FRAME.door.x, 0, -STAIR_FRAME.door.z]}>
+        {STAIR_WALLS.flatMap(wallPieces).map(([x0, y0, z0, x1, y1, z1], i) => (
+          <mesh key={i} position={[(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2]} receiveShadow>
+            <boxGeometry args={[x1 - x0, y1 - y0, z1 - z0]} />
+            <meshStandardMaterial color="#d3d2ce" roughness={0.9} />
+          </mesh>
+        ))}
         <Panel face="+x" at={stairs.xMin} a={stairs.zMin} b={stairs.zMax} y0={0} y1={STAIR_CEILING} map={stairPanels} />
         <Panel face="-x" at={stairs.xMax} a={stairs.zMin} b={stairs.zMax} y0={0} y1={STAIR_CEILING} map={stairPanels} />
         <Panel face="-z" at={hall.zMin} a={stairs.xMin} b={STAIR_DOOR.xMin} y0={0} y1={STAIR_CEILING} map={stairPanelsEnd} />
@@ -375,6 +387,8 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
             <planeGeometry args={[0.6, 0.6]} />
             <meshStandardMaterial color="#1a2a33" roughness={0.1} metalness={0.3} />
           </mesh>
+        </group>
+          </group>
         </group>
 
       </StaticBatch>
