@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { COUNTER, FRIDGE, KIDS_CARPET, SHELF, UNDER_STAIR_DESK } from "../../data/environment";
+import { COUNTER, FRIDGE, KIDS_CARPET, SHELF } from "../../data/environment";
 
 const GOLD = { color: "#c9a13b", metalness: 0.85, roughness: 0.32 } as const;
 const CREAM = { color: "#efebe3", roughness: 0.85 } as const;
@@ -229,23 +229,19 @@ function AtomWordmark({ position }: { position: [number, number, number] }) {
   );
 }
 
-/** Kids' carpet, the small desk under the stairs and two grey poufs (ground-floor/staircase.jpg). */
+/** Kids' carpet and two grey poufs (ground-floor/staircase.jpg); the face-painting table stands under the stairs. */
 export function KidsCorner({ carpet, castShadow }: { carpet: THREE.Texture; castShadow: boolean }) {
   const w = KIDS_CARPET.xMax - KIDS_CARPET.xMin;
   const d = KIDS_CARPET.zMax - KIDS_CARPET.zMin;
-  const desk = UNDER_STAIR_DESK;
   return (
     <group>
       <mesh position={[(KIDS_CARPET.xMin + KIDS_CARPET.xMax) / 2, 0.006, (KIDS_CARPET.zMin + KIDS_CARPET.zMax) / 2]} rotation-x={-Math.PI / 2} receiveShadow>
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial map={carpet} roughness={0.95} />
       </mesh>
-      <mesh position={[(desk.xMin + desk.xMax) / 2, desk.height / 2, (desk.zMin + desk.zMax) / 2]} castShadow={castShadow}>
-        <boxGeometry args={[desk.xMax - desk.xMin, desk.height, desk.zMax - desk.zMin]} />
-        <meshStandardMaterial color="#a77b4d" roughness={0.7} />
-      </mesh>
-      {[-2.75, -3.35].map((z) => (
-        <mesh key={z} position={[desk.xMin - 0.35, 0.22, z]} castShadow={castShadow}>
+      {/* poufs for the children waiting their turn, on the carpet in front of the face-painting table */}
+      {[-2.6, -3.3].map((z) => (
+        <mesh key={z} position={[2.45, 0.22, z]} castShadow={castShadow}>
           <cylinderGeometry args={[0.2, 0.2, 0.44, 20]} />
           <meshStandardMaterial color="#8c8f94" roughness={0.9} />
         </mesh>

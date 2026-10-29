@@ -1,4 +1,4 @@
-import { AIR_HOCKEY_TABLES, EVENTS_BOARD, FOLDING_TABLE, KIDS_CARPET, LOUNGE, PLANTS, RIGHT_SOFA } from "../../data/environment";
+import { AIR_HOCKEY_TABLES, EVENTS_BOARD, FOLDING_TABLE, LOUNGE, PLANTS, RIGHT_SOFA, UNDER_STAIR } from "../../data/environment";
 import { FOOTBALLS_TABLES, GRAY_SOFA } from "../../data/upperFloor";
 import type { WorldItem } from "../../world/items";
 
@@ -16,8 +16,9 @@ export const AMUSEMENT_ITEMS: WorldItem[] = [
   { ...base, id: "right-sofa", kind: "baroque-sofa", level: "ground", x: RIGHT_SOFA.x, z: RIGHT_SOFA.z, rotY: -Math.PI / 2, length: RIGHT_SOFA.length },
   { ...base, id: "folding-table", kind: "folding-table", level: "ground", x: FOLDING_TABLE.x, z: FOLDING_TABLE.z, rotY: 0 },
   ...PLANTS.map((p, i) => ({ ...base, id: `plant-${i + 1}`, kind: "plant" as const, level: "ground", x: p.x, z: p.z, rotY: 0 })),
-  // face painting on the kids' carpet (owner request 2026-10-28), mirror against the carpet's back edge
-  { ...base, id: "face-paint", kind: "face-paint", level: "ground", x: KIDS_CARPET.xMin + 0.6, z: KIDS_CARPET.zMin + 0.3, rotY: 0 },
+  // face painting under the stairs (owner 2026-10-29: in place of the small desk), mirror against the right wall,
+  // the child's stool facing the kids' carpet
+  { ...base, id: "face-paint", kind: "face-paint", level: "ground", x: UNDER_STAIR.xMax - 0.2, z: (UNDER_STAIR.zMin + UNDER_STAIR.zMax) / 2, rotY: -Math.PI / 2 },
   { ...base, id: "events-board", kind: "events-board", level: "ground", x: EVENTS_BOARD.x, z: EVENTS_BOARD.z, rotY: EVENTS_BOARD.heading },
   ...FOOTBALLS_TABLES.map((t) => ({ ...base, id: t.id, kind: "footballs-table" as const, level: "upper", x: t.x, z: t.z, rotY: 0 })),
   { ...base, id: "gray-sofa", kind: "gray-sofa", level: "upper", x: GRAY_SOFA.x, z: GRAY_SOFA.z, rotY: -Math.PI / 2, length: GRAY_SOFA.length },

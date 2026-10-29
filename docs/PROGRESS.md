@@ -1,5 +1,13 @@
 # Progress Log
 
+## 2026-10-29 (37) — 3D world: face-painting table under the stairs (owner request)
+
+- Owner (two phone screenshots): «این میز گریم ببر زیر پله ها جای اون میز». The face-painting table now stands under
+  the stairs in place of the small wooden desk (desk and its collider removed); the two grey poufs moved onto the
+  kids' carpet in front of it. A layout saved in the editor keeps the new spot unless the table was moved there.
+- Verified: `pnpm check` ✓ (392) · `pnpm build` ✓ · smoke 84/84 · world suites on this site: mini-games 55/55,
+  bounds 9/9, accessibility 30/30.
+
 ## 2026-10-29 (36) — Shop page wider than the phone screen (owner screenshot)
 
 - On phones `/shop` was 2697 px wide (screen 390 px), so the browser zoomed out/in. Cause: the mobile category row

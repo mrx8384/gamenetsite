@@ -79,9 +79,13 @@ export const COUNTER = { xMin: 2.9, xMax: 3.5, zMin: 1.2, zMax: 5.0, height: 1.0
 export const SHELF = { xMin: 4.1, xMax: HALL.halfWidth, zMin: 2.4, zMax: 4.9, height: 2.0 } as const;
 export const FRIDGE = { xMin: 3.85, xMax: HALL.halfWidth, zMin: 1.35, zMax: 2.1, height: 1.95 } as const;
 
-/** Kids' carpet beside / under the staircase and the small desk under the stairs. */
+/** Kids' carpet beside / under the staircase. */
 export const KIDS_CARPET = { xMin: 1.5, xMax: 3.3, zMin: -3.8, zMax: -0.5 } as const;
-export const UNDER_STAIR_DESK = { xMin: 3.55, xMax: 4.4, zMin: -3.6, zMax: -2.6, height: 0.75 } as const;
+/**
+ * The spot under the stairs. It held a small wooden desk; the owner put the face-painting table there
+ * instead (2026-10-29), as a movable item (environments/amusement/items.ts).
+ */
+export const UNDER_STAIR = { xMin: 3.55, xMax: 4.4, zMin: -3.6, zMax: -2.6 } as const;
 
 /** Wooden folding table + chair near the front right. */
 export const FOLDING_TABLE = { x: 3.2, z: 7.6, size: 0.8 } as const;
@@ -199,7 +203,6 @@ export function buildGroundFloorColliders({ stairsOpen = true }: { stairsOpen?: 
     box([COUNTER.xMin, 0, COUNTER.zMin], [COUNTER.xMax, COUNTER.height, COUNTER.zMax], "furniture", false),
     box([SHELF.xMin, 0, SHELF.zMin], [SHELF.xMax, SHELF.height, SHELF.zMax], "furniture", false),
     box([FRIDGE.xMin, 0, FRIDGE.zMin], [FRIDGE.xMax, FRIDGE.height, FRIDGE.zMax], "furniture", false),
-    box([UNDER_STAIR_DESK.xMin, 0, UNDER_STAIR_DESK.zMin], [UNDER_STAIR_DESK.xMax, UNDER_STAIR_DESK.height, UNDER_STAIR_DESK.zMax], "furniture", false),
   );
 
   out.push(...buildStairColliders());
