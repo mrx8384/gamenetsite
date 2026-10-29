@@ -139,6 +139,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 - Under Cache Components `dynamicParams` is unavailable; unknown dynamic params render the 404 UI with HTTP 200 (+ noindex). Use a `proxy.ts` check if a real 404 status is needed.
 - shadcn's online registry is blocked in the dev environment, so UI components are written by hand in shadcn style under `src/components/ui` (same structure, `radix-ui` package).
 - Text colors: never white on atomic green. Use black on green (`bg-primary`), `text-link` (deep green `#00703C`) for links. Enforced by `tests/unit/brand-contrast.test.ts`.
+- A grid that contains a horizontal scroller (`overflow-x-auto` chip rows, thumbnails, brackets) needs `grid-cols-1` on mobile and `minmax(0,1fr)` (not `1fr`) in arbitrary templates, otherwise the page grows wider than the phone screen (PROGRESS 36).
 - Mark LTR snippets (emails, phones, codes, URLs) with the `ltr` class or `dir="ltr"`.
 - Scripts: `pnpm check` (typecheck + lint + tests), `pnpm build`, `pnpm db:migrate`, `pnpm maintenance`, `pnpm test:e2e`.
 - Iranian servers can't reach binaries.prisma.sh: `scripts/prisma-generate.mjs` (postinstall/build) and `scripts/migrate.mjs` (`pnpm db:deploy`, direct-SQL fallback recorded in `_prisma_migrations`) work without Prisma's engine download.

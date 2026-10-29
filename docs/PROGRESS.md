@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-10-29 (36) — Shop page wider than the phone screen (owner screenshot)
+
+- On phones `/shop` was 2697 px wide (screen 390 px), so the browser zoomed out/in. Cause: the mobile category row
+  (`overflow-x-auto`) sits in a grid with no explicit column; an implicit `auto` column grows to the row's full
+  min-content width. Fix: `grid-cols-1` (= `minmax(0,1fr)`) + `min-w-0` on the aside. Same pattern fixed on the product
+  page (gallery thumbnails), account layout (account menu) and tournament page.
+- Rule for new layouts: a grid holding a horizontal scroller needs `grid-cols-1` on mobile and `minmax(0,1fr)` instead of
+  `1fr` in arbitrary column templates.
+- Verified: reproduced with 10 temporary `[TEST]` categories (2697 → 390 px at 390 px width, screenshot checked; removed
+  afterwards) · `pnpm check` ✓ (392) · `pnpm build` ✓ · smoke 84/84. The smoke test's mobile-overflow check exists but
+  only catches this when the database has categories.
+
 ## 2026-10-28 (36) — 3D world: «گریم صورت» face-painting mini-game (owner request)
 
 - Owner (screenshot of the kids' carpet): «بیا اینجا یک مینی گیم گریم صورت هم اضافه کن». Synced from gameatom (phase 21):

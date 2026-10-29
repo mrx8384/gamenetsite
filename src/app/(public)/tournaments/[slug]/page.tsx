@@ -71,7 +71,7 @@ async function TournamentContent({ params }: { params: Promise<{ slug: string }>
 
       <TournamentBoard t={t} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Participants t={t} />
         {t.description || t.rules ? (
           <Card>

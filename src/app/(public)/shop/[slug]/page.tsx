@@ -97,7 +97,7 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
         ) : null}
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
         <ProductGallery images={product.images} title={product.title} />
         <div className="space-y-6">
           <div className="space-y-2">
@@ -143,7 +143,7 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
 
 function ProductSkeleton() {
   return (
-    <div className="grid gap-8 lg:grid-cols-2" role="status" aria-label="در حال بارگذاری">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2" role="status" aria-label="در حال بارگذاری">
       <Skeleton className="aspect-square rounded-2xl" />
       <div className="space-y-4">
         <Skeleton className="h-8 w-3/4" />
