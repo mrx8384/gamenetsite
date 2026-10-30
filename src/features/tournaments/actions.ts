@@ -9,6 +9,7 @@ import { fail, isUniqueViolation, ok, RATE_LIMIT_ERROR, zodFieldErrors, type Act
 import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { slugify } from "@/lib/text";
+import { BULK_MAX_LINES, parseBulkNames, participantKey } from "./bulk";
 import { RESERVED_SLUGS } from "./constants";
 import { canCreateTournament, manageableTournament } from "./permissions";
 import { participantNameSchema, scoreSchema, tournamentSchema } from "./schemas";
@@ -172,6 +173,64 @@ export async function addParticipant(tournamentId: string, name: unknown): Promi
   }
   changed(user.id, "participant_added", tournamentId, { name: n.data });
   return ok(undefined, "شرکت‌کننده اضافه شد.");
+}
+
+export interface BulkAddResult {
+  added: number;
+  /** Names already in the tournament or repeated in the pasted list. */
+  duplicates: string[];
+  invalid: string[];
+  /** Names left out because the tournament became full. */
+  overCapacity: string[];
+}
+
+/** Adds many manual participants at once (one name per line), appended in list order. */
+export async function addParticipantsBulk(tournamentId: string, text: unknown): Promise<ActionResult<BulkAddResult>> {
+  const user = await actor();
+  const r = await editableParticipants(user, tournamentId);
+  if (!user || "error" in r) return fail(r.error ?? DENIED);
+  if (typeof text !== "string" || text.length > BULK_MAX_LINES * 70) return fail("فهرست نام‌ها خیلی طولانی است.");
+  const { names, repeated } = parseBulkNames(text);
+  if (names.length === 0) return fail("هیچ نامی وارد نشده است.");
+  if (names.length > BULK_MAX_LINES) return fail(`حداکثر ${BULK_MAX_LINES.toLocaleString("fa-IR")} نام در هر بار.`);
+
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const n of names) {
+    const v = participantNameSchema.safeParse(n);
+    if (v.success) valid.push(v.data);
+    else invalid.push(n);
+  }
+
+  const result = await db.$transaction(async (tx) => {
+    // Same lock as bracket changes: parallel adds can't exceed capacity or reuse a seed.
+    await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
+    const t = await tx.tournament.findUnique({ where: { id: tournamentId }, select: { status: true, maxParticipants: true } });
+    if (!t || (t.status !== "DRAFT" && t.status !== "REGISTRATION")) return null;
+    const existing = await tx.tournamentParticipant.findMany({ where: { tournamentId }, select: { name: true, seed: true } });
+    const taken = new Set(existing.map((p) => participantKey(p.name)));
+    let seed = existing.reduce((m, p) => Math.max(m, p.seed), 0);
+    const free = t.maxParticipants ? Math.max(0, t.maxParticipants - existing.length) : Infinity;
+    const duplicates = [...repeated];
+    const toAdd: string[] = [];
+    const overCapacity: string[] = [];
+    for (const n of valid) {
+      if (taken.has(participantKey(n))) duplicates.push(n);
+      else if (toAdd.length >= free) overCapacity.push(n);
+      else {
+        taken.add(participantKey(n));
+        toAdd.push(n);
+      }
+    }
+    if (toAdd.length) await tx.tournamentParticipant.createMany({ data: toAdd.map((name) => ({ tournamentId, name, seed: ++seed })) });
+    return { added: toAdd.length, duplicates, invalid, overCapacity };
+  });
+  if (!result) return fail("بعد از شروع تورنومنت، فهرست شرکت‌کنندگان قفل است.");
+  if (result.added) changed(user.id, "participants_bulk_added", tournamentId, { count: result.added });
+  const fa = (n: number) => n.toLocaleString("fa-IR");
+  const skipped = result.duplicates.length + result.invalid.length + result.overCapacity.length;
+  const message = result.added ? `${fa(result.added)} شرکت‌کننده اضافه شد.${skipped ? ` ${fa(skipped)} نام اضافه نشد.` : ""}` : "هیچ نام جدیدی اضافه نشد.";
+  return ok(result, message);
 }
 
 async function renumber(tournamentId: string, orderedIds: string[]) {

@@ -3,13 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Ban, ExternalLink, Megaphone, Play, RotateCcw, Shuffle, Trash2, Undo2, UserPlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Ban, ExternalLink, ListPlus, Megaphone, Play, RotateCcw, Shuffle, Trash2, Undo2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   addParticipant,
+  addParticipantsBulk,
+  type BulkAddResult,
   deleteTournament,
   moveParticipant,
   removeParticipant,
@@ -18,6 +21,7 @@ import {
   shuffleParticipants,
   startTournament,
 } from "@/features/tournaments/actions";
+import { BULK_MAX_LINES, parseBulkNames } from "@/features/tournaments/bulk";
 import type { TournamentStatusKey } from "@/features/tournaments/constants";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -101,6 +105,7 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
   return (
     <div className="space-y-4">
       {editable ? (
+        <>
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -111,6 +116,8 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
           <Input aria-label="نام شرکت‌کننده" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="نام بازیکن (ثبت‌نام حضوری)" />
           <Button type="submit" variant="strong" disabled={!name.trim() || pending}><UserPlus /> افزودن</Button>
         </form>
+        <BulkAdd tournamentId={tournamentId} free={max ? Math.max(0, max - participants.length) : null} />
+        </>
       ) : (
         <p className="text-xs text-muted-foreground">بعد از شروع تورنومنت، فهرست شرکت‌کنندگان قفل است.</p>
       )}
@@ -139,6 +146,76 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
           ))}
         </ol>
       )}
+    </div>
+  );
+}
+
+/** Paste a list of names (one per line) and add them all at once. */
+function BulkAdd({ tournamentId, free }: { tournamentId: string; free: number | null }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [text, setText] = React.useState("");
+  const [report, setReport] = React.useState<BulkAddResult | null>(null);
+  const [pending, startTransition] = React.useTransition();
+  const fa = (n: number) => n.toLocaleString("fa-IR");
+  const { names, repeated } = React.useMemo(() => parseBulkNames(text), [text]);
+  const tooMany = names.length > BULK_MAX_LINES;
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <ListPlus /> افزودن دسته‌جمعی
+      </Button>
+    );
+  }
+
+  const submit = () =>
+    startTransition(async () => {
+      const res = await addParticipantsBulk(tournamentId, text);
+      if (!res.ok) return void toast.error(res.error);
+      if (res.data.added) toast.success(res.message);
+      else toast.warning(res.message);
+      setReport(res.data);
+      // Names worth fixing and retrying stay in the box; added ones and duplicates are removed.
+      setText([...res.data.invalid, ...res.data.overCapacity].join("\n"));
+      router.refresh();
+    });
+
+  return (
+    <div className="space-y-3 rounded-xl border bg-secondary/40 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-bold">افزودن دسته‌جمعی</p>
+        <Button variant="ghost" size="icon-sm" aria-label="بستن افزودن دسته‌جمعی" onClick={() => { setOpen(false); setReport(null); }}><X /></Button>
+      </div>
+      <Textarea
+        aria-label="فهرست نام بازیکنان"
+        value={text}
+        onChange={(e) => { setText(e.target.value); setReport(null); }}
+        rows={7}
+        placeholder={"هر نام در یک خط، مثلاً:\nارش\nامیر\nسینا"}
+        disabled={pending}
+      />
+      <p className="text-xs text-muted-foreground">
+        هر نام در یک خط (یا جدا با «،»). شماره یا علامت اول خط مثل «۱.» یا «-» خودکار حذف می‌شود و نام‌های تکراری اضافه نمی‌شوند.
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={tooMany ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+          {fa(names.length)} نام
+          {repeated.length ? ` (${fa(repeated.length)} تکراری حذف می‌شود)` : ""}
+          {free !== null ? ` — ظرفیت خالی: ${fa(free)}` : ""}
+          {tooMany ? ` — حداکثر ${fa(BULK_MAX_LINES)} نام در هر بار` : ""}
+        </span>
+        <Button variant="strong" size="sm" loading={pending} disabled={names.length === 0 || tooMany || free === 0} onClick={submit}>
+          <ListPlus /> افزودن {names.length ? `${fa(names.length)} نفر` : ""}
+        </Button>
+      </div>
+      {report && report.duplicates.length + report.invalid.length + report.overCapacity.length > 0 ? (
+        <ul className="space-y-1 rounded-lg border bg-surface p-3 text-xs" aria-live="polite">
+          {report.duplicates.length ? <li><span className="font-bold">تکراری (اضافه نشد):</span> {report.duplicates.join("، ")}</li> : null}
+          {report.invalid.length ? <li className="text-destructive"><span className="font-bold">نام نامعتبر (۲ تا ۶۰ حرف):</span> {report.invalid.join("، ")}</li> : null}
+          {report.overCapacity.length ? <li className="text-destructive"><span className="font-bold">ظرفیت تکمیل شد، اضافه نشد:</span> {report.overCapacity.join("، ")}</li> : null}
+        </ul>
+      ) : null}
     </div>
   );
 }

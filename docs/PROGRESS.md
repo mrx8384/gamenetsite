@@ -1,5 +1,19 @@
 # Progress Log
 
+## 2026-10-30 (37) — Tournaments: bulk add participants (owner request)
+
+- «افزودن دسته‌جمعی» under the single-add form (admin and partner tournament pages): paste names, one per line (also
+  «،» / «;»); list markers like «۱.» «2)» «-» «•» are stripped, names starting with digits («50 Cent») kept. Live count,
+  repeats and free capacity shown before sending.
+- `addParticipantsBulk` (`src/features/tournaments/actions.ts`): same permission/lock rules as single add, one transaction
+  with the tournament row lock (`FOR UPDATE`) so capacity and seeds stay correct; appended in list order. Duplicates
+  (vs. existing participants or within the list) compared by `participantKey()` — spacing, case and Arabic/Persian letter
+  variants ignored. Reports added / duplicate / invalid / over-capacity names; invalid and over-capacity names stay in the
+  box for fixing. Audit `tournaments.participants_bulk_added`. Pure parser in `src/features/tournaments/bulk.ts`.
+- Verified: `pnpm check` ✓ (396, new `tests/unit/tournament-bulk.test.ts`) · `pnpm build` ✓ · smoke 84/84 · browser test
+  at phone width with a temporary `[TEST]` admin and tournament (capacity 8, 1 existing, 12 pasted lines → 7 added, 2
+  duplicates, 1 invalid, 2 over capacity; page 390 px wide); test admin, tournament and audit rows removed.
+
 ## 2026-10-29 (38) — 3D world: machines room behind the hall, gaming-center stairs by station 5 (owner requests)
 
 - «این در هم وردار که به صورت مستقیم بشه رفت داخل بخش ماشین آلات»: the construction-machines room now stands right
