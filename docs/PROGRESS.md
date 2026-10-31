@@ -22,7 +22,7 @@
   new user created + signed in + sent to `next`; second sign-in reused the account; existing site email linked
   instead of duplicated; wrong state, unverified email, nonce mismatch and a refused code → login page with the
   right message; the token request carried PKCE verifier and redirect URI. Test users removed.
-- Owner: create the OAuth client (DEPLOYMENT env table) and put the two values in `.env`.
+- Live: the owner created the OAuth client, set both values in `.env` (a missing `=` after `GOOGLE_CLIENT_ID` was the only hiccup) and signed in with Google on www.atomgclub.ir.
 
 ## 2026-10-31 (42) — Hide/show site sections (owner request)
 
