@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { MailTestForm } from "@/components/admin/settings/mail-test-form";
 import { SmsTestForm } from "@/components/admin/settings/sms-test-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
 import { requireRole } from "@/lib/auth/dal";
+import { smsCodesAvailable } from "@/features/auth/verification";
 import { env } from "@/lib/env";
 
-export const metadata: Metadata = { title: "پیامک" };
+export const metadata: Metadata = { title: "پیامک و ایمیل" };
 
 export default function SmsSettingsPage() {
   return (
@@ -30,6 +32,8 @@ async function Content() {
   await requireRole(["ADMIN"], "/admin/settings/sms");
   // Only non-secret facts are shown; the API key itself never leaves the server.
   const live = env.SMS_PROVIDER === "smsir";
+  const mailLive = env.MAIL_PROVIDER === "smtp";
+  const smtpHost = env.SMTP_HOST ? `${env.SMTP_HOST}:${env.SMTP_PORT}` : env.SMTP_URL ? new URL(env.SMTP_URL).host : null;
   return (
     <div className="space-y-6">
       <Card>
@@ -46,6 +50,20 @@ async function Content() {
       <Card>
         <CardHeader><CardTitle className="text-base">ارسال پیامک آزمایشی</CardTitle></CardHeader>
         <CardContent><SmsTestForm /></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">وضعیت ایمیل (از فایل ‎.env‎ سرور)</CardTitle></CardHeader>
+        <CardContent className="divide-y">
+          <Row label="ارسال واقعی ایمیل (MAIL_PROVIDER)" value={mailLive ? "smtp — فعال" : "log — غیرفعال"} good={mailLive} />
+          <Row label="سرور SMTP" value={smtpHost ?? "تنظیم نشده"} good={!!smtpHost} />
+          <Row label="رمز صندوق ایمیل" value={env.SMTP_PASSWORD || env.SMTP_URL ? "تنظیم شده" : "تنظیم نشده"} good={!!(env.SMTP_PASSWORD || env.SMTP_URL)} />
+          <Row label="کد تأیید برای شمارهٔ موبایل" value={smsCodesAvailable() ? "فعال" : "غیرفعال — فقط با ایمیل"} good={smsCodesAvailable()} />
+          <p className="pt-3 text-xs leading-6 text-muted-foreground">تا وقتی پیامک فعال نیست، ثبت‌نام، ورود با کد و بازیابی رمز فقط با ایمیل انجام می‌شود و به کسی که شمارهٔ موبایل وارد کند همین را می‌گوییم. ورود با رمز عبور برای همه کار می‌کند.</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">ارسال ایمیل آزمایشی</CardTitle></CardHeader>
+        <CardContent><MailTestForm /></CardContent>
       </Card>
     </div>
   );

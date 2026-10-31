@@ -29,8 +29,15 @@ const envSchema = z.object({
   SMS_SUPPORT_STAFF_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   SMS_SUPPORT_REPLY_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   MAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
-  SMTP_URL: z.string().optional(),
-  MAIL_FROM: z.string().optional(),
+  /** Either SMTP_URL (smtps://user:pass@host:465, password URL-encoded) or the separate SMTP_* values below. */
+  SMTP_URL: z.preprocess(emptyToUndefined, z.string().optional()),
+  SMTP_HOST: z.preprocess(emptyToUndefined, z.string().optional()),
+  /** 465 = TLS from the start (default), 587 = STARTTLS. */
+  SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().default(465)),
+  SMTP_USER: z.preprocess(emptyToUndefined, z.string().optional()),
+  SMTP_PASSWORD: z.preprocess(emptyToUndefined, z.string().optional()),
+  /** Sender shown to users, e.g. "اتم گیم کلاب <info@atomgclub.ir>". Defaults to SMTP_USER. */
+  MAIL_FROM: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -47,6 +54,9 @@ function loadEnv(): Env {
   }
   if (env.SMS_PROVIDER === "smsir" && (!env.SMS_API_KEY || !env.SMS_TEMPLATE_ID)) {
     throw new Error("SMS_PROVIDER=smsir requires SMS_API_KEY and SMS_TEMPLATE_ID");
+  }
+  if (env.MAIL_PROVIDER === "smtp" && !env.SMTP_URL && !(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD)) {
+    throw new Error("MAIL_PROVIDER=smtp requires SMTP_URL or SMTP_HOST + SMTP_USER + SMTP_PASSWORD");
   }
   if (env.NODE_ENV === "production") {
     if (env.SMS_PROVIDER === "log") console.warn("[env] SMS_PROVIDER=log in production: SMS will not be sent.");

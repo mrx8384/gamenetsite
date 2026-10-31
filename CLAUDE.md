@@ -37,7 +37,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Gamepad Tester live (2026-10-23): **done**.
 - Tournament system (Challonge-style, owner request 2026-10-23): **done** — see PROGRESS 17.
 - Online support chat (owner request 2026-10-25): **done** — see PROGRESS 20. FAQ suggestions (no external AI): **done** — PROGRESS 25. SMS needs two new SMS.ir templates (DEPLOYMENT §1).
-- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://www.atomgclub.ir (Iranian server; ArvanCloud redirects the apex to www, so `APP_URL` must be the www origin, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox.
+- Hosting: the owner's cPanel host has only MySQL → not used (see PROGRESS 14). Local install was cancelled by the owner (deploy to a server instead). Live at https://www.atomgclub.ir (Iranian server; ArvanCloud redirects the apex to www, so `APP_URL` must be the www origin, HTTPS via ArvanCloud CDN — DEPLOYMENT §5b). Waiting on the owner for: payment gateway details, SMTP mailbox values in `.env` (SMTP sending is implemented; until SMS is live, codes go by email only — PROGRESS 38).
 - 3D world «دنیای سه‌بعدی اتم» (owner request 2026-10-26: merge it, show only one button): **done** — `/atom-world` + world editor `/atom-world/admin` (site ADMIN login), homepage hero button «ورود به دنیای سه‌بعدی اتم گیم». See `docs/ATOM_WORLD.md`, PROGRESS 27. Built in `mrx8384/gameatom`; copy updates from there (all of `src/atom-world/` except `server/adminAuth.ts`).
 - 3D world points & discount cards (owner request 2026-10-27): **done** — points per round (capped) and per achievement on site accounts, cards bought with points, in-store code check and online checkout code, all set in Admin → دستاوردها و جوایز. See `docs/GAME_REWARDS.md`, PROGRESS 29. Points/cards change only via `src/features/game-rewards/service.ts` (user row lock); never trust client stats without `computeRound`.
 - Technical SEO (owner request 2026-10-28): **done** — public pages use `pageMetadata()` from `src/lib/seo.ts` (canonical + full OG); new public pages must too, and go into `src/app/sitemap.ts`. PROGRESS 35.
@@ -69,6 +69,7 @@ Detailed log: `docs/PROGRESS.md`. Plan: `docs/ROADMAP.md`.
 | Auth | **Custom database sessions** (per the official Next.js auth guide) instead of Auth.js — see ARCHITECTURE §2. argon2id (`@node-rs/argon2`) |
 | Validation / forms | Zod 4, React Hook Form 7 + `@hookform/resolvers` |
 | Toasts | sonner |
+| Email | nodemailer 10 (SMTP, `src/lib/notify/mail.ts`) — the mailer planned in ARCHITECTURE §6, added 2026-10-31 |
 | Rich text | Tiptap 3.31 (StarterKit, Image, TextAlign, Placeholder). Editor emits JSON; server sanitizes (`src/lib/rich-text/sanitize.ts`) and renders HTML with `@tiptap/html/server` — raw HTML from clients is never stored |
 | 3D world | three.js 0.186 + @react-three/fiber 9.8 (only in `src/atom-world`, loaded only on `/atom-world`); CSS modules, no Tailwind |
 | Tests | Vitest 4 (unit, `tests/unit`), `playwright-core` + `@axe-core/playwright` read-only smoke test (`tests/e2e/smoke.mjs`, `pnpm test:e2e`; Chromium at `/opt/pw-browsers/chromium` in the dev container via `CHROMIUM_PATH`) |

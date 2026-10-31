@@ -167,7 +167,7 @@ Tokens (CSS variables → Tailwind theme):
 
 ### Email provider recommendation
 
-- Use an **SMTP mailbox on the site's own domain from the Iranian host** (most Iranian hosting plans include email), e.g. `no-reply@<domain>`, sent via `nodemailer` (added in Phase 5 behind the `Mailer` interface).
+- Use an **SMTP mailbox on the site's own domain from the Iranian host** (most Iranian hosting plans include email), e.g. `no-reply@<domain>`, sent via `nodemailer` (`src/lib/notify/mail.ts`, implemented 2026-10-31: plain text + RTL HTML, 15/20 s timeouts, errors never include the password).
 - Avoid foreign transactional services (SendGrid, Mailgun, Resend, ...): account approval and delivery from Iran are unreliable because of sanctions.
 - Configure SPF, DKIM and DMARC on the domain so emails don't land in spam.
 - SMS is the primary channel for Iranian users (login codes, recovery); email is the secondary channel.

@@ -1,5 +1,23 @@
 # Progress Log
 
+## 2026-10-31 (38) — Email codes instead of SMS (owner request: «بجای sms.ir از ایمیل استفاده کنیم»)
+
+- SMTP sending implemented (`src/lib/notify/mail.ts`, dependency `nodemailer` 10.3.1 — the planned mailer, see
+  ARCHITECTURE §6): settings as `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD` (easier for the owner, no URL
+  encoding) or one `SMTP_URL`; 465 = TLS, 587 = STARTTLS required; bounded timeouts; plain text + right-to-left HTML;
+  errors carry the SMTP step/code but never the password. Env check refuses `MAIL_PROVIDER=smtp` without credentials.
+- While SMS is not live in production (`smsCodesAvailable()` in `src/features/auth/verification.ts`), registration,
+  login-by-code, password reset and profile mobile change refuse mobile numbers with a clear message pointing to email;
+  password login keeps working. Development still logs SMS codes.
+- Admin → تنظیمات سایت → «پیامک و ایمیل»: email status (host, password set or not, whether mobile codes work) and a
+  test-email form (`src/features/mail/test-actions.ts`, ADMIN only, 5 per 10 min, audit `mail.test_sent/failed`).
+- Verified: `pnpm check` ✓ (400, new `tests/unit/mail.test.ts`) · `pnpm build` ✓ · smoke 84/84 · production server
+  against a local SMTP test server requiring login (password with `@ : /`): mobile sign-up refused with the message,
+  email sign-up got the code (sender, subject, RTL HTML checked), entering it created the account; wrong password →
+  error within 20 s without the password in it. Test users/codes removed.
+- Owner: create a mailbox (e.g. `info@atomgclub.ir`) on the cPanel host, add its MX/SPF/DKIM records in ArvanCloud, put
+  the SMTP values in the server `.env`, restart, send a test email.
+
 ## 2026-10-30 (37) — Tournaments: bulk add participants (owner request)
 
 - «افزودن دسته‌جمعی» under the single-add form (admin and partner tournament pages): paste names, one per line (also

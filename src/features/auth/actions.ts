@@ -18,11 +18,18 @@ import {
   requestCodeSchema,
   resetPasswordSchema,
 } from "./schemas";
-import { issueCode, RESEND_COOLDOWN_SECONDS, verifyCode, type IssueResult, type VerifyResult } from "./verification";
+import { issueCode, RESEND_COOLDOWN_SECONDS, smsCodesAvailable, verifyCode, type IssueResult, type VerifyResult } from "./verification";
 
 type CodeSent = { masked: string; cooldownSeconds: number };
 
 const userWhere = (id: Identifier) => (id.kind === "email" ? { email: id.value } : { phone: id.value });
+
+/** Shown while SMS is not live: codes can only go to email. */
+const SMS_OFF = {
+  login: "ارسال کد با پیامک فعلاً فعال نیست. با رمز عبور یا با ایمیل حساب خود وارد شوید.",
+  register: "ثبت‌نام با شمارهٔ موبایل فعلاً ممکن نیست (پیامک فعال نشده). لطفاً با ایمیل ثبت‌نام کنید.",
+  reset: "بازیابی رمز با پیامک فعلاً فعال نیست. اگر ایمیل در حسابتان ثبت است، ایمیل را وارد کنید؛ وگرنه با پشتیبانی تماس بگیرید.",
+} as const;
 
 function issueError(result: Exclude<IssueResult, { ok: true }>): ActionResult<never> {
   if (result.reason === "cooldown") {
@@ -77,6 +84,7 @@ export async function requestLoginCode(input: unknown): Promise<ActionResult<Cod
   const parsed = requestCodeSchema.safeParse(input);
   if (!parsed.success) return fail("اطلاعات وارد شده معتبر نیست.", zodFieldErrors(parsed.error.issues));
   const id = parseIdentifier(parsed.data.identifier)!;
+  if (id.kind === "phone" && !smsCodesAvailable()) return fail(SMS_OFF.login, { identifier: SMS_OFF.login });
   const { ip } = await getRequestInfo();
 
   const [byIp, byTarget] = await Promise.all([rateLimit(`otp:ip:${ip}`, 10, 60 * 60), rateLimit(`otp:id:${id.value}`, 5, 60 * 60)]);
@@ -125,6 +133,7 @@ export async function startRegistration(input: unknown): Promise<ActionResult<Co
   const parsed = registerStartSchema.safeParse(input);
   if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
   const id = parseIdentifier(parsed.data.identifier)!;
+  if (id.kind === "phone" && !smsCodesAvailable()) return fail(SMS_OFF.register, { identifier: SMS_OFF.register });
   const { ip } = await getRequestInfo();
 
   const [byIp, byTarget] = await Promise.all([rateLimit(`register:ip:${ip}`, 10, 60 * 60), rateLimit(`otp:id:${id.value}`, 5, 60 * 60)]);
@@ -179,6 +188,7 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
   const parsed = requestCodeSchema.safeParse(input);
   if (!parsed.success) return fail("اطلاعات وارد شده معتبر نیست.", zodFieldErrors(parsed.error.issues));
   const id = parseIdentifier(parsed.data.identifier)!;
+  if (id.kind === "phone" && !smsCodesAvailable()) return fail(SMS_OFF.reset, { identifier: SMS_OFF.reset });
   const { ip } = await getRequestInfo();
 
   const [byIp, byTarget] = await Promise.all([rateLimit(`reset:ip:${ip}`, 10, 60 * 60), rateLimit(`otp:id:${id.value}`, 5, 60 * 60)]);

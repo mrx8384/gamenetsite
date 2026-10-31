@@ -25,6 +25,14 @@ function codeHash(purpose: VerificationPurpose, target: string, code: string) {
 export type IssueResult = { ok: true } | { ok: false; reason: "cooldown"; retryAfterSeconds: number } | { ok: false; reason: "send_failed" };
 
 /** Creates a new code (invalidating older ones for the same target/purpose) and sends it. */
+/**
+ * Whether codes can go out by SMS. In production with SMS_PROVIDER=log nobody would receive them,
+ * so mobile numbers are refused with a hint to use email instead (development keeps the log).
+ */
+export function smsCodesAvailable(): boolean {
+  return env.SMS_PROVIDER === "smsir" || env.NODE_ENV !== "production";
+}
+
 export async function issueCode(id: Identifier, purpose: VerificationPurpose, userId: string | null): Promise<IssueResult> {
   const last = await db.verificationCode.findFirst({
     where: { target: id.value, purpose },

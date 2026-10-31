@@ -18,7 +18,7 @@ No external CDN, font or script is used at runtime, so the site works on Iranian
 | `SMS_TEMPLATE_ID` / `SMS_TEMPLATE_PARAM` | `490537` / `CODE` |
 | `SMS_SUPPORT_STAFF_TEMPLATE_ID` | Optional. SMS.ir verify template with `#NAME#`, e.g. «پیام جدید پشتیبانی اتم از #NAME#». Sent to the number in Admin → تنظیمات سایت → پشتیبانی آنلاین (max once per conversation per 15 min). Unset → no SMS. |
 | `SMS_SUPPORT_REPLY_TEMPLATE_ID` | Optional. Template with `#NAME#`, e.g. «#NAME# عزیز، پشتیبانی اتم گیم کلاب به پیام شما پاسخ داد.» Sent to customers who are not on the site when staff replies (users without a mobile get an email instead). |
-| `MAIL_PROVIDER` | `log` until an SMTP mailbox exists, then `smtp` + `SMTP_URL` + `MAIL_FROM` |
+| `MAIL_PROVIDER` | `log` until an SMTP mailbox exists, then `smtp` + `SMTP_HOST`, `SMTP_PORT` (465/587), `SMTP_USER`, `SMTP_PASSWORD` (or one `SMTP_URL` with URL-encoded credentials) and optional `MAIL_FROM`. Test from Admin → تنظیمات سایت → پیامک و ایمیل. While `SMS_PROVIDER=log`, codes go by email only (mobile numbers get a clear message; password login still works). |
 | `PAYMENT_PROVIDER` | `disabled` until the real gateway is implemented. `sandbox` is refused in production. |
 
 ```bash

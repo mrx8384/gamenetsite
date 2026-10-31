@@ -12,7 +12,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { toPersianDigits } from "@/lib/format";
 import { changePasswordSchema, contactChangeSchema, contactConfirmSchema, profileSchema } from "@/features/auth/schemas";
-import { issueCode, RESEND_COOLDOWN_SECONDS, verifyCode } from "@/features/auth/verification";
+import { issueCode, RESEND_COOLDOWN_SECONDS, verifyCode, smsCodesAvailable } from "@/features/auth/verification";
 
 const LOGIN_REQUIRED = "برای ادامه وارد حساب کاربری شوید.";
 
@@ -73,6 +73,10 @@ export async function requestContactChange(input: unknown): Promise<ActionResult
   });
   if (taken) return fail("این مورد برای حساب دیگری ثبت شده است.", { identifier: "این مورد برای حساب دیگری ثبت شده است." });
 
+  if (id.kind === "phone" && !smsCodesAvailable()) {
+    const msg = "تأیید شمارهٔ موبایل با پیامک فعلاً فعال نیست.";
+    return fail(msg, { identifier: msg });
+  }
   const result = await issueCode(id, id.kind === "phone" ? "VERIFY_PHONE" : "VERIFY_EMAIL", s.user.id);
   if (!result.ok) {
     return fail(

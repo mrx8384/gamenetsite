@@ -13,7 +13,7 @@ const tabs = [
   { href: "/admin/settings/partners", label: "همکاران" },
   { href: "/admin/settings/tournaments", label: "تورنومنت" },
   { href: "/admin/settings/support", label: "پشتیبانی آنلاین" },
-  { href: "/admin/settings/sms", label: "پیامک" },
+  { href: "/admin/settings/sms", label: "پیامک و ایمیل" },
 ];
 
 export function SettingsTabs() {
