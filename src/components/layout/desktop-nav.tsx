@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isActivePath, mainNav } from "@/lib/nav";
+import { isActivePath, type NavItem } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-export function DesktopNav() {
-  return <DesktopNavLinks pathname={usePathname()} />;
+export function DesktopNav({ items }: { items: NavItem[] }) {
+  return <DesktopNavLinks items={items} pathname={usePathname()} />;
 }
 
 /** Presentational links; `pathname = null` renders without an active item (static fallback). */
-export function DesktopNavLinks({ pathname }: { pathname: string | null }) {
+export function DesktopNavLinks({ items, pathname }: { items: NavItem[]; pathname: string | null }) {
   return (
     <nav aria-label="منوی اصلی" className="hidden lg:block">
       <ul className="flex items-center gap-1">
-        {mainNav.map((item) => {
+        {items.map((item) => {
           const active = pathname !== null && isActivePath(pathname, item.href);
           return (
             <li key={item.href}>

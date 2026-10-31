@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { SectionGate } from "@/components/layout/section-gate";
+import { Suspense } from "react";
 import { AtomWorldLoader } from "@/atom-world/AtomWorldLoader";
 
 export const metadata: Metadata = {
@@ -19,6 +21,17 @@ export const viewport: Viewport = {
   themeColor: "#050605",
 };
 
-export default function AtomWorldPage() {
+function AtomWorldPageContent() {
   return <AtomWorldLoader />;
+}
+
+/** Hidden from visitors when the admin turns the 3D world off (Admin → تنظیمات سایت → نمایش بخش‌ها). */
+export default function AtomWorldPage() {
+  return (
+    <Suspense fallback={null}>
+      <SectionGate section="atomWorld">
+        <AtomWorldPageContent />
+      </SectionGate>
+    </Suspense>
+  );
 }

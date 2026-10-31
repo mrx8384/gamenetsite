@@ -7,6 +7,7 @@ import { connection } from "next/server";
 import { ArrowRight, CalendarDays, Gift, Ticket, Users } from "lucide-react";
 import { TournamentBoard } from "@/components/tournaments/board";
 import { LiveRefresh, RegistrationBox } from "@/components/tournaments/public-widgets";
+import { SectionGate } from "@/components/layout/section-gate";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/tournaments/[slug
   return pageMetadata({ title, description: `تورنومنت ${t.game} — ${FORMAT_LABELS[t.format]} — برگزارکننده: ${t.organizerName}. جدول مسابقات، نتایج و ثبت‌نام.`, path: seoPath("tournaments", t.slug) });
 }
 
-export default function TournamentPage({ params }: PageProps<"/tournaments/[slug]">) {
+function TournamentPageContent({ params }: PageProps<"/tournaments/[slug]">) {
   return (
     <Container className="py-8 sm:py-12">
       <Link href="/tournaments" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowRight className="size-4" /> تورنومنت‌ها</Link>
@@ -117,5 +118,16 @@ function Participants({ t }: { t: TournamentView }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Hidden from visitors when the admin turns the section off (Admin → تنظیمات سایت → نمایش بخش‌ها). */
+export default function TournamentPage(props: PageProps<"/tournaments/[slug]">) {
+  return (
+    <Suspense fallback={null}>
+      <SectionGate section="tournaments">
+        <TournamentPageContent {...props} />
+      </SectionGate>
+    </Suspense>
   );
 }

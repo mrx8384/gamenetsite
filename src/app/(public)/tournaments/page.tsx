@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { CalendarDays, Gamepad, Trophy, Users } from "lucide-react";
+import { SectionGate } from "@/components/layout/section-gate";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { formatDateTime, formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = pageMetadata({ title: "تورنومنت‌های FC و گیمینگ", description: "ثبت‌نام آنلاین در تورنومنت‌های FC و بازی‌های دیگر در اتم گیم کلاب و گیم‌نت‌های همکار؛ جدول مسابقات و نتایج زنده.", path: "/tournaments" });
 
-export default async function TournamentsPage() {
+async function TournamentsPageContent() {
   const t = await getSiteSettings("tournaments");
   return (
     <Container className="space-y-8 py-8 sm:py-12">
@@ -76,5 +77,16 @@ async function TournamentSections({ empty }: { empty: string }) {
         </section>
       ))}
     </div>
+  );
+}
+
+/** Hidden from visitors when the admin turns the section off (Admin → تنظیمات سایت → نمایش بخش‌ها). */
+export default function TournamentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SectionGate section="tournaments">
+        <TournamentsPageContent />
+      </SectionGate>
+    </Suspense>
   );
 }

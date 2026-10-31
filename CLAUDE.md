@@ -44,6 +44,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Contracted organizations strip (owner request 2026-10-31): **done** — homepage under «درباره اتم», managed in Admin → تنظیمات سایت → سازمان‌های طرف قرارداد (`src/features/organizations/`). New media relations must also be added to `deleteUnusedMedia` and `scripts/maintenance.ts`. PROGRESS 39.
 - Featured products order (Admin → تنظیمات سایت → فروش, `Product.featuredSort`) and contact-page Google map (`mapLocation` setting, `src/lib/map-location.ts`): **done** — PROGRESS 40.
 - «شهربازی اتم گیم» page `/amusement-park` (owner request 2026-10-31): **done** — `ParkAttraction` sections + settings group `park`, managed in Admin → تنظیمات سایت → شهربازی اتم گیم (`src/features/park/`). PROGRESS 41.
+- Hide/show sections (owner request 2026-10-31): **done** — Admin → تنظیمات سایت → نمایش بخش‌ها; new public sections must get a `SectionGate`, a key in `sections-schema.ts`, and respect `getSectionVisibility()` on the homepage/menus/sitemap. PROGRESS 42.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

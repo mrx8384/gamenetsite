@@ -24,7 +24,18 @@ function Orbits() {
   );
 }
 
-export function Hero({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+export function Hero({
+  eyebrow,
+  title,
+  subtitle,
+  show = { catalog: true, shop: true, atomWorld: true },
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  /** Buttons of sections hidden in Admin → تنظیمات سایت → نمایش بخش‌ها are left out. */
+  show?: { catalog: boolean; shop: boolean; atomWorld: boolean };
+}) {
   return (
     <section className="relative overflow-hidden">
       <div
@@ -40,23 +51,29 @@ export function Hero({ eyebrow, title, subtitle }: { eyebrow: string; title: str
           <h1 className="text-4xl leading-[1.35] font-black sm:text-5xl lg:text-[3.4rem]">{title}</h1>
           <p className="mx-auto max-w-xl text-lg leading-9 text-muted-foreground lg:mx-0">{subtitle}</p>
           <div className="flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-            <Button asChild size="lg">
-              <Link href="/game-catalog">
-                <Gamepad2 /> کاتالوگ بازی‌ها
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="strong">
-              <Link href="/shop">
-                <ShoppingBag /> ورود به فروشگاه
-              </Link>
-            </Button>
+            {show.catalog ? (
+              <Button asChild size="lg">
+                <Link href="/game-catalog">
+                  <Gamepad2 /> کاتالوگ بازی‌ها
+                </Link>
+              </Button>
+            ) : null}
+            {show.shop ? (
+              <Button asChild size="lg" variant="strong">
+                <Link href="/shop">
+                  <ShoppingBag /> ورود به فروشگاه
+                </Link>
+              </Button>
+            ) : null}
             {/* The 3D world (src/atom-world), full screen. A plain link on purpose: a full page load gives the
                 world its own security policy (next.config.ts) and a fresh page for WebGL; nothing is prefetched. */}
-            <Button asChild size="lg" variant="outline">
-              <a href="/atom-world">
-                <Box /> ورود به دنیای سه‌بعدی اتم گیم
-              </a>
-            </Button>
+            {show.atomWorld ? (
+              <Button asChild size="lg" variant="outline">
+                <a href="/atom-world">
+                  <Box /> ورود به دنیای سه‌بعدی اتم گیم
+                </a>
+              </Button>
+            ) : null}
           </div>
         </div>
         <div className="relative mx-auto aspect-square w-full max-w-[22rem] sm:max-w-[26rem]">

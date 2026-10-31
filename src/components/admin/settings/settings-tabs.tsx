@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const tabs = [
+  { href: "/admin/settings/sections", label: "نمایش بخش‌ها" },
   { href: "/admin/settings", label: "فروش" },
   { href: "/admin/settings/home", label: "صفحهٔ اصلی" },
   { href: "/admin/settings/about", label: "درباره ما" },

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cacheLife } from "next/cache";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { getSectionVisibility } from "@/features/settings/sections";
+import { visibleLinks } from "@/features/settings/sections-schema";
 import { getSiteSettings } from "@/features/settings/site";
 import { siteConfig } from "@/lib/brand";
 import { toPersianDigits } from "@/lib/format";
@@ -24,7 +26,7 @@ const serviceLinks = [
 ];
 
 export async function SiteFooter() {
-  const [general, contact] = await Promise.all([getSiteSettings("general"), getSiteSettings("contact")]);
+  const [general, contact, visibility] = await Promise.all([getSiteSettings("general"), getSiteSettings("contact"), getSectionVisibility()]);
   const hasContact = contact.phone || contact.mobile || contact.email || contact.address || contact.hours;
   return (
     <footer className="mt-auto bg-brand-black text-brand-cream">
@@ -40,8 +42,8 @@ export async function SiteFooter() {
           <p className="max-w-sm text-sm leading-7 text-brand-cream/70">{general.footerDescription}</p>
           <p className="text-xs text-brand-cream/50">{general.footerSince}</p>
         </div>
-        <FooterColumn title="دسترسی سریع" links={mainNav} />
-        <FooterColumn title="خدمات" links={serviceLinks} />
+        <FooterColumn title="دسترسی سریع" links={visibleLinks(mainNav, visibility)} />
+        <FooterColumn title="خدمات" links={visibleLinks(serviceLinks, visibility)} />
         <div>
           <p className="mb-4 text-sm font-bold">ارتباط با ما</p>
           {hasContact ? (

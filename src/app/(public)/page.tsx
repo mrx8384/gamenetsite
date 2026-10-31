@@ -10,6 +10,7 @@ import { PartnerServices } from "@/components/home/partner-services";
 import { SectionHeading } from "@/components/home/section-heading";
 import { TournamentBand } from "@/components/home/tournament-band";
 import { Container } from "@/components/layout/container";
+import { getSectionVisibility } from "@/features/settings/sections";
 import { getSiteSettings } from "@/features/settings/site";
 import { env } from "@/lib/env";
 import { toEnglishDigits } from "@/lib/format";
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const SOCIAL_KEYS = ["instagram", "telegram", "whatsapp", "eitaa", "bale", "aparat", "youtube"] as const;
 
 export default async function HomePage() {
-  const [c, contact, general] = await Promise.all([getSiteSettings("home"), getSiteSettings("contact"), getSiteSettings("general")]);
+  const [c, contact, general, show] = await Promise.all([getSiteSettings("home"), getSiteSettings("contact"), getSiteSettings("general"), getSectionVisibility()]);
   const origin = new URL(env.APP_URL).origin;
   const phone = toEnglishDigits(contact.phone || contact.mobile).replace(/[^\d+]/g, "");
   const sameAs = SOCIAL_KEYS.map((k) => contact[k]).filter(Boolean);
@@ -54,26 +55,32 @@ export default async function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
-      <Hero eyebrow={c.heroEyebrow} title={c.heroTitle} subtitle={c.heroSubtitle} />
+      <Hero eyebrow={c.heroEyebrow} title={c.heroTitle} subtitle={c.heroSubtitle} show={{ catalog: show.gameCatalog, shop: show.shop, atomWorld: show.atomWorld }} />
 
-      <Container className="py-14 sm:py-20">
-        <SectionHeading title={c.shopTitle} subtitle={c.shopSubtitle} href="/shop" />
-        <Suspense fallback={<ProductGridSkeleton />}>
-          <FeaturedProducts />
-        </Suspense>
-      </Container>
-
-      <section className="border-y bg-secondary/50">
+      {/* Each block follows Admin → تنظیمات سایت → نمایش بخش‌ها. */}
+      {show.shop ? (
         <Container className="py-14 sm:py-20">
-          <SectionHeading title={c.catalogTitle} subtitle={c.catalogSubtitle} href="/game-catalog" />
-          <Suspense fallback={<CatalogPreviewSkeleton />}>
-            <CatalogPreview />
+          <SectionHeading title={c.shopTitle} subtitle={c.shopSubtitle} href="/shop" />
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <FeaturedProducts />
           </Suspense>
         </Container>
-      </section>
+      ) : null}
 
-      <TournamentBand title={c.tournamentsTitle} subtitle={c.tournamentsSubtitle} />
+      {show.gameCatalog ? (
+        <section className="border-y bg-secondary/50">
+          <Container className="py-14 sm:py-20">
+            <SectionHeading title={c.catalogTitle} subtitle={c.catalogSubtitle} href="/game-catalog" />
+            <Suspense fallback={<CatalogPreviewSkeleton />}>
+              <CatalogPreview />
+            </Suspense>
+          </Container>
+        </section>
+      ) : null}
 
+      {show.tournaments ? <TournamentBand title={c.tournamentsTitle} subtitle={c.tournamentsSubtitle} /> : null}
+
+      {show.partners ? (
       <Container className="py-14 sm:py-20">
         <PartnerServices
           title={c.partnersTitle}
@@ -85,19 +92,24 @@ export default async function HomePage() {
           ]}
         />
       </Container>
+      ) : null}
 
-      <section className="border-y bg-secondary/50">
+      {show.news ? (
+        <section className="border-y bg-secondary/50">
+          <Container className="py-14 sm:py-20">
+            <SectionHeading title={c.newsTitle} subtitle={c.newsSubtitle} href="/news" />
+            <Suspense fallback={<NewsGridSkeleton />}>
+              <LatestNews />
+            </Suspense>
+          </Container>
+        </section>
+      ) : null}
+
+      {show.about ? (
         <Container className="py-14 sm:py-20">
-          <SectionHeading title={c.newsTitle} subtitle={c.newsSubtitle} href="/news" />
-          <Suspense fallback={<NewsGridSkeleton />}>
-            <LatestNews />
-          </Suspense>
+          <AboutTeaser title={c.aboutTitle} body={c.aboutBody} />
         </Container>
-      </section>
-
-      <Container className="py-14 sm:py-20">
-        <AboutTeaser title={c.aboutTitle} body={c.aboutBody} />
-      </Container>
+      ) : null}
 
       {/* No placeholder: the section is often empty and then renders nothing. */}
       <Suspense fallback={null}>

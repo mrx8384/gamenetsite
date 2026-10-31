@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-10-31 (42) — Hide/show site sections (owner request)
+
+- Admin → تنظیمات سایت → «نمایش بخش‌ها» (`/admin/settings/sections`, ADMIN only): switches for shop, game catalog,
+  tournaments, amusement park, news, partners, about and the 3D world (contact always on). Stored in
+  `site_settings` key `sections` (`src/features/settings/sections*.ts`, cached under the `settings` tag; default all on).
+- A hidden section: removed from header, hamburger menu, footer (`visibleLinks`), homepage blocks and hero buttons,
+  park-page 3D buttons and the sitemap; its pages show the 404 page to visitors (`SectionGate` in section layouts, and
+  per page for tournaments so `/tournaments/gamepad-tester` stays open for partners); admins still see the pages with a
+  «مخفی است» notice. Hiding the shop also hides the cart button and closes sales (`isSalesOpen`), so cart/checkout
+  actions refuse too. The partner panel `/partner` stays available. Nothing is deleted.
+- Verified: `pnpm check` ✓ (417, new `tests/unit/sections.test.ts`) · `pnpm build` ✓ · smoke 89/89 · browser test with a
+  `[TEST]` admin: hiding shop + news + partners removed them from desktop/mobile/footer menus, homepage blocks, hero
+  button and sitemap; `/shop`, `/news`, `/partners`, `/cart` → 404 for visitors while `/contact` and the gamepad tester
+  stayed; admin saw `/news` with the notice; switching back restored everything. Test settings and admin removed.
+
 ## 2026-10-31 (41) — «شهربازی اتم گیم» page (owner request)
 
 - New public page `/amusement-park` (menu item «شهربازی اتم گیم» in header, hamburger menu and footer; in the sitemap;

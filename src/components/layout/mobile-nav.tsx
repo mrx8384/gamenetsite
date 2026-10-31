@@ -9,7 +9,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { overlayClassName } from "@/components/ui/dialog";
 import { siteConfig } from "@/lib/brand";
-import { isActivePath, mainNav } from "@/lib/nav";
+import { isActivePath, type NavItem } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 /** Static placeholder shown until the client knows the current path. */
@@ -22,7 +22,7 @@ export function MobileNavFallback() {
 }
 
 /** Slide-in menu from the start (right) edge for screens below `lg`. */
-export function MobileNav() {
+export function MobileNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -52,7 +52,7 @@ export function MobileNav() {
           <DialogPrimitive.Description className="sr-only">پیوندهای اصلی سایت</DialogPrimitive.Description>
           <nav aria-label="منوی موبایل" className="flex-1 overflow-y-auto p-3">
             <ul className="space-y-1">
-              {mainNav.map((item) => {
+              {items.map((item) => {
                 const active = isActivePath(pathname, item.href);
                 return (
                   <li key={item.href}>

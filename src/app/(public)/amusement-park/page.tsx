@@ -8,6 +8,7 @@ import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveAttractions, type PublicAttraction } from "@/features/park/queries";
+import { getSectionVisibility } from "@/features/settings/sections";
 import { getSiteSettings } from "@/features/settings/site";
 import { toPersianDigits } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
@@ -73,7 +74,7 @@ export default function AmusementParkPage() {
 
 async function ParkContent() {
   await connection();
-  const [t, items, contact] = await Promise.all([getSiteSettings("park"), getActiveAttractions(), getSiteSettings("contact")]);
+  const [t, items, contact, show] = await Promise.all([getSiteSettings("park"), getActiveAttractions(), getSiteSettings("contact"), getSectionVisibility()]);
   return (
     <>
       <section className="relative overflow-hidden border-b">
@@ -91,9 +92,11 @@ async function ParkContent() {
             {t.intro ? <p className="mx-auto max-w-xl leading-9 whitespace-pre-line text-muted-foreground lg:mx-0">{t.intro}</p> : null}
             <div className="flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
               {/* Plain link: the 3D world needs a full page load (own CSP, fresh WebGL page). */}
-              <Button asChild size="lg">
-                <a href="/atom-world"><Box /> ورود به دنیای سه‌بعدی اتم گیم</a>
-              </Button>
+              {show.atomWorld ? (
+                <Button asChild size="lg">
+                  <a href="/atom-world"><Box /> ورود به دنیای سه‌بعدی اتم گیم</a>
+                </Button>
+              ) : null}
               <Button asChild size="lg" variant="outline">
                 <Link href="/contact"><MapPin /> نشانی و مسیریابی</Link>
               </Button>
@@ -139,6 +142,7 @@ async function ParkContent() {
         </Container>
       ) : null}
 
+      {show.atomWorld ? (
       <Container className="py-14 sm:py-20">
         <div className="relative overflow-hidden rounded-3xl bg-brand-black px-6 py-12 text-center text-brand-cream sm:px-12">
           <div aria-hidden className="pointer-events-none absolute inset-0 [background:radial-gradient(45%_70%_at_15%_20%,color-mix(in_oklab,var(--brand-green)_35%,transparent),transparent_70%),radial-gradient(40%_60%_at_90%_90%,color-mix(in_oklab,var(--brand-yellow)_25%,transparent),transparent_70%)]" />
@@ -151,6 +155,9 @@ async function ParkContent() {
           </div>
         </div>
       </Container>
+      ) : (
+        <div className="pb-8" />
+      )}
     </>
   );
 }
