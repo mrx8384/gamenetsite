@@ -1,5 +1,21 @@
 # Progress Log
 
+## 2026-10-31 (44) — Delete accounts + automatic removal of inactive accounts (owner request)
+
+- Admin → کاربران → row menu «حذف حساب» (`deleteUser`, ADMIN only): permanent delete after a confirm dialog that lists
+  what goes with it (sessions, addresses, cart, support chats, points/cards — all `onDelete: Cascade`; audit/media/
+  tournament links become null). Refused for: own account, admins, partners/partner profiles, and anyone with orders
+  (`Order.user` is `Restrict`; sales records are kept → «غیرفعال کردن» instead). Rules in
+  `src/features/users/cleanup.ts` (`deletionBlocker`). Audit `users.deleted` keeps name/email/phone of the removed account.
+- «حذف خودکار حساب‌های بدون فعالیت» card on Admin → کاربران: off / 6 / 12 / 24 / 36 months (setting `accounts`),
+  live preview of how many accounts the period removes now. `pnpm maintenance` (daily cron) deletes at most 500 per
+  night: role USER only, created before the cutoff, no login and no session use since, no orders, no partner profile
+  (`inactiveUsersWhere`); audit `users.auto_deleted` with the count. `--dry-run` reports only. Off by default.
+- Verified: `pnpm check` ✓ (431, new `tests/unit/user-cleanup.test.ts`) · `pnpm build` ✓ · smoke 89/89 · maintenance
+  with six `[TEST]` accounts and 12 months: exactly the two inactive ordinary accounts deleted; the ones with an order,
+  a session used 3 days ago, the SUPPORT account and the recently active one kept · browser: delete of a user with an
+  order refused with the message; SUPPORT account deleted after confirm; cleanup preview «۱ حساب» and save. Test data removed.
+
 ## 2026-10-31 (43) — «ادامه با گوگل» (Google sign-in, owner request)
 
 - Owner checked from the server: `oauth2.googleapis.com` and `openidconnect.googleapis.com` reachable (400/401).

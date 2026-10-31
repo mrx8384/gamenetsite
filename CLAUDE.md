@@ -46,6 +46,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - «شهربازی اتم گیم» page `/amusement-park` (owner request 2026-10-31): **done** — `ParkAttraction` sections + settings group `park`, managed in Admin → تنظیمات سایت → شهربازی اتم گیم (`src/features/park/`). PROGRESS 41.
 - Hide/show sections (owner request 2026-10-31): **done** — Admin → تنظیمات سایت → نمایش بخش‌ها; new public sections must get a `SectionGate`, a key in `sections-schema.ts`, and respect `getSectionVisibility()` on the homepage/menus/sitemap. PROGRESS 42.
 - «ادامه با گوگل» (2026-10-31): **done and live** (owner set the OAuth client and signed in successfully on www.atomgclub.ir) — `src/features/auth/google*.ts`, `/api/auth/google(/callback)`, model `OAuthAccount`. PROGRESS 43.
+- Account deletion by admin + optional automatic removal of inactive accounts (owner request 2026-10-31): **done** — `src/features/users/cleanup.ts`, Admin → کاربران, `pnpm maintenance`. Accounts with orders are never deleted. PROGRESS 44.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, Users } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { InactiveCleanupForm } from "@/components/admin/inactive-cleanup-form";
 import { UserRowActions } from "@/components/admin/user-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { EmptyState, LoadingRows } from "@/components/ui/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireRole } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
+import { ACCOUNTS_SETTINGS_KEY, accountsSettingsSchema, deletionBlocker } from "@/features/users/cleanup";
 import { formatDate, formatNumber, toEnglishDigits } from "@/lib/format";
 
 export const metadata: Metadata = { title: "کاربران" };
@@ -27,7 +29,7 @@ type Search = { q?: string; role?: string; status?: string; page?: string };
 export default function UsersPage({ searchParams }: PageProps<"/admin/users">) {
   return (
     <>
-      <AdminPageHeader title="کاربران" description="جست‌وجو، تغییر نقش، غیرفعال‌سازی و مدیریت نشست‌های کاربران." />
+      <AdminPageHeader title="کاربران" description="جست‌وجو، تغییر نقش، غیرفعال‌سازی، حذف و مدیریت نشست‌های کاربران." />
       <Suspense fallback={<LoadingRows rows={8} />}>
         <UsersTable searchParams={searchParams as Promise<Search>} />
       </Suspense>
@@ -57,16 +59,22 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
       : {}),
   };
 
-  const [total, users] = await Promise.all([
+  const [total, users, accountsRow] = await Promise.all([
     db.user.count({ where }),
     db.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true, createdAt: true, lastLoginAt: true },
+      select: {
+        id: true, name: true, email: true, phone: true, role: true, isActive: true, createdAt: true, lastLoginAt: true,
+        _count: { select: { orders: true } },
+        partnerProfile: { select: { id: true } },
+      },
     }),
+    db.siteSetting.findUnique({ where: { key: ACCOUNTS_SETTINGS_KEY } }),
   ]);
+  const inactiveMonths = accountsSettingsSchema.safeParse(accountsRow?.value ?? {}).data?.inactiveDeleteMonths ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const qs = (p: number) => {
     const params = new URLSearchParams();
@@ -80,6 +88,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
 
   return (
     <div className="space-y-4">
+      <InactiveCleanupForm initial={inactiveMonths} />
       {/* Plain GET form: works without JavaScript and keeps filters in the URL. */}
       <form className="grid gap-3 rounded-xl border bg-surface p-4 sm:grid-cols-[1fr_160px_160px_auto]" role="search">
         <div className="relative">
@@ -140,7 +149,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
                 <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(u.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">{u.lastLoginAt ? formatDate(u.lastLoginAt) : "—"}</TableCell>
                 <TableCell>
-                  <UserRowActions user={{ id: u.id, name: u.name, role: u.role, isActive: u.isActive }} isSelf={u.id === admin.id} />
+                  <UserRowActions user={{ id: u.id, name: u.name, role: u.role, isActive: u.isActive }} isSelf={u.id === admin.id} deleteBlocker={deletionBlocker({ role: u.role, orderCount: u._count.orders, hasPartnerProfile: !!u.partnerProfile })} />
                 </TableCell>
               </TableRow>
             ))}

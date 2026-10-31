@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Handshake, Headset, LogOut, MoreHorizontal, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
+import { Handshake, Headset, LogOut, MoreHorizontal, ShieldCheck, Trash2, UserCheck, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { revokeAllUserSessions, setUserActive, setUserRole } from "@/features/users/actions";
+import { deleteUser, revokeAllUserSessions, setUserActive, setUserRole } from "@/features/users/actions";
 import type { ActionResult } from "@/lib/action-result";
 
 type Role = "ADMIN" | "USER" | "PARTNER" | "SUPPORT";
@@ -29,7 +29,16 @@ interface PendingAction {
   run: () => Promise<ActionResult<undefined>>;
 }
 
-export function UserRowActions({ user, isSelf }: { user: { id: string; name: string; role: Role; isActive: boolean }; isSelf: boolean }) {
+export function UserRowActions({
+  user,
+  isSelf,
+  deleteBlocker,
+}: {
+  user: { id: string; name: string; role: Role; isActive: boolean };
+  isSelf: boolean;
+  /** Why the account can't be deleted (orders, partner, admin), or null. */
+  deleteBlocker: string | null;
+}) {
   const router = useRouter();
   const [pending, setPending] = React.useState<PendingAction | null>(null);
 
@@ -107,6 +116,24 @@ export function UserRowActions({ user, isSelf }: { user: { id: string; name: str
             }
           >
             <LogOut /> خروج از همهٔ دستگاه‌ها
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            destructive
+            disabled={isSelf}
+            onSelect={() =>
+              deleteBlocker
+                ? toast.error(deleteBlocker)
+                : setPending({
+                    title: "حذف همیشگی حساب؟",
+                    description: `حساب «${user.name}» برای همیشه حذف می‌شود؛ همراه با نشانی‌ها، سبد خرید، گفت‌وگوهای پشتیبانی، امتیازها و کارت‌های تخفیفش. این کار برگشت ندارد. اگر فقط می‌خواهید دیگر وارد نشود، «غیرفعال کردن» را بزنید.`,
+                    confirmLabel: "حذف همیشگی",
+                    destructive: true,
+                    run: () => deleteUser(user.id),
+                  })
+            }
+          >
+            <Trash2 /> حذف حساب
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

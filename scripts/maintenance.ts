@@ -7,7 +7,7 @@
  *
  * Routine: expired sessions, old one-time codes, finished rate-limit windows, expired guest carts,
  * unpaid orders past their payment window (stock returned), ACTIVE subscriptions past their end
- * date → EXPIRED.
+ * date → EXPIRED; accounts without activity for the period set in Admin → کاربران (off by default).
  */
 import { readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -57,6 +57,28 @@ async function main() {
     async () => (await db.partnerSubscription.updateMany({ where: { status: "ACTIVE", endsAt: { lt: now } }, data: { status: "EXPIRED" } })).count,
     () => db.partnerSubscription.count({ where: { status: "ACTIVE", endsAt: { lt: now } } }),
   );
+
+  // «حذف خودکار حساب‌های بدون فعالیت» (Admin → کاربران). Off unless the admin chose a period.
+  {
+    const { ACCOUNTS_SETTINGS_KEY, accountsSettingsSchema, inactiveCutoff, inactiveUsersWhere } = await import("../src/features/users/cleanup");
+    const row = await db.siteSetting.findUnique({ where: { key: ACCOUNTS_SETTINGS_KEY } });
+    const months = accountsSettingsSchema.safeParse(row?.value ?? {}).data?.inactiveDeleteMonths ?? 0;
+    if (months > 0) {
+      const where = inactiveUsersWhere(inactiveCutoff(months, now));
+      await count(
+        "inactiveAccountsDeleted",
+        async () => {
+          // At most 500 a night, so a wrong setting can be noticed and changed before much is removed.
+          const ids = (await db.user.findMany({ where, select: { id: true }, orderBy: { createdAt: "asc" }, take: 500 })).map((u) => u.id);
+          if (ids.length === 0) return 0;
+          const { count: n } = await db.user.deleteMany({ where: { AND: [where, { id: { in: ids } }] } });
+          await db.auditLog.create({ data: { action: "users.auto_deleted", entity: "user", meta: { count: n, months } } });
+          return n;
+        },
+        () => db.user.count({ where }),
+      );
+    }
+  }
 
   if (pruneMedia) {
     const { uploadRoot } = await import("../src/features/media/storage");
