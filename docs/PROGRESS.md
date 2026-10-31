@@ -1,5 +1,29 @@
 # Progress Log
 
+## 2026-10-31 (43) — «ادامه با گوگل» (Google sign-in, owner request)
+
+- Owner checked from the server: `oauth2.googleapis.com` and `openidconnect.googleapis.com` reachable (400/401).
+- OAuth 2.0 authorization-code flow with PKCE (S256), `state` and `nonce`, no new dependency:
+  `GET /api/auth/google` (flow values in a 10-min httpOnly SameSite=Lax cookie scoped to `/api/auth/google`, `next`
+  through `safeRedirectPath`) → Google → `GET /api/auth/google/callback` (state compared in constant time, code
+  exchanged server-to-server with the client secret, ID token claims checked: issuer, audience, expiry, nonce,
+  verified email — `src/features/auth/google-claims.ts`). Both routes call `connection()` so they are never
+  prerendered (a first build had cached the «disabled» redirect).
+- Accounts (`src/features/auth/google.ts`, model `OAuthAccount`, migration `oauth_accounts`): linked Google account →
+  that user; else the user with the same email gets linked (email verified by Google; site emails are verified at
+  sign-up); else a new USER with a random unusable password (a real one can be set with «فراموشی رمز»). Inactive
+  users refused. Rate limit 20 / 15 min per IP, audit `auth.login`/`auth.register` with `method: google`, cart merge
+  via `createSession`.
+- UI: «ادامه با گوگل» button + «یا» divider on `/login` and `/register`, rendered per request only when
+  `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set (restart is enough); `/login?error=google_*` messages.
+- Verified: `pnpm check` ✓ (426, new `tests/unit/google-claims.test.ts`) · `pnpm build` ✓ · smoke 89/89 · without the
+  env vars the button is absent and the route redirects to `?error=google_disabled` · end-to-end on the production
+  build with Google's token endpoint stubbed in a test-only `--import` preload (Google is blocked in the sandbox):
+  new user created + signed in + sent to `next`; second sign-in reused the account; existing site email linked
+  instead of duplicated; wrong state, unverified email, nonce mismatch and a refused code → login page with the
+  right message; the token request carried PKCE verifier and redirect URI. Test users removed.
+- Owner: create the OAuth client (DEPLOYMENT env table) and put the two values in `.env`.
+
 ## 2026-10-31 (42) — Hide/show site sections (owner request)
 
 - Admin → تنظیمات سایت → «نمایش بخش‌ها» (`/admin/settings/sections`, ADMIN only): switches for shop, game catalog,

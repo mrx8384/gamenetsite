@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
+import { GoogleSignIn } from "@/components/auth/google-sign-in";
 import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = { title: "ثبت‌نام", robots: { index: false } };
@@ -19,6 +21,9 @@ export default function RegisterPage() {
         </>
       }
     >
+      <Suspense fallback={null}>
+        <GoogleSignIn />
+      </Suspense>
       <RegisterForm />
     </AuthCard>
   );

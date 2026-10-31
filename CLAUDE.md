@@ -45,6 +45,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Featured products order (Admin → تنظیمات سایت → فروش, `Product.featuredSort`) and contact-page Google map (`mapLocation` setting, `src/lib/map-location.ts`): **done** — PROGRESS 40.
 - «شهربازی اتم گیم» page `/amusement-park` (owner request 2026-10-31): **done** — `ParkAttraction` sections + settings group `park`, managed in Admin → تنظیمات سایت → شهربازی اتم گیم (`src/features/park/`). PROGRESS 41.
 - Hide/show sections (owner request 2026-10-31): **done** — Admin → تنظیمات سایت → نمایش بخش‌ها; new public sections must get a `SectionGate`, a key in `sections-schema.ts`, and respect `getSectionVisibility()` on the homepage/menus/sitemap. PROGRESS 42.
+- «ادامه با گوگل» (2026-10-31): **done**, waiting for `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `.env` — `src/features/auth/google*.ts`, `/api/auth/google(/callback)`, model `OAuthAccount`. PROGRESS 43.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

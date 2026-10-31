@@ -42,6 +42,7 @@ model User {
   updatedAt       DateTime  @updatedAt
 
   sessions             Session[]
+  oauthAccounts        OAuthAccount[]
   addresses            Address[]
   verificationCodes    VerificationCode[]
   cart                 Cart?
@@ -1068,4 +1069,21 @@ model ParkAttraction {
 
   @@index([isActive, sortOrder])
   @@map("park_attractions")
+}
+
+/// Sign-in with an external provider («ادامه با گوگل», 2026-10-31). One row per provider account.
+model OAuthAccount {
+  id        String   @id @default(cuid())
+  provider  String   @db.VarChar(20)
+  /// The provider's stable user id (Google `sub`).
+  subject   String   @db.VarChar(255)
+  userId    String
+  email     String?  @db.VarChar(254)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("oauth_accounts")
 }

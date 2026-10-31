@@ -28,6 +28,9 @@ const envSchema = z.object({
   /** Optional SMS.ir templates for the support chat, each with the variable #NAME#. Unset → no SMS. */
   SMS_SUPPORT_STAFF_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   SMS_SUPPORT_REPLY_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+  /** «ادامه با گوگل»: OAuth client from Google Cloud Console. The button appears only when both are set. */
+  GOOGLE_CLIENT_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  GOOGLE_CLIENT_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
   MAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
   /** Either SMTP_URL (smtps://user:pass@host:465, password URL-encoded) or the separate SMTP_* values below. */
   SMTP_URL: z.preprocess(emptyToUndefined, z.string().optional()),
