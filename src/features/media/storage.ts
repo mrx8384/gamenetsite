@@ -22,7 +22,7 @@ export function uploadRoot(): string {
  */
 export async function storeImage(
   input: Buffer,
-  opts: { folder: "products" | "categories" | "news" | "catalog" | "organizations"; uploaderId: string | null; maxWidth?: number; originalName?: string },
+  opts: { folder: "products" | "categories" | "news" | "catalog" | "organizations" | "park"; uploaderId: string | null; maxWidth?: number; originalName?: string },
 ) {
   if (input.byteLength === 0) throw new UploadError("فایل خالی است.");
   if (input.byteLength > MAX_UPLOAD_BYTES) throw new UploadError("حجم هر تصویر باید حداکثر ۵ مگابایت باشد.");
@@ -71,7 +71,7 @@ export async function storeImage(
 export async function deleteUnusedMedia(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
   const unused = await db.media.findMany({
-    where: { id: { in: ids }, catalogGames: { none: {} }, productImages: { none: {} }, newsCovers: { none: {} }, categoryImages: { none: {} }, organizations: { none: {} } },
+    where: { id: { in: ids }, catalogGames: { none: {} }, productImages: { none: {} }, newsCovers: { none: {} }, categoryImages: { none: {} }, organizations: { none: {} }, parkAttractions: { none: {} } },
     select: { id: true, storageKey: true },
   });
   for (const m of unused) {

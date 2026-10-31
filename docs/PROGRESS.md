@@ -1,5 +1,23 @@
 # Progress Log
 
+## 2026-10-31 (41) — «شهربازی اتم گیم» page (owner request)
+
+- New public page `/amusement-park` (menu item «شهربازی اتم گیم» in header, hamburger menu and footer; in the sitemap;
+  `pageMetadata` with canonical). Design: hero with title/subtitle/intro, 3D-world and directions buttons and a photo
+  collage; chips linking to each section; alternating photo/text rows numbered ۰۱…; address/hours/phone strip from the
+  contact settings; dark call-to-action band to the 3D world. Sections without a photo get a branded placeholder.
+- Content: model `ParkAttraction` (migration `park_attractions`) seeded with 7 sections whose texts and photos come from
+  the 3D world (`src/atom-world/data/machineData.ts`, `public/atom-world/...`): گیم‌نت (PS5/PS4), ایرهاکی, فوت‌پول,
+  FOOTBALLS, RC کلاب, گریم صورت, پیشخوان و فروشگاه. Internal notes («محل … تأیید نشده», «توضیح … پس از تأیید») left out.
+- Admin → تنظیمات سایت → «شهربازی اتم گیم» (`/admin/settings/park`, ADMIN only): page texts (settings group `park`) +
+  sections list (add/edit/reorder/hide/delete, photo upload to folder `park`; an upload replaces the built-in photo,
+  «حذف عکس» removes both). Built-in photo paths are accepted only under `/atom-world/` (`staticImageUrl`). Uploaded
+  images are protected in `deleteUnusedMedia` and `pnpm maintenance --media`. Cache tag `park`.
+- Verified: `pnpm check` ✓ (413, new `tests/unit/park.test.ts`) · `pnpm build` ✓ · smoke 89/89 (page added) · browser:
+  390/1024/1366 px — 7 sections, no broken images, page width = screen, desktop menu stays one line, item in the
+  hamburger menu; admin edit of the title + new photo/description for «گریم صورت کودکان» showed on the page. Test edits,
+  upload and admin removed.
+
 ## 2026-10-31 (40) — Featured products order + shop location map (owner request)
 
 - **Featured order:** new `Product.featuredSort` (migration `featured_sort`, backfilled with today's order: newest edit

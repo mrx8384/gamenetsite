@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { storeImage, UploadError } from "./storage";
 
 const MAX_FILES = 1; // one image per request keeps the global body limit small
-const FOLDERS = ["products", "categories", "news", "catalog", "organizations"] as const;
+const FOLDERS = ["products", "categories", "news", "catalog", "organizations", "park"] as const;
 
 export type UploadedImage = { id: string; storageKey: string };
 

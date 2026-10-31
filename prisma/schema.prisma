@@ -185,6 +185,7 @@ model Media {
   newsCovers     NewsPost[]
   catalogGames   CatalogGame[]
   organizations  ContractOrganization[]
+  parkAttractions ParkAttraction[]
 
   @@index([sha256])
   @@map("media")
@@ -1048,4 +1049,23 @@ model ContractOrganization {
 
   @@index([isActive, sortOrder])
   @@map("contract_organizations")
+}
+
+/// Sections of the «شهربازی اتم گیم» page (owner request 2026-10-31). Managed in Admin → تنظیمات سایت → شهربازی.
+model ParkAttraction {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(120)
+  description String   @db.VarChar(2000)
+  imageId     String?
+  /// Built-in photo under /public/atom-world (starting content from the 3D world); an uploaded image replaces it.
+  staticImage String?  @db.VarChar(200)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  image Media? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, sortOrder])
+  @@map("park_attractions")
 }

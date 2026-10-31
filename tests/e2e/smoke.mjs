@@ -11,7 +11,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright-core";
 
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
-const PAGES = ["/", "/shop", "/news", "/game-catalog", "/game-catalog/ps4", "/game-catalog/ps5", "/partners", "/tournaments", "/tournaments/gamepad-tester", "/about", "/contact", "/cart", "/login", "/register", "/forgot-password"];
+const PAGES = ["/", "/shop", "/amusement-park", "/news", "/game-catalog", "/game-catalog/ps4", "/game-catalog/ps5", "/partners", "/tournaments", "/tournaments/gamepad-tester", "/about", "/contact", "/cart", "/login", "/register", "/forgot-password"];
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const failures = [];

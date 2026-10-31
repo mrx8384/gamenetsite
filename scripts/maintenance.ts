@@ -64,7 +64,7 @@ async function main() {
     const cutoff = new Date(now.getTime() - DAY); // never touch uploads from a form that is still open
     // Unreferenced rows: no relation and not used inside rich-text content (news posts, pages).
     const candidates = await db.media.findMany({
-      where: { createdAt: { lt: cutoff }, catalogGames: { none: {} }, productImages: { none: {} }, newsCovers: { none: {} }, categoryImages: { none: {} }, organizations: { none: {} } },
+      where: { createdAt: { lt: cutoff }, catalogGames: { none: {} }, productImages: { none: {} }, newsCovers: { none: {} }, categoryImages: { none: {} }, organizations: { none: {} }, parkAttractions: { none: {} } },
       select: { id: true, storageKey: true },
     });
     const unused: { id: string; storageKey: string }[] = [];

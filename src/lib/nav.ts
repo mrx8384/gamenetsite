@@ -8,6 +8,7 @@ export const mainNav: NavItem[] = [
   { href: "/shop", label: "فروشگاه" },
   { href: "/game-catalog", label: "کاتالوگ بازی‌ها" },
   { href: "/tournaments", label: "تورنومنت‌ها" },
+  { href: "/amusement-park", label: "شهربازی اتم گیم" },
   { href: "/news", label: "اخبار" },
   { href: "/partners", label: "همکاران" },
   { href: "/about", label: "درباره ما" },
