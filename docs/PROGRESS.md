@@ -1,5 +1,23 @@
 # Progress Log
 
+## 2026-10-31 (39) — «سازمان‌های طرف قرارداد» on the homepage (owner request)
+
+- New model `ContractOrganization` (migration `contract_organizations`): name, logo (Media, folder `organizations`,
+  max 600 px), optional description, contract terms and website, `showDetails`, `isActive`, `sortOrder`.
+- Admin → تنظیمات سایت → «سازمان‌های طرف قرارداد» (`/admin/settings/organizations`, ADMIN only): section title and
+  subtitle (new settings group `organizations`) + list with add/edit (logo upload), reorder, hide, delete
+  (`src/features/organizations/`; deleting/replacing a logo removes the unused file; logos counted as used by
+  `deleteUnusedMedia` and `pnpm maintenance --media`).
+- Homepage, under «درباره اتم» (`OrganizationsSection` + client `OrganizationsStrip`): one horizontal row; when the
+  logos don't fit, the list is rendered twice and drifts slowly (28 px/s, seamless wrap, faded edges); touch swipe,
+  mouse drag and wheel move it and pause the drift for 2.5 s (hover pauses too); reduced-motion → no drift; fits →
+  centred. Organizations with details open a dialog (logo, name, description, terms, website). No organizations →
+  the section is not rendered. Cached with tag `organizations`.
+- Verified: `pnpm check` ✓ (403, new `tests/unit/organizations.test.ts`) · `pnpm build` ✓ · smoke 84/84 with test
+  organizations on the homepage (incl. axe) · browser test with a temporary `[TEST]` admin: validation message, logo
+  upload, create with terms; homepage at 390 px and 1366 px: drift ≈ 28 px/s, page width = screen width, swipe holds
+  the row then drift resumes, dialog content correct. Test organizations, logo file and admin removed.
+
 ## 2026-10-31 (38) — Email codes instead of SMS (owner request: «بجای sms.ir از ایمیل استفاده کنیم»)
 
 - SMTP sending implemented (`src/lib/notify/mail.ts`, dependency `nodemailer` 10.3.1 — the planned mailer, see

@@ -184,6 +184,7 @@ model Media {
   categoryImages Category[]
   newsCovers     NewsPost[]
   catalogGames   CatalogGame[]
+  organizations  ContractOrganization[]
 
   @@index([sha256])
   @@map("media")
@@ -1024,4 +1025,25 @@ model RewardRedemption {
   @@index([cardId, userId, createdAt])
   @@index([status, createdAt])
   @@map("reward_redemptions")
+}
+
+/// «سازمان‌های طرف قرارداد» on the homepage (owner request 2026-10-31). Managed in Admin → تنظیمات سایت.
+model ContractOrganization {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(120)
+  logoId      String?
+  /// Optional details shown in a dialog when `showDetails` is on.
+  description String?  @db.VarChar(3000)
+  terms       String?  @db.VarChar(5000)
+  website     String?  @db.VarChar(300)
+  showDetails Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logo Media? @relation(fields: [logoId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, sortOrder])
+  @@map("contract_organizations")
 }

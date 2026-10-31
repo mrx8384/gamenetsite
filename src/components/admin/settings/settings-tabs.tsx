@@ -12,6 +12,7 @@ const tabs = [
   { href: "/admin/settings/general", label: "عمومی و فوتر" },
   { href: "/admin/settings/partners", label: "همکاران" },
   { href: "/admin/settings/tournaments", label: "تورنومنت" },
+  { href: "/admin/settings/organizations", label: "سازمان‌های طرف قرارداد" },
   { href: "/admin/settings/support", label: "پشتیبانی آنلاین" },
   { href: "/admin/settings/sms", label: "پیامک و ایمیل" },
 ];

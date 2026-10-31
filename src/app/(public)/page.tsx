@@ -5,6 +5,7 @@ import { CatalogPreview, CatalogPreviewSkeleton } from "@/components/home/catalo
 import { FeaturedProducts, ProductGridSkeleton } from "@/components/home/featured-products";
 import { Hero } from "@/components/home/hero";
 import { LatestNews, NewsGridSkeleton } from "@/components/home/latest-news";
+import { OrganizationsSection } from "@/components/home/organizations-section";
 import { PartnerServices } from "@/components/home/partner-services";
 import { SectionHeading } from "@/components/home/section-heading";
 import { TournamentBand } from "@/components/home/tournament-band";
@@ -94,6 +95,11 @@ export default async function HomePage() {
       <Container className="py-14 sm:py-20">
         <AboutTeaser title={c.aboutTitle} body={c.aboutBody} />
       </Container>
+
+      {/* No placeholder: the section is often empty and then renders nothing. */}
+      <Suspense fallback={null}>
+        <OrganizationsSection />
+      </Suspense>
     </>
   );
 }

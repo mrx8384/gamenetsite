@@ -254,3 +254,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Horizontal strips that scroll by swipe/drag without a visible scrollbar (organizations row). */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

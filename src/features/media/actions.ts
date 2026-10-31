@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { storeImage, UploadError } from "./storage";
 
 const MAX_FILES = 1; // one image per request keeps the global body limit small
-const FOLDERS = ["products", "categories", "news", "catalog"] as const;
+const FOLDERS = ["products", "categories", "news", "catalog", "organizations"] as const;
 
 export type UploadedImage = { id: string; storageKey: string };
 
@@ -29,7 +29,7 @@ export async function uploadImages(formData: FormData): Promise<ActionResult<Upl
   const uploaded: UploadedImage[] = [];
   for (const file of files) {
     try {
-      const media = await storeImage(Buffer.from(await file.arrayBuffer()), { folder, uploaderId: userId, originalName: file.name });
+      const media = await storeImage(Buffer.from(await file.arrayBuffer()), { folder, uploaderId: userId, originalName: file.name, maxWidth: folder === "organizations" ? 600 : undefined });
       uploaded.push({ id: media.id, storageKey: media.storageKey });
     } catch (e) {
       if (e instanceof UploadError) return fail(`«${file.name}»: ${e.message}`);
