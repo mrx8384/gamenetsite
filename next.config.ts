@@ -11,7 +11,7 @@ const isHttps = (process.env.APP_URL ?? "").startsWith("https://");
  * scripts, styles, fonts, frames or connections; the site cannot be framed; forms post only here.
  * User-generated HTML is sanitized on the server before it is stored (src/lib/rich-text).
  */
-const buildCsp = (world = false) => [
+const buildCsp = ({ world = false, map = false } = {}) => [
   "default-src 'self'",
   // 3D world only (`world`): 'wasm-unsafe-eval' lets its self-hosted model decoders (/atom-world/decoders)
   // compile WebAssembly — it does not allow JavaScript eval.
@@ -23,7 +23,9 @@ const buildCsp = (world = false) => [
   `connect-src 'self'${world ? " blob:" : ""}${isProd ? "" : " ws: wss:"}`,
   "media-src 'self'",
   "object-src 'none'",
-  "frame-src 'none'",
+  // Contact page only (`map`): the Google Maps embed of the shop location (owner request 2026-10-31).
+  // Embed URLs are always rebuilt on www.google.com by src/lib/map-location.ts.
+  `frame-src ${map ? "https://www.google.com" : "'none'"}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -33,7 +35,9 @@ const buildCsp = (world = false) => [
 ].join("; ");
 const csp = buildCsp();
 /** The 3D world's pages (/atom-world, /atom-world/admin): the same policy plus the two additions above. */
-const worldCsp = buildCsp(true);
+const worldCsp = buildCsp({ world: true });
+/** /contact: the same policy plus the Google Maps frame. */
+const contactCsp = buildCsp({ map: true });
 
 const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
@@ -68,6 +72,7 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Uploaded files (/media/...) send their own stricter policy ("default-src 'none'; sandbox").
       { source: "/((?!media/).*)", headers: [{ key: "Content-Security-Policy", value: csp }] },
+      { source: "/contact", headers: [{ key: "Content-Security-Policy", value: contactCsp }] },
       // 3D world (src/atom-world): later rules override the policy above for its pages only
       { source: "/atom-world", headers: [{ key: "Content-Security-Policy", value: worldCsp }] },
       { source: "/atom-world/:path*", headers: [{ key: "Content-Security-Policy", value: worldCsp }] },

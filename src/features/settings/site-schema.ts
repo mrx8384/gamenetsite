@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { toEnglishDigits } from "@/lib/format";
+import { parseMapLocation } from "@/lib/map-location";
 
 /**
  * Editable site texts and contact info. One definition drives the admin forms,
  * server validation and defaults. Stored in site_settings under key `site.<group>`.
  */
-export type FieldType = "text" | "textarea" | "url" | "phone" | "email";
+export type FieldType = "text" | "textarea" | "url" | "phone" | "email" | "map";
 export interface FieldDef {
   key: string;
   label: string;
@@ -57,7 +58,8 @@ export const SITE_GROUPS = {
       { key: "email", label: "ایمیل", type: "email", max: 120, default: "" },
       { key: "address", label: "نشانی", type: "textarea", max: 300, default: "" },
       { key: "hours", label: "ساعات کاری", type: "text", max: 120, default: "", hint: "مثلاً شنبه تا پنجشنبه، ۱۰ تا ۲۲" },
-      { key: "mapUrl", label: "لینک نقشه (نشان، بلد یا گوگل)", type: "url", max: 300, default: "" },
+      { key: "mapLocation", label: "موقعیت فروشگاه روی نقشه (گوگل‌مپ)", type: "map", max: 3000, default: "", hint: "در گوگل‌مپ روی فروشگاه بزنید ← Share ← «Embed a map» و کد HTML را اینجا بچسبانید (دقیق‌ترین). لینک کامل گوگل‌مپ یا مختصات مثل 35.7123, 51.4045 هم قبول است. لینک کوتاه maps.app.goo.gl فقط دکمهٔ مسیریابی می‌سازد، نه نقشه." },
+      { key: "mapUrl", label: "لینک نقشهٔ دیگر (نشان یا بلد، اختیاری)", type: "url", max: 300, default: "", hint: "یک دکمهٔ مسیریابی دیگر کنار گوگل‌مپ و Waze نشان داده می‌شود." },
       { key: "instagram", label: "اینستاگرام", type: "url", max: 200, default: "", hint: "آدرس کامل، مثلاً https://instagram.com/..." },
       { key: "telegram", label: "تلگرام", type: "url", max: 200, default: "" },
       { key: "whatsapp", label: "واتس‌اپ", type: "url", max: 200, default: "" },
@@ -135,6 +137,8 @@ function fieldSchema(f: FieldDef) {
   switch (f.type) {
     case "url":
       return base.refine((v) => v === "" || /^https:\/\/[^\s<>"]+$/i.test(v), "آدرس باید با https:// شروع شود");
+    case "map":
+      return base.refine((v) => v === "" || parseMapLocation(v) !== null, "لینک گوگل‌مپ، کد Embed یا مختصات (مثل 35.7, 51.4) را وارد کنید.");
     case "email":
       return base.refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), "ایمیل معتبر نیست");
     case "phone":

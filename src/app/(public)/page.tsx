@@ -13,6 +13,7 @@ import { Container } from "@/components/layout/container";
 import { getSiteSettings } from "@/features/settings/site";
 import { env } from "@/lib/env";
 import { toEnglishDigits } from "@/lib/format";
+import { parseMapLocation } from "@/lib/map-location";
 import { jsonLdHtml, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,6 +28,7 @@ export default async function HomePage() {
   const origin = new URL(env.APP_URL).origin;
   const phone = toEnglishDigits(contact.phone || contact.mobile).replace(/[^\d+]/g, "");
   const sameAs = SOCIAL_KEYS.map((k) => contact[k]).filter(Boolean);
+  const place = parseMapLocation(contact.mapLocation);
   // Site name, logo and contact details for search results. With an address the club is also a local
   // business (EntertainmentBusiness ⊂ LocalBusiness), which helps searches like «گیم نت نزدیک من».
   const jsonLd = [
@@ -43,7 +45,8 @@ export default async function HomePage() {
       ...(contact.address ? { image: `${origin}/brand/atom-logo.webp`, address: { "@type": "PostalAddress", streetAddress: contact.address, addressCountry: "IR" } } : {}),
       ...(phone ? { telephone: phone } : {}),
       ...(contact.email ? { email: contact.email } : {}),
-      ...(contact.mapUrl ? { hasMap: contact.mapUrl } : {}),
+      ...(place || contact.mapUrl ? { hasMap: place?.openUrl ?? contact.mapUrl } : {}),
+      ...(place?.coords ? { geo: { "@type": "GeoCoordinates", latitude: place.coords.lat, longitude: place.coords.lng } } : {}),
       ...(sameAs.length ? { sameAs } : {}),
       foundingDate: "2021",
     },

@@ -1,5 +1,24 @@
 # Progress Log
 
+## 2026-10-31 (40) — Featured products order + shop location map (owner request)
+
+- **Featured order:** new `Product.featuredSort` (migration `featured_sort`, backfilled with today's order: newest edit
+  first). Homepage shows the first `FEATURED_ON_HOME` (4) active featured products by that order instead of by last
+  edit. Admin → تنظیمات سایت → فروش: «ترتیب محصولات منتخب صفحهٔ اصلی» list with up/down, edit link, «برداشتن از
+  منتخب», badges for shown / not shown / inactive (`moveFeaturedProduct`, `unfeatureProduct`). A product that becomes
+  featured goes to the end.
+- **Contact map:** new contact setting `mapLocation` (field type `map`) accepting Google Maps «Embed a map» HTML, a full
+  Google Maps link, or coordinates; validated and converted by the pure `src/lib/map-location.ts` (only Google hosts;
+  embed src always rebuilt on `www.google.com`; short `maps.app.goo.gl` links → buttons only). `/contact` shows
+  «موقعیت ما روی نقشه» (`src/components/contact/location-map.tsx`): address, «مسیریابی با گوگل‌مپ», Waze, optional
+  Neshan/Balad button from `mapUrl`, lazy iframe with a branded placeholder. CSP: `frame-src https://www.google.com` on
+  `/contact` only (everything else stays `'none'`). Homepage business JSON-LD gets `geo` coordinates and `hasMap`.
+- Verified: `pnpm check` ✓ (411, new `tests/unit/map-location.test.ts`) · `pnpm build` ✓ · smoke 84/84 · browser test
+  with `[TEST]` admin/products: moving product 5 up twice changed the homepage from 1,2,3,4 to 1,2,5,3 with correct
+  badges; invalid map input rejected with the message; embed code → iframe on www.google.com, buttons, page width =
+  screen at 390/1366 px; `/shop` keeps `frame-src 'none'`. (Google itself is blocked in the dev sandbox, so only the
+  placeholder was visible.) Test data removed.
+
 ## 2026-10-31 (39) — «سازمان‌های طرف قرارداد» on the homepage (owner request)
 
 - New model `ContractOrganization` (migration `contract_organizations`): name, logo (Media, folder `organizations`,

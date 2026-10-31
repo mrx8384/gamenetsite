@@ -22,6 +22,9 @@ const cardCategorySelect = { select: { name: true, priceOnRequest: true, parent:
 type CardCategory = { name: string; priceOnRequest: boolean; parent: { priceOnRequest: boolean } | null } | null;
 const isPriceOnRequest = (c: CardCategory) => !!c && (c.priceOnRequest || !!c.parent?.priceOnRequest);
 
+/** How many featured products the homepage shows. */
+export const FEATURED_ON_HOME = 4;
+
 /** Featured, active products for the homepage. */
 export async function getFeaturedProducts(limit = 4): Promise<ProductCardData[]> {
   "use cache";
@@ -30,7 +33,8 @@ export async function getFeaturedProducts(limit = 4): Promise<ProductCardData[]>
 
   const rows = await db.product.findMany({
     where: { status: "ACTIVE", isFeatured: true },
-    orderBy: { updatedAt: "desc" },
+    // Order set in Admin → تنظیمات سایت → فروش.
+    orderBy: [{ featuredSort: "asc" }, { updatedAt: "desc" }],
     take: limit,
     select: {
       id: true,

@@ -44,7 +44,7 @@ export function SiteSettingsForm({ group, description, fields, initial }: { grou
         <CardContent className="grid gap-5">
           {fields.map((f) => {
             const id = `f-${f.key}`;
-            const ltr = f.type === "url" || f.type === "email" || f.type === "phone";
+            const ltr = f.type === "url" || f.type === "email" || f.type === "phone" || f.type === "map";
             const val = values[f.key] ?? "";
             return (
               <div key={f.key} className="grid gap-1.5">
@@ -52,8 +52,8 @@ export function SiteSettingsForm({ group, description, fields, initial }: { grou
                   <Label htmlFor={id}>{f.label}</Label>
                   <span className="text-xs text-muted-foreground">{toPersianDigits(val.length)}/{toPersianDigits(f.max)}</span>
                 </div>
-                {f.type === "textarea" ? (
-                  <Textarea id={id} rows={3} value={val} maxLength={f.max} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} aria-invalid={!!errors[f.key]} />
+                {f.type === "textarea" || f.type === "map" ? (
+                  <Textarea id={id} rows={3} value={val} maxLength={f.max} dir={ltr ? "ltr" : undefined} className={ltr ? "text-start" : undefined} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} aria-invalid={!!errors[f.key]} />
                 ) : (
                   <Input
                     id={id}

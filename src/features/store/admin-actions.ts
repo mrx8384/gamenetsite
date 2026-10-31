@@ -86,6 +86,12 @@ async function assertMediaExists(ids: string[]): Promise<boolean> {
   return found === new Set(ids).size;
 }
 
+/** Places a newly featured product at the end of the homepage order. */
+async function nextFeaturedSort(): Promise<number> {
+  const last = await db.product.aggregate({ where: { isFeatured: true }, _max: { featuredSort: true } });
+  return (last._max.featuredSort ?? 0) + 1;
+}
+
 export async function createProduct(input: unknown): Promise<ActionResult<{ id: string }>> {
   const user = await admin();
   if (!user) return fail("دسترسی غیرمجاز.");
@@ -99,6 +105,7 @@ export async function createProduct(input: unknown): Promise<ActionResult<{ id: 
       const p = await tx.product.create({
         data: {
           ...rest,
+          featuredSort: rest.isFeatured ? await nextFeaturedSort() : 0,
           shortDescription: rest.shortDescription || null,
           descriptionJson: plainDescription(description),
           price: BigInt(price),
@@ -133,6 +140,9 @@ export async function updateProduct(id: string, input: unknown): Promise<ActionR
   const { images, description, price, compareAtPrice, ...rest } = parsed.data;
   if (!(await assertMediaExists(images.map((i) => i.mediaId)))) return fail("یکی از تصاویر پیدا نشد. دوباره بارگذاری کنید.");
 
+  const before = await db.product.findUnique({ where: { id }, select: { isFeatured: true } });
+  const featuredSort = rest.isFeatured && !before?.isFeatured ? { featuredSort: await nextFeaturedSort() } : {};
+
   try {
     await db.$transaction([
       db.productImage.deleteMany({ where: { productId: id } }),
@@ -140,6 +150,7 @@ export async function updateProduct(id: string, input: unknown): Promise<ActionR
         where: { id },
         data: {
           ...rest,
+          ...featuredSort,
           shortDescription: rest.shortDescription || null,
           descriptionJson: plainDescription(description) ?? Prisma.DbNull,
           price: BigInt(price),
@@ -200,4 +211,36 @@ export async function adjustStock(productId: string, input: unknown): Promise<Ac
     console.error("[store] adjustStock", error);
     return fail(GENERIC_ERROR);
   }
+}
+
+// ───────────── Homepage featured order ─────────────
+
+/** Moves a featured product one place earlier/later on the homepage. */
+export async function moveFeaturedProduct(id: unknown, direction: unknown): Promise<ActionResult<undefined>> {
+  const user = await admin();
+  if (!user) return fail("دسترسی غیرمجاز.");
+  if (typeof id !== "string" || (direction !== "up" && direction !== "down")) return fail("درخواست نامعتبر است.");
+  await db.$transaction(async (tx) => {
+    const all = await tx.product.findMany({ where: { isFeatured: true }, orderBy: [{ featuredSort: "asc" }, { updatedAt: "desc" }], select: { id: true } });
+    const i = all.findIndex((p) => p.id === id);
+    const j = direction === "up" ? i - 1 : i + 1;
+    if (i < 0 || j < 0 || j >= all.length) return;
+    [all[i], all[j]] = [all[j], all[i]];
+    // Renumber all so equal/old values can't block a move; updatedAt is left alone.
+    for (const [n, p] of all.entries()) await tx.$executeRaw`UPDATE products SET "featuredSort" = ${n + 1} WHERE id = ${p.id}`;
+  });
+  updateTag(CACHE_TAGS.products);
+  return ok(undefined);
+}
+
+/** Takes a product off the homepage without opening its edit form. */
+export async function unfeatureProduct(id: unknown): Promise<ActionResult<undefined>> {
+  const user = await admin();
+  if (!user) return fail("دسترسی غیرمجاز.");
+  if (typeof id !== "string") return fail("درخواست نامعتبر است.");
+  const { count } = await db.product.updateMany({ where: { id, isFeatured: true }, data: { isFeatured: false } });
+  if (!count) return fail("محصول پیدا نشد.");
+  updateTag(CACHE_TAGS.products);
+  await audit({ actorId: user.id, action: "products.unfeatured", entity: "product", entityId: id });
+  return ok(undefined, "محصول از فهرست ویژه برداشته شد.");
 }

@@ -3,11 +3,11 @@ import { ShoppingBag } from "lucide-react";
 import { ProductCard } from "@/components/store/product-card";
 import { EmptyState } from "@/components/ui/states";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getFeaturedProducts } from "@/features/store/queries";
+import { FEATURED_ON_HOME, getFeaturedProducts } from "@/features/store/queries";
 
 export async function FeaturedProducts() {
   await connection();
-  const products = await getFeaturedProducts(4);
+  const products = await getFeaturedProducts(FEATURED_ON_HOME);
   if (products.length === 0) {
     return (
       <EmptyState

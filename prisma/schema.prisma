@@ -235,6 +235,8 @@ model Product {
   stock            Int           @default(0)
   status           ProductStatus @default(DRAFT)
   isFeatured       Boolean       @default(false)
+  /// Homepage order among featured products (Admin → تنظیمات سایت → فروش). Lower first.
+  featuredSort     Int           @default(0)
   categoryId       String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -246,7 +248,7 @@ model Product {
   orderItems         OrderItem[]
 
   @@index([status, categoryId])
-  @@index([isFeatured])
+  @@index([isFeatured, featuredSort])
   @@map("products")
 }
 

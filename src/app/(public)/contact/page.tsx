@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { Clock, Mail, MapPin, Phone, Smartphone } from "lucide-react";
 import { ContactForm } from "@/components/contact/contact-form";
+import { LocationMap } from "@/components/contact/location-map";
 import { OpenSupportButton } from "@/components/support/open-support-button";
 import { Container } from "@/components/layout/container";
 import { SocialLinks } from "@/components/layout/social-links";
@@ -47,13 +48,14 @@ export default async function ContactPage() {
                     <div className="min-w-0 text-sm"><p className="text-muted-foreground">{label}</p><div className="leading-7 font-medium">{value}</div></div>
                   </div>
                 ))}
-                {c.mapUrl ? <Button asChild variant="outline" className="w-full"><a href={c.mapUrl} target="_blank" rel="noopener noreferrer"><MapPin /> مسیریابی روی نقشه</a></Button> : null}
+                {c.mapUrl && !c.mapLocation ? <Button asChild variant="outline" className="w-full"><a href={c.mapUrl} target="_blank" rel="noopener noreferrer"><MapPin /> مسیریابی روی نقشه</a></Button> : null}
               </CardContent>
             </Card>
           ) : null}
           <SocialLinks contact={c} />
         </div>
       </div>
+      {c.mapLocation ? <LocationMap location={c.mapLocation} address={c.address} otherMapUrl={c.mapUrl} /> : null}
     </Container>
   );
 }

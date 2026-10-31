@@ -42,6 +42,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - 3D world points & discount cards (owner request 2026-10-27): **done** — points per round (capped) and per achievement on site accounts, cards bought with points, in-store code check and online checkout code, all set in Admin → دستاوردها و جوایز. See `docs/GAME_REWARDS.md`, PROGRESS 29. Points/cards change only via `src/features/game-rewards/service.ts` (user row lock); never trust client stats without `computeRound`.
 - Technical SEO (owner request 2026-10-28): **done** — public pages use `pageMetadata()` from `src/lib/seo.ts` (canonical + full OG); new public pages must too, and go into `src/app/sitemap.ts`. PROGRESS 35.
 - Contracted organizations strip (owner request 2026-10-31): **done** — homepage under «درباره اتم», managed in Admin → تنظیمات سایت → سازمان‌های طرف قرارداد (`src/features/organizations/`). New media relations must also be added to `deleteUnusedMedia` and `scripts/maintenance.ts`. PROGRESS 39.
+- Featured products order (Admin → تنظیمات سایت → فروش, `Product.featuredSort`) and contact-page Google map (`mapLocation` setting, `src/lib/map-location.ts`): **done** — PROGRESS 40.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -145,7 +146,7 @@ Full rationale in `docs/ARCHITECTURE.md`.
 - Mark LTR snippets (emails, phones, codes, URLs) with the `ltr` class or `dir="ltr"`.
 - Scripts: `pnpm check` (typecheck + lint + tests), `pnpm build`, `pnpm db:migrate`, `pnpm maintenance`, `pnpm test:e2e`.
 - Iranian servers can't reach binaries.prisma.sh: `scripts/prisma-generate.mjs` (postinstall/build) and `scripts/migrate.mjs` (`pnpm db:deploy`, direct-SQL fallback recorded in `_prisma_migrations`) work without Prisma's engine download.
-- CSP: no external origins. A new third-party script/style/frame/form target (e.g. a payment gateway that needs a browser POST) must be added to `csp` in `next.config.ts` deliberately.
+- CSP: no external origins (exception: `/contact` allows `frame-src https://www.google.com` for the shop map, PROGRESS 40). A new third-party script/style/frame/form target (e.g. a payment gateway that needs a browser POST) must be added to `csp` in `next.config.ts` deliberately.
 
 - TypeScript strict, no `any` without a comment explaining why.
 - Server-only modules import `server-only`. Secrets only via `process.env`, validated at startup by a Zod env schema. Never `NEXT_PUBLIC_` for secrets.
