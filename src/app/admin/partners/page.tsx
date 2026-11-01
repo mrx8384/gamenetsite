@@ -94,6 +94,25 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
       {partners.length === 0 ? (
         <EmptyState icon={Handshake} title={q ? "نتیجه‌ای پیدا نشد" : `همکاری با وضعیت «${PARTNER_STATUS_LABELS[status]}» نیست`} />
       ) : (
+        <>
+        {/* Phones: cards with the review button in view (the table scrolls sideways there). */}
+        <ul className="grid gap-3 md:hidden">
+          {partners.map((p) => (
+            <li key={p.id} className="space-y-3 rounded-xl border bg-surface p-4">
+              <div className="flex items-start justify-between gap-2">
+                <Link href={`/admin/partners/${p.id}`} className="font-bold text-link hover:underline">{p.businessName}</Link>
+                <PartnerStatusBadge status={p.status} />
+              </div>
+              <p className="text-sm text-muted-foreground">{BUSINESS_TYPE_LABELS[p.businessType]} · {p.city}، {p.province}</p>
+              <p className="text-sm">{p.user.name} <span className="ltr inline-block text-xs text-muted-foreground">{p.user.phone ?? p.user.email}</span></p>
+              <p className="text-xs text-muted-foreground">{formatDateTime(p.submittedAt)}</p>
+              <Button asChild size="sm" variant={p.status === "PENDING" ? "default" : "outline"} className="w-full">
+                <Link href={`/admin/partners/${p.id}`}>{p.status === "PENDING" ? "بررسی و تأیید / رد" : "مشاهده و مدیریت"}</Link>
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -103,6 +122,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
               <TableHead>کاربر</TableHead>
               <TableHead>تاریخ درخواست</TableHead>
               <TableHead>وضعیت</TableHead>
+              <TableHead><span className="sr-only">عملیات</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,10 +137,18 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{formatDateTime(p.submittedAt)}</TableCell>
                 <TableCell><PartnerStatusBadge status={p.status} /></TableCell>
+                <TableCell>
+                  {/* Approve / reject / suspend live on the detail page (reasons, subscription grant). */}
+                  <Button asChild size="sm" variant={p.status === "PENDING" ? "default" : "outline"} className="whitespace-nowrap">
+                    <Link href={`/admin/partners/${p.id}`}>{p.status === "PENDING" ? "بررسی و تأیید / رد" : "مشاهده و مدیریت"}</Link>
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        </div>
+        </>
       )}
       {pages > 1 ? (
         <nav aria-label="صفحه‌بندی" className="flex justify-between text-sm">

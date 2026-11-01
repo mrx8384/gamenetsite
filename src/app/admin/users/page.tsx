@@ -126,7 +126,8 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
               <TableHead>وضعیت</TableHead>
               <TableHead>عضویت</TableHead>
               <TableHead>آخرین ورود</TableHead>
-              <TableHead className="w-12">
+              {/* Pinned to the visible edge so the actions menu stays reachable when the table scrolls on phones. */}
+              <TableHead className="sticky end-0 w-12 bg-secondary">
                 <span className="sr-only">عملیات</span>
               </TableHead>
             </TableRow>
@@ -148,7 +149,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
                 <TableCell>{u.isActive ? <Badge variant="success">فعال</Badge> : <Badge variant="destructive">غیرفعال</Badge>}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(u.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">{u.lastLoginAt ? formatDate(u.lastLoginAt) : "—"}</TableCell>
-                <TableCell>
+                <TableCell className="sticky end-0 bg-surface shadow-[8px_0_8px_-8px_rgb(0_0_0/0.15)]">
                   <UserRowActions user={{ id: u.id, name: u.name, role: u.role, isActive: u.isActive }} isSelf={u.id === admin.id} deleteBlocker={deletionBlocker({ role: u.role, orderCount: u._count.orders, hasPartnerProfile: !!u.partnerProfile })} />
                 </TableCell>
               </TableRow>

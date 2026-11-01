@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-11-01 (46) — Partner requests: approve/reject not visible on phones (owner report)
+
+- Cause: on `/admin/partners` the approve/reject buttons live on the detail page, reached only through the business
+  name; on phones the table also scrolled sideways, hiding the status column. Now each row has a «بررسی و تأیید / رد»
+  (pending) or «مشاهده و مدیریت» button, and below `md` the list is shown as cards with the button in view.
+- Same phone problem on `/admin/users`: the row actions menu (role, disable, delete) was off-screen; the column is now
+  sticky at the visible edge.
+- Verified: `pnpm check` ✓ · `pnpm build` ✓ · smoke 89/89 · browser at 390 px with `[TEST]` accounts: user applies →
+  admin card shows the button → detail page → «تأیید همکار» → status «تأییدشده»; users-page «…» inside the screen and
+  its menu opens. Test data removed.
+
 ## 2026-11-01 (46) — Game rewards: guests play each game once, rounds must be real (owner request)
 
 - Owner: «کسی که اکانت نداره میتونه سو استفاده کنه از دستاوردهای جایزه … حداقل بازی برای کسی که اکانت نداره یکبار
