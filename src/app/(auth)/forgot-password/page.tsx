@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
+import { AuthNotice } from "@/components/auth/auth-notice";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export const metadata: Metadata = { title: "بازیابی رمز عبور", robots: { index: false } };
@@ -16,6 +17,7 @@ export default function ForgotPasswordPage() {
         </Link>
       }
     >
+      <AuthNotice page="reset" />
       <ForgotPasswordForm />
     </AuthCard>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
+import { AuthNotice } from "@/components/auth/auth-notice";
 import { GoogleError } from "@/components/auth/google-error";
 import { GoogleSignIn } from "@/components/auth/google-sign-in";
 import { LoginForm } from "@/components/auth/login-form";
@@ -22,6 +23,7 @@ export default function LoginPage() {
         </>
       }
     >
+      <AuthNotice page="login" />
       <Suspense fallback={null}>
         <GoogleError />
         <GoogleSignIn />

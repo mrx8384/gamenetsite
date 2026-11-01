@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-11-01 (45) — Notice on login / register / reset pages (owner request)
+
+- Settings group `authNotice` (Admin → تنظیمات سایت → «اطلاعیهٔ ورود و ثبت‌نام»): optional title, separate texts for
+  register, login and password reset, tone `warning` (yellow, default) or `info` (blue). Empty text → no notice.
+- `src/components/auth/auth-notice.tsx` above the forms on `/register`, `/login`, `/forgot-password`; cached settings
+  read, refreshed on save; line breaks kept.
+- Verified: `pnpm check` ✓ · `pnpm build` ✓ · smoke 89/89 · browser with a `[TEST]` admin: no notice before; after
+  saving title + two-line register text it showed on `/register` (390 px, page width = screen) and not on `/login`
+  (its text empty). Test setting and admin removed.
+
 ## 2026-10-31 (44) — Delete accounts + automatic removal of inactive accounts (owner request)
 
 - Admin → کاربران → row menu «حذف حساب» (`deleteUser`, ADMIN only): permanent delete after a confirm dialog that lists
