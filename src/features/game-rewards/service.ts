@@ -61,6 +61,7 @@ export async function rewardsStatus(userId: string | null) {
     enabled: rules.enabled,
     perRound: rules.perRound,
     roundsPerDay: rules.roundsPerDay,
+    guestRoundsPerGame: rules.guestRoundsPerGame,
     achievementPoints: Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, achievementPoints(rules, a.id)])),
   };
   if (!userId) return { ...base, loggedIn: false };

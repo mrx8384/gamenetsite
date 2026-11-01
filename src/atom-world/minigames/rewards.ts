@@ -10,6 +10,11 @@ import type { Stats } from "./achievementList";
  * achievement; spent on discount cards the manager defines (cost, percent, in-store / online shop).
  * Without the site (this repo alone, the stand-alone preview) the route is missing → everything here
  * stays off and the world works as before.
+ *
+ * Against cheating (owner 2026-11-01): a round is announced to the site when it starts (`startRound` →
+ * a one-time token, so the site times the round itself) and reported with that token. Visitors
+ * without an account earn nothing, and may play each game `guestRoundsPerGame` times (counted on
+ * this device), then they are asked to log in.
  */
 export const REWARDS_API = "/api/game-rewards";
 
@@ -52,6 +57,20 @@ export interface RewardsState {
   achievements: string[];
   /** points per achievement as set by the manager (missing = the default in achievementList) */
   achievementPoints: Record<string, number>;
+  /** rounds a visitor without an account may play per game (0 = no limit) */
+  guestRoundsPerGame: number;
+  /** rounds played per game on this device without an account */
+  guestPlayed: Record<string, number>;
+}
+
+const GUEST_KEY = "atom-world:guest-rounds";
+function loadGuestPlayed(): Record<string, number> {
+  try {
+    const o = JSON.parse(localStorage.getItem(GUEST_KEY) ?? "{}") as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === "number" && v >= 0)) as Record<string, number>;
+  } catch {
+    return {};
+  }
 }
 
 export const rewardsStore = createStore<RewardsState>({
@@ -68,6 +87,8 @@ export const rewardsStore = createStore<RewardsState>({
   mine: [],
   achievements: [],
   achievementPoints: {},
+  guestRoundsPerGame: 0,
+  guestPlayed: {},
 });
 
 const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -113,8 +134,45 @@ export function parseStatus(j: unknown): Partial<RewardsState> {
     })),
     achievements: Array.isArray(o.achievements) ? o.achievements.filter((a): a is string => typeof a === "string").slice(0, 200) : [],
     achievementPoints: Object.fromEntries(Object.entries(ap).filter(([, v]) => typeof v === "number")) as Record<string, number>,
+    guestRoundsPerGame: Math.max(0, Math.floor(num(o.guestRoundsPerGame))),
   };
 }
+
+/** A visitor without an account has used up this game's rounds (only on the site, with the limit set). */
+export function guestLimitReached(game: MiniGameId, s: RewardsState = rewardsStore.get()) {
+  return s.available && !s.loggedIn && s.guestRoundsPerGame > 0 && (s.guestPlayed[game] ?? 0) >= s.guestRoundsPerGame;
+}
+
+/** Rounds left for a visitor without an account (null: no limit / logged in / no site). */
+export function guestRoundsLeft(game: MiniGameId, s: RewardsState = rewardsStore.get()): number | null {
+  if (!s.available || s.loggedIn || s.guestRoundsPerGame <= 0) return null;
+  return Math.max(0, s.guestRoundsPerGame - (s.guestPlayed[game] ?? 0));
+}
+
+/** A round starts: counted for visitors without an account; logged-in players get a round token from the site. */
+export function startRound(game: MiniGameId, scored: boolean) {
+  const s = rewardsStore.get();
+  if (!s.available) return;
+  if (!s.loggedIn) {
+    const guestPlayed = { ...s.guestPlayed, [game]: (s.guestPlayed[game] ?? 0) + 1 };
+    rewardsStore.set({ guestPlayed });
+    try {
+      localStorage.setItem(GUEST_KEY, JSON.stringify(guestPlayed));
+    } catch {
+      /* private mode: counted for this visit only */
+    }
+    return;
+  }
+  if (!scored || !s.enabled) return;
+  tokens.set(
+    game,
+    call("/start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ game }) })
+      .then(async (r) => (r.ok ? (((await r.json()) as { token?: unknown }).token as string) : null))
+      .then((t) => (typeof t === "string" ? t : null))
+      .catch(() => null),
+  );
+}
+const tokens = new Map<MiniGameId, Promise<string | null>>();
 
 async function call(path: string, init?: RequestInit) {
   return fetch(`${REWARDS_API}${path}`, { cache: "no-store", credentials: "same-origin", ...init, headers: { accept: "application/json", ...(init?.headers ?? {}) } });
@@ -129,7 +187,7 @@ export async function loadRewards() {
       rewardsStore.set({ available: false, loading: false });
       return;
     }
-    rewardsStore.set({ ...parseStatus(await res.json()), loading: false });
+    rewardsStore.set({ ...parseStatus(await res.json()), guestPlayed: loadGuestPlayed(), loading: false });
   } catch {
     rewardsStore.set({ available: false, loading: false });
   }
@@ -148,8 +206,12 @@ export interface RoundReward {
 export async function reportRound(game: MiniGameId, stats: Stats, seconds: number): Promise<RoundReward | null> {
   const s = rewardsStore.get();
   if (!s.available || !s.loggedIn || !s.enabled) return null;
+  // the token of the round that just ended (the site times the round from it; each is used once)
+  const token = await tokens.get(game);
+  tokens.delete(game);
+  if (!token) return null;
   try {
-    const res = await call("/round", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ game, stats, seconds: Math.round(seconds) }) });
+    const res = await call("/round", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token, game, stats, seconds: Math.round(seconds) }) });
     if (!res.ok) return null;
     const j = (await res.json()) as Record<string, unknown>;
     const achievements = Array.isArray(j.achievements)

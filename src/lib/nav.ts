@@ -18,3 +18,21 @@ export const mainNav: NavItem[] = [
 export function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/**
+ * Pages with their own Content-Security-Policy (the 3D world allows WebAssembly for its model decoders)
+ * must be opened with a full page load: a client-side navigation keeps the previous page's CSP.
+ */
+export function needsFullLoad(href: string): boolean {
+  return /^\/atom-world(?:[/?#]|$)/.test(href);
+}
+
+/** After login / sign-up: go to `href`, with a full page load where the target needs one. */
+export function goAfterAuth(router: { replace: (href: string) => void; refresh: () => void }, href: string) {
+  if (needsFullLoad(href)) {
+    window.location.assign(href);
+    return;
+  }
+  router.replace(href);
+  router.refresh();
+}

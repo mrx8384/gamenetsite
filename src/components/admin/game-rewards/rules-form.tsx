@@ -29,6 +29,7 @@ export function RewardRulesForm({ rules, achievements }: { rules: RewardRules; a
     perRound: String(rules.perRound),
     roundsPerDay: String(rules.roundsPerDay),
     minSecondsBetweenRounds: String(rules.minSecondsBetweenRounds),
+    guestRoundsPerGame: String(rules.guestRoundsPerGame),
   });
   const [points, setPoints] = React.useState<Record<string, string>>(Object.fromEntries(Object.entries(rules.achievementPoints).map(([k, n]) => [k, String(n)])));
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -76,6 +77,12 @@ export function RewardRulesForm({ rules, achievements }: { rules: RewardRules; a
             <Label htmlFor="r-gap">کمترین فاصلهٔ دو دور (ثانیه)</Label>
             <Input id="r-gap" inputMode="numeric" dir="ltr" value={v.minSecondsBetweenRounds} onChange={(e) => setV({ ...v, minSecondsBetweenRounds: e.target.value })} aria-invalid={!!errors.minSecondsBetweenRounds} />
             {err("minSecondsBetweenRounds")}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="r-guest">دفعات بازی هر مینی‌گیم بدون حساب</Label>
+            <Input id="r-guest" inputMode="numeric" dir="ltr" value={v.guestRoundsPerGame} onChange={(e) => setV({ ...v, guestRoundsPerGame: e.target.value })} aria-invalid={!!errors.guestRoundsPerGame} />
+            {err("guestRoundsPerGame")}
+            <p className="text-xs text-muted-foreground">بازدیدکنندهٔ بدون حساب هر بازی را این تعداد بار بازی می‌کند و بعد باید وارد شود. ۰ = بدون محدودیت.</p>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">

@@ -17,6 +17,7 @@ import { applyFieldErrors } from "./apply-errors";
 import { CodeStep } from "./code-step";
 import { PasswordInput } from "./password-input";
 import { useCountdown } from "./use-countdown";
+import { goAfterAuth } from "@/lib/nav";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -52,8 +53,7 @@ export function ForgotPasswordForm() {
       const res = await resetPassword({ identifier: sent.identifier, code, password });
       if (res.ok) {
         toast.success(res.message ?? "رمز عبور تغییر کرد.");
-        router.replace(res.data.redirectTo);
-        router.refresh();
+        goAfterAuth(router, res.data.redirectTo);
         return;
       }
       setErrors({ code: res.fieldErrors?.code ?? (res.fieldErrors?.password ? undefined : res.error), password: res.fieldErrors?.password });

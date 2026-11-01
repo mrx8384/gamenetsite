@@ -11,7 +11,8 @@ import ui from "../styles/atomWorld.module.css";
 import styles from "./minigames.module.css";
 import { GAME_COMPONENTS, MINI_GAMES } from "./registry";
 import { ACHIEVEMENTS, type Achievement, recordRound } from "./achievements";
-import { loadRewards, reportRound, type RoundReward, rewardsStore } from "./rewards";
+import { guestLimitReached, guestRoundsLeft, loadRewards, reportRound, type RoundReward, rewardsStore, startRound } from "./rewards";
+import { useRewards } from "./RewardsPanel";
 import { NewAchievements, SubmitScore } from "./ScoreBoard";
 import { OpponentIntro } from "./OpponentIntro";
 import { localTop } from "./scores";
@@ -70,8 +71,11 @@ function Host({ id }: { id: MiniGameId }) {
     if (!r.available && !r.loading) void loadRewards();
   }, []);
   useEffect(() => {
-    if (phase === "play") playStart.current = performance.now();
-  }, [phase]);
+    if (phase !== "play") return;
+    playStart.current = performance.now();
+    // the site counts / times the round (guest limit, round token for points)
+    if (!meta.menu) startRound(id, !(players === 2 && !!meta.twoPlayer));
+  }, [phase, id, meta.menu, meta.twoPlayer, players]);
 
   // online play: is the room server there? (not in the stand-alone preview)
   useEffect(() => {
@@ -101,13 +105,14 @@ function Host({ id }: { id: MiniGameId }) {
   }, []);
   const start = useCallback(() => {
     audio.unlock();
+    if (!meta.menu && guestLimitReached(id)) return; // visitors without an account: log in to play again
     if (meta.opponent && mode === "solo" && !metRival.current) {
       metRival.current = true;
       setPhase("opponent");
       return;
     }
     begin();
-  }, [begin, meta.opponent, mode]);
+  }, [begin, meta.opponent, meta.menu, id, mode]);
 
   // the friend's phone starts / restarts together with the host
   useEffect(() => {
@@ -187,6 +192,19 @@ function Host({ id }: { id: MiniGameId }) {
   // online: each player has their own phone, so the normal controls apply
   const howToSet = two && mode !== "online" ? meta.twoPlayer!.howTo : meta.howTo;
   const howTo = touch ? howToSet.touch : howToSet.desktop;
+  const account = useRewards();
+  const locked = !meta.menu && guestLimitReached(id, account);
+  const left = meta.menu ? null : guestRoundsLeft(id, account);
+  const loginBlock = (
+    <div className={styles.guestLock} role="status">
+      <p>
+        بدون حساب کاربری هر بازی را {fa(account.guestRoundsPerGame)} بار می‌توانید بازی کنید. برای بازی دوباره — و جمع کردن امتیاز و کارت تخفیف — وارد حساب سایت شوید.
+      </p>
+      <a className={`${ui.btn} ${ui.btnPrimary}`} href={account.loginUrl}>
+        ورود / ثبت‌نام
+      </a>
+    </div>
+  );
 
   return (
     <div className={styles.layer} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="aw-mg-title">
@@ -284,8 +302,9 @@ function Host({ id }: { id: MiniGameId }) {
                   </button>
                 </div>
               )}
+              {locked ? loginBlock : left !== null && <p className={styles.note}>بدون حساب کاربری: {fa(left)} بار دیگر می‌توانید این بازی را انجام دهید (امتیاز و جایزه فقط با حساب سایت).</p>}
               <div className={styles.cardActions}>
-                {mode !== "online" && (
+                {mode !== "online" && !locked && (
                   <button ref={primary} type="button" className={`${ui.btn} ${ui.btnPrimary}`} onClick={start}>
                     شروع بازی
                   </button>
@@ -307,7 +326,7 @@ function Host({ id }: { id: MiniGameId }) {
                 <button ref={primary} type="button" className={`${ui.btn} ${ui.btnPrimary}`} onClick={() => setPaused(false)}>
                   ادامهٔ بازی
                 </button>
-                {!guest && (
+                {!guest && !locked && (
                   <button type="button" className={ui.btn} onClick={restart}>
                     شروع دوباره
                   </button>
@@ -346,8 +365,9 @@ function Host({ id }: { id: MiniGameId }) {
                 </>
               )}
               {guest && <p className={styles.note}>میزبان می‌تواند بازی را دوباره شروع کند.</p>}
+              {locked && !guest && loginBlock}
               <div className={styles.cardActions}>
-                {!guest && (
+                {!guest && !locked && (
                   <button ref={primary} type="button" className={`${ui.btn} ${ui.btnPrimary}`} onClick={restart}>
                     دوباره
                   </button>

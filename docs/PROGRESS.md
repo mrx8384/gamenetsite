@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-11-01 (46) — Game rewards: guests play each game once, rounds must be real (owner request)
+
+- Owner: «کسی که اکانت نداره میتونه سو استفاده کنه از دستاوردهای جایزه … حداقل بازی برای کسی که اکانت نداره یکبار
+  بیشتر نتونه بازی کنه … اگه چیزی دیگه بنظرت اوکیه … بزارش».
+- Guests (not logged in) already earned no points; now they may play each mini-game `guestRoundsPerGame` times
+  (default 1, Admin → دستاوردها و جوایز, 0 = no limit), counted on the device; then the intro / result card shows
+  «ورود / ثبت‌نام» instead of «شروع بازی» / «دوباره».
+- The real hole was on accounts: a round could be posted («I won on hard») without playing. Now `POST
+  /api/game-rewards/start` issues a one-time HMAC round token when play begins; `/round` requires it (same user and
+  game), times the round on the server (`MIN_ROUND_SECONDS` per game, max 3 h), checks the numbers are possible in
+  that time (`plausibleRound`), and counts each token once (rate-limit bucket on its nonce).
+- Bug found while testing: after logging in from the world's «ورود» link, the site came back to `/atom-world` with a
+  client-side navigation, so the login page's CSP stayed and the world's WebAssembly decoders were blocked. Login,
+  sign-up and password reset now open `/atom-world` with a full page load (`goAfterAuth` in `src/lib/nav.ts`).
+- Verified: `pnpm check` ✓ (439, incl. `game-rewards-anticheat.test.ts`, `atom-world/guestRounds.test.ts`) · `pnpm build`
+  ✓ · smoke 89/89 · gameatom `tests/e2e/rewards-anticheat.mjs` on this site 17/17 (guest once per game, per game;
+  no token → 400; instant «win» → 422; wrong game → 400; real 16 s → 200; reuse → 409; world round counted with
+  points; no CSP errors after login) · world suites on this site: mini-games 55/55, gaming center 41/41, bounds 9/9,
+  accessibility 30/30, online 27/27.
+
 ## 2026-11-01 (45) — Notice on login / register / reset pages (owner request)
 
 - Settings group `authNotice` (Admin → تنظیمات سایت → «اطلاعیهٔ ورود و ثبت‌نام»): optional title, separate texts for

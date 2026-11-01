@@ -8,7 +8,8 @@ every round; only for logged-in site accounts; the manager chooses per card wher
 
 | Step | Where |
 |---|---|
-| A player finishes a mini-game round in `/atom-world` (logged in). | `src/atom-world/minigames/MiniGameHost.tsx` → `POST /api/game-rewards/round` |
+| A round starts (logged in): the site issues a one-time round token (HMAC with `AUTH_SECRET`, user + game + start time). | `POST /api/game-rewards/start`, `features/game-rewards/round-token.ts` |
+| The player finishes the round; the game reports it with the token. The site times the round itself, refuses rounds shorter than `MIN_ROUND_SECONDS` or with impossible numbers (`plausibleRound`), and counts each token once. | `src/atom-world/minigames/MiniGameHost.tsx` → `POST /api/game-rewards/round` |
 | The server gives the round points (capped) and re-checks the achievement tests against the round's stats (same pure tests the game uses: `src/atom-world/minigames/achievementList.ts`), each achievement once per account. | `src/features/game-rewards/rules.ts` (`computeRound`), `service.ts` (`recordRound`) |
 | «⭐ امتیاز و جایزه» in the world's scores panel: balance, the manager's cards, «کارت‌های من» with codes. | `RewardsPanel.tsx`, `GET /api/game-rewards` |
 | Taking a card spends its points and issues a code `ATOM-XXXX-XXXX`. | `POST /api/game-rewards/redeem` → `redeemCard` |
@@ -18,7 +19,8 @@ every round; only for logged-in site accounts; the manager chooses per card wher
 ## What the manager edits (Admin → دستاوردها و جوایز, ADMIN only)
 
 - **قوانین امتیاز و دستاوردها**: on/off, points per round, counted rounds per day (Tehran day), minimum seconds
-  between counted rounds, points per achievement (empty = the game's default; 0 = none). Stored in
+  between counted rounds, «دفعات بازی هر مینی‌گیم بدون حساب» (visitors without an account; default 1, 0 = no
+  limit), points per achievement (empty = the game's default; 0 = none). Stored in
   `site_settings` key `game-rewards`.
 - **کارت‌های تخفیف**: title, description, points, percent, where it is used (حضوری / آنلاین / هر دو), validity in
   days, limit per account per 30 days (0 = none), active, order. Online cards are limited to 90 % (the payment gateway
@@ -49,7 +51,10 @@ Defaults (points): first steps 50, harder ones 100–150, hidden 250 (200 for «
 ## Limits and honesty
 
 The mini-games run in the player's browser, so a determined person can fake round results. What bounds it:
-login required; same-origin only; rate limits (20 rounds / minute, 10 cards / hour per account); counted rounds per day
+login required (visitors without an account earn nothing and may play each game only `guestRoundsPerGame`
+times — counted on their device, then the world asks them to log in); every round must be started on the server
+(one-time token), last a real minimum time and report possible numbers for that time (owner request 2026-11-01);
+same-origin only; rate limits (20 rounds / minute, 10 cards / hour per account); counted rounds per day
 and a minimum gap; achievements only once and only when the reported stats pass the real test. So the most anyone can
 earn is about `perRound × roundsPerDay` per day plus the one-time sum of all achievements (both shown on the rules
 page). Set card costs and per-account limits with that in mind; for big prizes, prefer in-store cards (the counter sees

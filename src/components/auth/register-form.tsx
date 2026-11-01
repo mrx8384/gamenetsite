@@ -15,6 +15,7 @@ import { applyFieldErrors } from "./apply-errors";
 import { CodeStep } from "./code-step";
 import { PasswordInput } from "./password-input";
 import { useCountdown } from "./use-countdown";
+import { goAfterAuth } from "@/lib/nav";
 
 type Values = z.input<typeof registerStartSchema>;
 
@@ -47,8 +48,7 @@ export function RegisterForm() {
       const res = await completeRegistration({ ...form.getValues(), code });
       if (res.ok) {
         toast.success(res.message ?? "ثبت‌نام انجام شد.");
-        router.replace(res.data.redirectTo);
-        router.refresh();
+        goAfterAuth(router, res.data.redirectTo);
         return;
       }
       if (res.fieldErrors && !res.fieldErrors.code) {

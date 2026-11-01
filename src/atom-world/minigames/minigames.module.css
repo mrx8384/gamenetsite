@@ -510,3 +510,8 @@
 .brushBtn span { display: block; border-radius: 50%; background: currentColor; }
 .brushBtn[aria-pressed="true"] { border-color: var(--aw-green); color: var(--aw-green); }
 .paintDone { background: var(--aw-green); color: #062b14; border-color: transparent; font-weight: 800; }
+
+/* visitors without an account: log in to play a game again */
+.guestLock { display: grid; gap: 0.5rem; justify-items: start; margin: 0.4rem 0 0.6rem; padding: 0.7rem 0.8rem; border-radius: 12px; border: 1px solid var(--aw-green); background: rgb(57 255 136 / 0.08); }
+.guestLock p { margin: 0; }
+.guestLock a { text-decoration: none; }

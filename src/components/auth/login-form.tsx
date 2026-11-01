@@ -17,6 +17,7 @@ import { applyFieldErrors } from "./apply-errors";
 import { CodeStep } from "./code-step";
 import { PasswordInput } from "./password-input";
 import { useCountdown } from "./use-countdown";
+import { goAfterAuth } from "@/lib/nav";
 
 export function LoginForm() {
   const params = useSearchParams();
@@ -41,8 +42,7 @@ function useFinishLogin() {
   const router = useRouter();
   return (redirectTo: string) => {
     toast.success("خوش آمدید!");
-    router.replace(redirectTo);
-    router.refresh();
+    goAfterAuth(router, redirectTo);
   };
 }
 

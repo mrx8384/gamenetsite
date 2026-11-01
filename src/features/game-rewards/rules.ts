@@ -8,6 +8,10 @@ import type { MiniGameId } from "@/atom-world/data/machineData";
  *   and only if `minSecondsBetweenRounds` passed since the last counted one.
  * - Each achievement gives its points once per account. The server re-checks the achievement test
  *   against the round's stats (the same pure tests the game uses), so a browser cannot just claim it.
+ * - A round counts only if the server saw it start (a one-time round token, `/api/game-rewards/start`),
+ *   it lasted at least `MIN_ROUND_SECONDS` of real time, and its numbers are possible in that time
+ *   (`plausibleRound`). This stops "I won" being posted without playing.
+ * - Visitors without an account earn nothing; the world lets them play each game `guestRoundsPerGame` times.
  * Mini-games run in the browser, so a determined cheater can still fake rounds: the caps above bound
  * what anyone can earn per day, and the manager sets card costs with that in mind (docs/GAME_REWARDS.md).
  */
@@ -18,6 +22,8 @@ export const rewardRulesSchema = z.object({
   perRound: z.coerce.number().int().min(0).max(100).default(5),
   roundsPerDay: z.coerce.number().int().min(0).max(200).default(20),
   minSecondsBetweenRounds: z.coerce.number().int().min(0).max(600).default(30),
+  /** Visitors without an account may play each mini-game this many times (0 = no limit). */
+  guestRoundsPerGame: z.coerce.number().int().min(0).max(50).default(1),
   /** Points per achievement set by the manager; missing = the default from the achievement list. */
   achievementPoints: z.record(z.string().max(60), z.coerce.number().int().min(0).max(10000)).default({}),
 });
@@ -38,8 +44,56 @@ export function achievementPoints(rules: RewardRules, id: string): number {
   return rules.achievementPoints[id] ?? a?.points ?? 0;
 }
 
+/** A round shorter than this (real time, measured by the server) is not counted. */
+export const MIN_ROUND_SECONDS: Record<string, number> = {
+  "air-hockey": 15,
+  "construction-excavator": 30,
+  "foot-pool": 10,
+  "gc-controller": 5,
+  "gc-city": 15,
+  "gc-football": 30,
+  "face-paint": 6,
+};
+/** Rounds older than this cannot be reported any more. */
+export const MAX_ROUND_SECONDS = 3 * 3600;
+
+const v = (s: Stats, k: string) => (typeof s[k] === "number" && Number.isFinite(s[k]) ? (s[k] as number) : 0);
+
+/**
+ * Can these numbers come out of a real round that lasted `elapsed` seconds? Generous limits: they only
+ * stop impossible claims (e.g. a won match after a few seconds, 30 trucks in a minute).
+ */
+export function plausibleRound(game: MiniGameId, stats: Stats, elapsed: number): boolean {
+  if (elapsed < (MIN_ROUND_SECONDS[game] ?? 5)) return false;
+  for (const x of Object.values(stats)) if (typeof x === "number" && x < 0) return false;
+  if (v(stats, "seconds") > elapsed + 5) return false;
+  switch (game) {
+    case "air-hockey":
+      return v(stats, "goals") <= 7 && v(stats, "against") <= 7 && (stats.won !== true || v(stats, "goals") >= 1);
+    case "construction-excavator":
+      return v(stats, "trucks") <= 1 + elapsed / 6;
+    case "foot-pool":
+      return v(stats, "kicks") <= 5 + elapsed && (stats.cleared !== true || v(stats, "kicks") >= 1);
+    case "gc-controller":
+      return v(stats, "hits") <= elapsed * 4 && v(stats, "bestCombo") <= v(stats, "hits") && v(stats, "score") <= v(stats, "hits") * 100;
+    case "gc-city":
+      return v(stats, "deliveries") <= 1 + elapsed / 8 && v(stats, "money") <= 200 + v(stats, "deliveries") * 250 + elapsed * 5;
+    case "gc-football":
+      return v(stats, "goalsFor") <= 1 + elapsed / 5 && v(stats, "goalsAgainst") <= 1 + elapsed / 5;
+    case "face-paint": {
+      const faces = v(stats, "faces");
+      const [best, worst, avg] = [v(stats, "best"), v(stats, "worst"), v(stats, "avg")];
+      return faces <= 3 && best <= 100 && worst <= avg && avg <= best && elapsed >= faces * 3;
+    }
+    default:
+      return true;
+  }
+}
+
 /** What a browser may send for a finished round. */
 export const roundInputSchema = z.object({
+  /** from POST /api/game-rewards/start when the round began */
+  token: z.string().max(200).default(""),
   game: z.enum(PLAYABLE_GAMES as [MiniGameId, ...MiniGameId[]]),
   stats: z
     .record(z.string().max(40), z.union([z.number().finite().min(-1e7).max(1e7), z.boolean()]))
