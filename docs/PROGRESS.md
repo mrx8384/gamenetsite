@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-11-02 (47) — 3D world: «فوتبال اتم» in 3D (owner request)
+
+- Owner: «بازی فوتبال اتم رو کیفیت ببریم بالا تر یعنی بازی از دو بعدی به سه بعدی تبدیل کنیم». Synced from gameatom (phase 25):
+  same rules, achievements and points (`football/engine.ts` unchanged); new 3D picture — floodlit futsal court with the
+  club's adverts on the boards, goals with nets, a stand with supporters, a score screen; the six players are the club's
+  toon figures in kits with shirt numbers, animated (run, kick, keeper stance, ball held, goal celebrations). Camera from
+  the side like TV on wide screens, from behind ATOM's attack on tall phones (controls turn with it). Shared helper
+  `src/atom-world/characters/bakeColors.ts`; optional `CharacterLook.kit`.
+- Verified: `pnpm check` ✓ (440) · `pnpm build` ✓ · smoke ✓ · world suites on this site: gaming center 42/42 (incl. «drawn in
+  WebGL», dribble, goal), mini-games 55/55, accessibility 30/30, bounds 9/9 · rewards anti-cheat 17/17.
+
 ## 2026-11-01 (46) — Partner requests: approve/reject not visible on phones (owner report)
 
 - Cause: on `/admin/partners` the approve/reject buttons live on the detail page, reached only through the business

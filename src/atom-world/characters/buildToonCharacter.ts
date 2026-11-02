@@ -115,16 +115,24 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true, build
   mesh(sphere, toon(look.pants), pelvis, [0, 0, 0], [0.17, 0.12, 0.13]);
 
   // ── Legs (cargo pants + chunky high-top sneakers)
+  const kit = look.kit;
   const makeLeg = (side: 1 | -1) => {
     const leg = group(pelvis, [0.095 * side, 0, 0]);
     mesh(thighGeo, toon(look.pants), leg, [0, -0.17, 0]);
-    // cargo pocket with flap, hanging accent strap
-    mesh(box, toon(look.pants), leg, [0.083 * side, -0.24, 0.01], [0.04, 0.13, 0.11]);
-    mesh(box, toon(look.pantsAccent), leg, [0.084 * side, -0.18, 0.01], [0.044, 0.02, 0.112]);
-    mesh(box, toon(look.pantsAccent), leg, [0.106 * side, -0.33, 0.05], [0.008, 0.16, 0.022]);
+    if (!kit) {
+      // cargo pocket with flap, hanging accent strap
+      mesh(box, toon(look.pants), leg, [0.083 * side, -0.24, 0.01], [0.04, 0.13, 0.11]);
+      mesh(box, toon(look.pantsAccent), leg, [0.084 * side, -0.18, 0.01], [0.044, 0.02, 0.112]);
+      mesh(box, toon(look.pantsAccent), leg, [0.106 * side, -0.33, 0.05], [0.008, 0.16, 0.022]);
+    } else {
+      // shorts end above the knee: a hem in the accent colour
+      mesh(cyl, toon(look.pantsAccent), leg, [0, -0.27, 0], [0.1, 0.025, 0.1]);
+    }
     const knee = group(leg, [0, -0.36, 0]);
-    mesh(shinGeo, toon(look.pants), knee, [0, -0.15, 0]);
-    mesh(cyl, toon(look.pants), knee, [0, -0.28, 0], [0.072, 0.05, 0.072]);
+    // kit: bare knee, sock up to just below it
+    mesh(shinGeo, kit ? skin : toon(look.pants), knee, [0, -0.15, 0]);
+    if (kit) mesh(cyl, toon(kit.socks), knee, [0, -0.19, 0], [0.079, 0.22, 0.079]);
+    mesh(cyl, toon(kit ? kit.socks : look.pants), knee, [0, -0.28, 0], [0.072, 0.05, 0.072]);
     if (look.hairStyle === "long-wavy") mesh(box, toon(look.pantsAccent), knee, [0.078 * side, -0.12, 0], [0.012, 0.22, 0.05]);
     const ankle = group(knee, [0, -0.33, 0]);
     mesh(box, toon(look.sole), ankle, [0, -0.025, 0.04], [0.13, 0.05, 0.28]);
@@ -146,11 +154,16 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true, build
   const accent = toon(look.jacketAccent);
   mesh(jacketGeo, jacket, torso, [0, 0.29, 0], [1.1, 1, 0.8]);
   mesh(cyl, accent, torso, [0, 0.07, 0], [0.19, 0.05, 0.15]);
-  mesh(box, toon(look.hoodie), torso, [0, 0.3, 0.115], [0.13, 0.36, 0.04]);
-  mesh(box, toon(look.shirt), torso, [0, 0.45, 0.118], [0.09, 0.08, 0.04]);
-  for (const sx of [-1, 1]) mesh(box, accent, torso, [0.068 * sx, 0.29, 0.128], [0.012, 0.4, 0.012]);
-  // hoodie drawstrings
-  for (const sx of [-1, 1]) mesh(box, accent, torso, [0.03 * sx, 0.38, 0.14], [0.008, 0.13, 0.008]);
+  if (!kit) {
+    mesh(box, toon(look.hoodie), torso, [0, 0.3, 0.115], [0.13, 0.36, 0.04]);
+    mesh(box, toon(look.shirt), torso, [0, 0.45, 0.118], [0.09, 0.08, 0.04]);
+    for (const sx of [-1, 1]) mesh(box, accent, torso, [0.068 * sx, 0.29, 0.128], [0.012, 0.4, 0.012]);
+    // hoodie drawstrings
+    for (const sx of [-1, 1]) mesh(box, accent, torso, [0.03 * sx, 0.38, 0.14], [0.008, 0.13, 0.008]);
+  } else {
+    // jersey collar
+    mesh(cyl, accent, torso, [0, 0.555, 0], [0.085, 0.03, 0.075]);
+  }
   // ATOM logo on the wearer's left chest and on the back (not on plain visitors)
   const plain = !!look.plain;
   const logo = decal(clothingLogoTexture(look.logo, look.hairStyle === "long-wavy" ? "#2a2a2a" : "#f2f2f2"), `logo-${look.logo}`);
@@ -158,8 +171,10 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true, build
   const logoBack = decal(clothingLogoTexture(look.logo, look.hairStyle === "long-wavy" ? "#2a2a2a" : "#f2f2f2"), `logo-back-${look.logo}`);
   if (!plain && look.hairStyle !== "long-wavy") mesh(plane, logoBack, torso, [0, 0.35, -0.138], [0.2, 0.2, 1], [0, Math.PI, 0]);
   // hood resting behind the neck (outer jacket colour, accent lining)
-  mesh(sphere, look.hairStyle === "long-wavy" ? toon(look.hoodie) : jacket, torso, [0, 0.54, -0.08], [0.15, 0.09, 0.1]);
-  mesh(sphere, toon(look.hairStyle === "long-wavy" ? look.hoodie : look.jacketAccent), torso, [0, 0.555, -0.03], [0.12, 0.06, 0.08]);
+  if (!kit) {
+    mesh(sphere, look.hairStyle === "long-wavy" ? toon(look.hoodie) : jacket, torso, [0, 0.54, -0.08], [0.15, 0.09, 0.1]);
+    mesh(sphere, toon(look.hairStyle === "long-wavy" ? look.hoodie : look.jacketAccent), torso, [0, 0.555, -0.03], [0.12, 0.06, 0.08]);
+  }
 
   // rounded backpack (girl's sheet shows one)
   if (!plain && look.hairStyle === "long-wavy") {
@@ -172,13 +187,20 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true, build
   // ── Arms
   const makeArm = (side: 1 | -1) => {
     const arm = group(torso, [0.212 * side, 0.49, 0]);
-    const sleeveTop = look.hairStyle === "long-wavy" ? accent : jacket;
+    const sleeveTop = kit ? jacket : look.hairStyle === "long-wavy" ? accent : jacket;
     mesh(sphere, sleeveTop, arm, [0, -0.015, 0], [0.068, 0.06, 0.068]);
-    mesh(upperArmGeo, sleeveTop, arm, [0, -0.15, 0]);
-    if (look.hairStyle !== "long-wavy") mesh(cyl, accent, arm, [0, -0.2, 0], [0.067, 0.03, 0.067]);
+    if (kit) {
+      // short sleeve over a bare arm
+      mesh(upperArmGeo, skin, arm, [0, -0.15, 0], [0.92, 1, 0.92]);
+      mesh(cyl, jacket, arm, [0, -0.08, 0], [0.071, 0.17, 0.071]);
+      mesh(cyl, accent, arm, [0, -0.165, 0], [0.072, 0.022, 0.072]);
+    } else {
+      mesh(upperArmGeo, sleeveTop, arm, [0, -0.15, 0]);
+      if (look.hairStyle !== "long-wavy") mesh(cyl, accent, arm, [0, -0.2, 0], [0.067, 0.03, 0.067]);
+    }
     const elbow = group(arm, [0, -0.31, 0]);
-    mesh(foreArmGeo, jacket, elbow, [0, -0.13, 0]);
-    mesh(cyl, accent, elbow, [0, -0.255, 0], [0.06, 0.045, 0.06]);
+    mesh(foreArmGeo, kit ? skin : jacket, elbow, [0, -0.13, 0], kit ? [0.9, 1, 0.9] : undefined);
+    if (!kit) mesh(cyl, accent, elbow, [0, -0.255, 0], [0.06, 0.045, 0.06]);
     mesh(sphere, skin, elbow, [0, -0.32, 0.005], [0.05, 0.058, 0.045]);
     return { arm, elbow };
   };
@@ -188,7 +210,7 @@ export function buildToonCharacter(look: CharacterLook, castShadow = true, build
   // ── Neck + headphones
   mesh(cyl, skin, torso, [0, 0.6, 0.005], [0.055, 0.1, 0.055]);
   const phones = group(torso, [0, 0.58, 0.02]);
-  phones.visible = !plain;
+  phones.visible = !plain && !kit;
   phones.rotation.x = -0.25;
   const bandGeo = geo(new THREE.TorusGeometry(0.135, 0.022, 10, 28, Math.PI * 1.25));
   // arc centred behind the neck, open at the front where the cups sit

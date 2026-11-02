@@ -38,3 +38,18 @@ describe("rival character", () => {
     expect(rivalOf("girl")).toBe("boy");
   });
 });
+
+describe("football kits (Atom football in 3D)", () => {
+  it("the two teams and the keepers wear different kits; a kit has no hood or headphones", async () => {
+    const { kitLook } = await import("../../../src/atom-world/minigames/football/football3d");
+    const atom = kitLook(0, "field", 1).look;
+    const rival = kitLook(1, "field", 4).look;
+    const keeper = kitLook(0, "gk", 0).look;
+    expect(atom.kit).toBeDefined();
+    expect(new Set([atom.jacket, rival.jacket, keeper.jacket]).size).toBe(3);
+    const rig = buildToonCharacter(atom, false);
+    const phones = rig.root.getObjectByProperty("visible", false);
+    expect(phones).toBeDefined(); // the headphones group is hidden
+    rig.dispose();
+  });
+});

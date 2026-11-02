@@ -31,6 +31,11 @@ export interface CharacterLook {
   hairClips?: string;
   /** Visitor in ordinary clothes: no ATOM logos, headphones or backpack. */
   plain?: boolean;
+  /**
+   * Football kit (Atom football): short-sleeved jersey in `jacket` (hem / sleeve rings in `jacketAccent`),
+   * shorts in `pants`, socks in `socks` up to below the knee; no hood, headphones or pockets.
+   */
+  kit?: { socks: string };
 }
 
 /** Final rigged model (GLB/GLTF). See docs/CHARACTER_MODEL_BRIEF.md for the delivery spec. */
