@@ -8,7 +8,7 @@
   toon figures in kits with shirt numbers, animated (run, kick, keeper stance, ball held, goal celebrations). Camera from
   the side like TV on wide screens, from behind ATOM's attack on tall phones (controls turn with it). Shared helper
   `src/atom-world/characters/bakeColors.ts`; optional `CharacterLook.kit`.
-- Verified: `pnpm check` ✓ (440) · `pnpm build` ✓ · smoke ✓ · world suites on this site: gaming center 42/42 (incl. «drawn in
+- Verified: `pnpm check` ✓ (440) · `pnpm build` ✓ · smoke 89/89 · world suites on this site: gaming center 42/42 (incl. «drawn in
   WebGL», dribble, goal), mini-games 55/55, accessibility 30/30, bounds 9/9 · rewards anti-cheat 17/17.
 
 ## 2026-11-01 (46) — Partner requests: approve/reject not visible on phones (owner report)
