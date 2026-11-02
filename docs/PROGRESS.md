@@ -1,5 +1,13 @@
 # Progress Log
 
+## 2026-11-02 (48) — 3D world: painting moved off the gaming-center stair doorway (owner request)
+
+- Owner (phone screenshots): «تابلوی نقاشی دم راه رو جابجا کن». Since the stair door moved next to station 5 (PROGRESS 38),
+  the framed Paris painting (photo 04, dark wall by the castle mural) hung across the top of the doorway. It now hangs on
+  the wood planks right of the counter, where the old stair door was (`PAINTING` in `gaming-center/layout.ts`).
+- Verified: `pnpm check` ✓ (441, incl. a layout test that it is clear of the doorways) · `pnpm build` ✓ · smoke 89/89 ·
+  gaming-center suite on this site 42/42 · screenshots from the stairs, from the hall and of the north wall.
+
 ## 2026-11-02 (47) — 3D world: «فوتبال اتم» in 3D (owner request)
 
 - Owner: «بازی فوتبال اتم رو کیفیت ببریم بالا تر یعنی بازی از دو بعدی به سه بعدی تبدیل کنیم». Synced from gameatom (phase 25):

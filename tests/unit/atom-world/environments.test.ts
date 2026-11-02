@@ -188,6 +188,17 @@ describe("adding an environment needs no change in the core", () => {
 });
 
 describe("gaming center layout (owner's answers)", () => {
+  it("the Paris painting hangs on a free wall, not over a doorway (owner 2026-11-02)", async () => {
+    const { PAINTING, TRAIN_DOOR, ROOMS, GC_HEIGHT, EAST_STAIR_DOOR } = await import("../../../src/atom-world/environments/gaming-center/layout");
+    // on the north wall (z = hall.zMin), inside the hall's width, clear of the train-room door
+    expect(PAINTING.xMin).toBeGreaterThan(TRAIN_DOOR.xMax);
+    expect(PAINTING.xMax).toBeLessThan(ROOMS.hall.xMax - 0.3);
+    expect(PAINTING.yMin).toBeGreaterThan(1);
+    expect(PAINTING.yMax).toBeLessThan(GC_HEIGHT - 0.3);
+    // the stair door is in the east wall now, nothing hangs in it
+    expect(EAST_STAIR_DOOR.zMax - EAST_STAIR_DOOR.zMin).toBeGreaterThan(0.9);
+  });
+
   it("coming in from the stairs, the counter is on the right", async () => {
     const { COUNTER, SPAWN_HALL } = await import("../../../src/atom-world/environments/gaming-center/layout");
     const s = SPAWN_HALL;

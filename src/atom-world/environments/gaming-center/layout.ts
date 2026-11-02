@@ -93,6 +93,8 @@ export const EAST_WALL = {
   dark: { zMin: 4.6, zMax: 7 },
 } as const;
 export const TRAIN_MURAL = { xMin: -4.85, xMax: -1.0 } as const; // on the train room's north wall
+/** Framed Paris painting (photo 04), on the north wall's wood planks right of the counter (owner 2026-11-02). */
+export const PAINTING = { xMin: 2.75, xMax: 3.65, yMin: 1.55, yMax: 2.15 } as const;
 
 export type Console = "ps5" | "ps4";
 

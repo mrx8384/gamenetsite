@@ -16,6 +16,7 @@ import {
   FRIDGE,
   GC_HEIGHT,
   GC_ORIGIN,
+  PAINTING,
   PILLAR,
   ROOMS,
   SHELVES,
@@ -195,6 +196,9 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
         <Panel face="+z" at={hall.zMin} a={-2.75} b={1.35} y0={0} y1={H} color="#2b2019" />
         <Panel face="+z" at={hall.zMin} a={SHELVES.xMin} b={SHELVES.xMax} y0={SHELVES.yMin} y1={SHELVES.yMax} map={shelves} emissive={0.55} lift={0.01} />
         <Panel face="+z" at={hall.zMin} a={1.35} b={hall.xMax} y0={0} y1={H} map={woodNorth} color="#c9935c" />
+        {/* the framed Paris painting (photo 04: on the dark wall by the castle mural, where the stair door is now —
+             owner 2026-11-02): on the wood planks right of the counter, where the old stair door was */}
+        <Panel face="+z" at={hall.zMin} a={PAINTING.xMin} b={PAINTING.xMax} y0={PAINTING.yMin} y1={PAINTING.yMax} map={paintingParis} lift={0.02} />
 
         {/* east wall: wood planks (controllers, chalkboard, sign 2), black arch panel, castle mural, dark wall */}
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.wood.zMin} b={EAST_WALL.wood.zMax} y0={0} y1={H} map={woodEast} color="#c9935c" />
@@ -207,7 +211,6 @@ export default function GamingCenterScene({ quality, preset }: EnvSceneProps) {
         <Panel face="-x" at={hall.xMax} a={EAST_WALL.dark.zMin} b={EAST_STAIR_DOOR.zMin} y0={0} y1={H} color="#1d2026" />
         <Panel face="-x" at={hall.xMax} a={EAST_STAIR_DOOR.zMax} b={EAST_WALL.dark.zMax} y0={0} y1={H} color="#1d2026" />
         <Panel face="-x" at={hall.xMax} a={EAST_STAIR_DOOR.zMin} b={EAST_STAIR_DOOR.zMax} y0={EAST_STAIR_DOOR.height} y1={H} color="#1d2026" />
-        <Panel face="-x" at={hall.xMax} a={5.4} b={6.3} y0={1.6} y1={2.2} map={paintingParis} lift={0.02} />
 
         {/* west wall: stone cladding under the AC, Paris mural, white pilaster with the deer poster, portrait wall */}
         <Panel face="+x" at={hall.xMin} a={WEST_WALL.stone.zMin} b={WEST_WALL.stone.zMax} y0={0} y1={2.15} map={stoneTex} />
