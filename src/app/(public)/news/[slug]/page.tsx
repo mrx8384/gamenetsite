@@ -78,7 +78,7 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
         </p>
         {post.coverKey ? (
           <div className="relative mt-6 aspect-[16/9] overflow-hidden rounded-2xl bg-secondary">
-            <Image src={mediaUrl(post.coverKey)} alt="" fill unoptimized priority sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
+            <Image src={mediaUrl(post.coverKey)} alt="" fill priority sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
           </div>
         ) : null}
         <RichTextContent html={post.contentHtml} className="mt-8 text-[1.05rem]" />

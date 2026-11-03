@@ -50,7 +50,7 @@ async function CartContent() {
         {cart.lines.map((l) => (
           <li key={l.id} className="flex gap-4 p-4">
             <Link href={`/shop/${encodeURIComponent(l.slug)}`} className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-secondary sm:size-24">
-              {l.imageKey ? <Image src={mediaUrl(l.imageKey)} alt="" fill unoptimized sizes="96px" className="object-cover" /> : <ImageOff className="m-auto mt-7 size-6 text-muted-foreground" aria-hidden />}
+              {l.imageKey ? <Image src={mediaUrl(l.imageKey)} alt="" fill sizes="96px" className="object-cover" /> : <ImageOff className="m-auto mt-7 size-6 text-muted-foreground" aria-hidden />}
             </Link>
             <div className="min-w-0 flex-1 space-y-2">
               <Link href={`/shop/${encodeURIComponent(l.slug)}`} className="line-clamp-2 font-semibold hover:text-link">{l.title}</Link>

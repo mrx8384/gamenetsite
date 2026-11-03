@@ -12,7 +12,8 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
         پرش به محتوای اصلی
       </a>
       <SiteHeader />
-      <main id="main" className="flex flex-1 flex-col">
+      {/* min-h-svh: while a page streams in, the footer stays below the screen instead of jumping down (CLS). */}
+      <main id="main" className="flex min-h-svh flex-1 flex-col">
         {children}
       </main>
       <SiteFooter />

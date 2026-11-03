@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-11-03 (47) — Performance / PageSpeed pass (owner request)
+
+- PageSpeed Insights API refused (daily quota of the shared sandbox address), so Lighthouse 12 (same engine, mobile
+  preset) was run against a production build with six temporary `[TEST]` products with real images.
+- Images: public pages no longer use `unoptimized`; Next's optimizer resizes uploads and public photos per screen
+  (`images.localPatterns` /media, /brand, /atom-world; AVIF/WebP; 31-day cache — media keys are immutable). Catalog
+  PS5 page 1145 KB → 639 KB, shop 748 → 581 KB, homepage 694 → 564 KB. First product cards (shop) and first catalog
+  covers load with priority instead of lazily.
+- Layout shift: public `<main>` has `min-h-svh`, so the footer stays below the screen while pages stream (shop CLS
+  0.111 → 0, park 0.124 → 0); park skeleton taller.
+- SEO/a11y: descriptive link texts («مشاهدهٔ تورنومنت‌ها», «بیشتر دربارهٔ اتم گیم کلاب»), contact heading order
+  (h1 → h2), shop sr-only h2 before product cards, catalog cover `alt=""` (the name is already the button text).
+- Result (Lighthouse mobile, perf/a11y/best-practices/SEO): home 91/100/100/100, shop 92/100/100/100, catalog PS5
+  87/100/100/100, park 89/100/100/100, contact 92/100/100/100; CLS 0 on all. Remaining LCP (~3.3–4 s in the simulated
+  slow-4G lab run) comes from request-time streaming of data sections and the hero logo request; real-user numbers
+  depend on ArvanCloud. `pnpm check` ✓ (441) · build ✓ · smoke 89/89. Test products removed.
+
 ## 2026-11-02 (48) — 3D world: painting moved off the gaming-center stair doorway (owner request)
 
 - Owner (phone screenshots): «تابلوی نقاشی دم راه رو جابجا کن». Since the stair door moved next to station 5 (PROGRESS 38),

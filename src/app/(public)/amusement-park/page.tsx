@@ -29,7 +29,7 @@ function Collage({ items }: { items: PublicAttraction[] }) {
     <div className="relative mx-auto aspect-[5/4] w-full max-w-lg" aria-hidden>
       {photos.map((p, i) => (
         <div key={p.id} className={`absolute aspect-[4/3] overflow-hidden rounded-2xl border-4 border-surface bg-secondary shadow-[0_24px_60px_-24px_rgb(17_17_17/0.5)] ${i === 0 ? "w-[78%]" : ""} ${spots[i]}`}>
-          <Image src={p.image!} alt="" fill unoptimized priority={i === 0} sizes="(min-width: 1024px) 380px, 70vw" className="object-cover" />
+          <Image src={p.image!} alt="" fill priority={i === 0} sizes="(min-width: 1024px) 380px, 70vw" className="object-cover" />
         </div>
       ))}
     </div>
@@ -43,7 +43,7 @@ function AttractionRow({ item, index }: { item: PublicAttraction; index: number 
       <div className={flip ? "md:order-2" : undefined}>
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border bg-secondary shadow-card">
           {item.image ? (
-            <Image src={item.image} alt={item.title} fill unoptimized sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+            <Image src={item.image} alt={item.title} fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-3 [background:radial-gradient(circle_at_30%_30%,color-mix(in_oklab,var(--brand-yellow)_45%,transparent),transparent_60%),radial-gradient(circle_at_75%_70%,color-mix(in_oklab,var(--brand-green)_35%,transparent),transparent_60%)]">
               <Sparkles className="size-14 text-brand-green-deep" aria-hidden />
@@ -164,7 +164,8 @@ async function ParkContent() {
 
 function ParkSkeleton() {
   return (
-    <Container className="grid grid-cols-1 gap-10 py-14 lg:grid-cols-2">
+    // Tall placeholder: the footer stays below the screen until the page arrives (no layout shift).
+    <Container className="grid min-h-[110svh] grid-cols-1 content-start gap-10 py-14 lg:grid-cols-2">
       <div className="space-y-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-6 w-full" /><Skeleton className="h-24 w-full" /></div>
       <Skeleton className="aspect-[5/4] w-full rounded-3xl" />
     </Container>

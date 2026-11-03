@@ -57,7 +57,7 @@ function PlatformCard({ stats }: { stats: CatalogPlatformStats }) {
                 dark ? "border-brand-black" : "border-surface",
               )}
             >
-              <Image src={mediaUrl(key)} alt="" fill unoptimized sizes="72px" className="object-cover" />
+              <Image src={mediaUrl(key)} alt="" fill sizes="72px" className="object-cover" />
             </div>
           ))}
         </div>

@@ -7,7 +7,7 @@ import { OpenSupportButton } from "@/components/support/open-support-button";
 import { Container } from "@/components/layout/container";
 import { SocialLinks } from "@/components/layout/social-links";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getSiteSettings } from "@/features/settings/site";
 import { toPersianDigits } from "@/lib/format";
 
@@ -29,7 +29,7 @@ export default async function ContactPage() {
       <p className="mb-8 text-muted-foreground">سؤال، پیشنهاد یا درخواست همکاری دارید؟ پیام بگذارید.</p>
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card>
-          <CardHeader><CardTitle>ارسال پیام</CardTitle></CardHeader>
+          <CardHeader><h2 className="text-lg font-bold">ارسال پیام</h2></CardHeader>
           <CardContent><ContactForm /></CardContent>
         </Card>
         <div className="space-y-4">

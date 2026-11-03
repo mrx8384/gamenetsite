@@ -125,8 +125,9 @@ async function ShopContent({ searchParams }: { searchParams: Promise<SP> }) {
           />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
-            {items.map((p) => (
-              <ProductCard key={p.id} product={p} />
+            <h2 className="sr-only">محصولات</h2>
+            {items.map((p, i) => (
+              <ProductCard key={p.id} product={p} priority={i < 2} />
             ))}
           </div>
         )}

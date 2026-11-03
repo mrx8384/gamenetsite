@@ -13,7 +13,7 @@ export function NewsCard({ post }: { post: NewsCardData }) {
     >
       <div className="relative aspect-[16/9] bg-secondary">
         {post.coverKey ? (
-          <Image src={mediaUrl(post.coverKey)} alt="" fill unoptimized sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
+          <Image src={mediaUrl(post.coverKey)} alt="" fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <Newspaper className="size-8" aria-hidden />

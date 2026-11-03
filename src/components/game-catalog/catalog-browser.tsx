@@ -85,14 +85,14 @@ export function CatalogBrowser({ platform, categories, games }: Props) {
           {groups.length === 0 ? (
             <EmptyState icon={SearchX} title="بازی‌ای پیدا نشد" description="عبارت دیگری را جستجو کنید." />
           ) : (
-            groups.map((group) => (
+            groups.map((group, gi) => (
               <section key={group.id} aria-labelledby={`cat-${group.id}`} className="space-y-3">
                 <h2 id={`cat-${group.id}`} className="flex items-center gap-2 text-lg font-bold">
                   {group.name}
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">{formatNumber(group.games.length)}</span>
                 </h2>
                 <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-                  {group.games.map((game) => (
+                  {group.games.map((game, i) => (
                     <li key={game.id}>
                       <button
                         type="button"
@@ -100,7 +100,7 @@ export function CatalogBrowser({ platform, categories, games }: Props) {
                         className="group block w-full cursor-zoom-in text-start"
                       >
                         <span className="relative block aspect-[3/4] overflow-hidden rounded-xl border bg-secondary shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
-                          <Image src={mediaUrl(game.imageKey)} alt={game.name} fill unoptimized loading="lazy" sizes="(min-width:1024px) 16vw, (min-width:640px) 25vw, 33vw" className="object-cover" />
+                          <Image src={mediaUrl(game.imageKey)} alt="" fill priority={gi === 0 && i < 3} sizes="(min-width:1024px) 16vw, (min-width:640px) 25vw, 33vw" className="object-cover" />
                         </span>
                         <span className="mt-1.5 line-clamp-2 block text-xs font-medium leading-5 sm:text-sm">{game.name}</span>
                       </button>
@@ -192,7 +192,7 @@ function Lightbox({ games, index, onIndexChange }: { games: CatalogGameView[]; i
                 className="relative h-[70dvh] w-full max-w-md"
                 style={{ transform: dragX ? `translateX(${dragX}px)` : undefined, transition: dragX ? "none" : "transform 200ms" }}
               >
-                <Image key={game.id} src={mediaUrl(game.imageKey)} alt={game.name} fill unoptimized sizes="(min-width:640px) 448px, 100vw" className="rounded-xl object-contain" />
+                <Image key={game.id} src={mediaUrl(game.imageKey)} alt={game.name} fill sizes="(min-width:640px) 448px, 100vw" className="rounded-xl object-contain" />
               </div>
               <p className="text-sm text-brand-cream/70" aria-live="polite">
                 {formatNumber(index! + 1)} از {formatNumber(games.length)}

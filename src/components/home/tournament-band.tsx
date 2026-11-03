@@ -13,7 +13,7 @@ export function TournamentBand({ title, subtitle }: { title: string; subtitle: s
           <h2 className="text-2xl font-black sm:text-3xl">{title}</h2>
           <p className="max-w-2xl leading-8 text-brand-cream/70">{subtitle}</p>
           <Button asChild variant="default" className="mt-2">
-            <Link href="/tournaments">اطلاعات بیشتر</Link>
+            <Link href="/tournaments">مشاهدهٔ تورنومنت‌ها</Link>
           </Button>
         </div>
         <div className="relative mx-auto hidden size-40 items-center justify-center md:flex" aria-hidden>

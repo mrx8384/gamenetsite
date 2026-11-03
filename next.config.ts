@@ -52,6 +52,13 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  images: {
+    // Uploaded images (/media, random immutable names) and public photos are resized per screen by
+    // Next's optimizer instead of being sent at full size; cache the results for a month.
+    localPatterns: [{ pathname: "/media/**" }, { pathname: "/brand/**" }, { pathname: "/atom-world/**" }],
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2_678_400,
+  },
   experimental: {
     // Applies to all Server Actions. Admin uploads send one image (≤ 5 MB) per request.
     serverActions: { bodySizeLimit: "6mb" },

@@ -68,7 +68,7 @@ async function NewsContent({ searchParams }: { searchParams: Promise<SP> }) {
       {featured ? (
         <Link href={`/news/${encodeURIComponent(featured.slug)}`} className="group grid overflow-hidden rounded-2xl border bg-surface shadow-card md:grid-cols-2">
           <div className="relative aspect-[16/10] bg-secondary md:aspect-auto">
-            {featured.coverKey ? <Image src={mediaUrl(featured.coverKey)} alt="" fill unoptimized priority sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" /> : null}
+            {featured.coverKey ? <Image src={mediaUrl(featured.coverKey)} alt="" fill priority sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" /> : null}
           </div>
           <div className="flex flex-col justify-center gap-3 p-6 sm:p-8">
             <span className="text-xs font-semibold text-link">خبر ویژه{featured.categoryName ? ` · ${featured.categoryName}` : ""}</span>

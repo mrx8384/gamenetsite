@@ -13,7 +13,7 @@ export function AboutTeaser({ title, body }: { title: string; body: string }) {
         <h2 className="text-2xl font-black">{title}</h2>
         <p className="leading-8 text-muted-foreground">{body}</p>
         <Button asChild variant="outline">
-          <Link href="/about">بیشتر بخوانید</Link>
+          <Link href="/about">بیشتر دربارهٔ اتم گیم کلاب</Link>
         </Button>
       </div>
     </div>

@@ -6,7 +6,8 @@ import { formatToman, toPersianDigits } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import type { ProductCardData } from "@/features/store/queries";
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+/** `priority`: first cards on a page (visible without scrolling) load their image right away. */
+export function ProductCard({ product, priority = false }: { product: ProductCardData; priority?: boolean }) {
   const price = BigInt(product.price);
   const compareAt = product.compareAtPrice ? BigInt(product.compareAtPrice) : null;
   const discount = compareAt && compareAt > price ? Number(((compareAt - price) * BigInt(100)) / compareAt) : 0;
@@ -22,7 +23,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             src={mediaUrl(product.imageKey)}
             alt={product.imageAlt ?? product.title}
             fill
-            unoptimized
+            priority={priority}
             sizes="(min-width: 1024px) 25vw, 50vw"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />

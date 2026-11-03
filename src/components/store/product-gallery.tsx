@@ -19,7 +19,7 @@ export function ProductGallery({ images, title }: { images: { key: string; alt: 
   return (
     <div className="space-y-3">
       <div className="relative aspect-square overflow-hidden rounded-2xl border bg-surface">
-        <Image src={mediaUrl(current.key)} alt={current.alt || title} fill unoptimized priority sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" />
+        <Image src={mediaUrl(current.key)} alt={current.alt || title} fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" />
       </div>
       {images.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="تصاویر محصول">
@@ -36,7 +36,7 @@ export function ProductGallery({ images, title }: { images: { key: string; alt: 
                 i === active ? "border-brand-green" : "border-transparent opacity-70 hover:opacity-100",
               )}
             >
-              <Image src={mediaUrl(img.key)} alt="" fill unoptimized sizes="80px" className="object-cover" />
+              <Image src={mediaUrl(img.key)} alt="" fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>

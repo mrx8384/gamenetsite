@@ -18,7 +18,7 @@ function Logo({ org, size }: { org: PublicOrganization; size: "card" | "dialog" 
   return (
     <span className={cn("relative flex items-center justify-center", box)}>
       {org.logoKey ? (
-        <Image src={mediaUrl(org.logoKey)} alt={size === "dialog" ? `لوگوی ${org.name}` : ""} fill unoptimized sizes={size === "card" ? "112px" : "96px"} className="object-contain" draggable={false} />
+        <Image src={mediaUrl(org.logoKey)} alt={size === "dialog" ? `لوگوی ${org.name}` : ""} fill sizes={size === "card" ? "112px" : "96px"} className="object-contain" draggable={false} />
       ) : (
         <Building2 className="size-9 text-muted-foreground" aria-hidden />
       )}
