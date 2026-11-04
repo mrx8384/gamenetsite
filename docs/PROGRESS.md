@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-04 (55) — Calibration tool in the site's design (owner request)
+
+The vendored DualShock Calibration GUI (PROGRESS 54) now looks like the rest of the site: `vendor/dualshock-tools/css/atom-theme.css` (Vazirmatn self-hosted in `lib/fonts`, brand colours for Bootstrap's light/dark themes, black-on-green buttons, site radius/shadows, green tabs/switches/focus), controller drawing and stick dot colours switched to the site greens (`core.js`, `stick-renderer.js`, display only), iframe on the cream background with the card shadow. Recorded in `ATOM_CHANGES.md`.
+
+Verified: build; browser: the tool renders in Vazirmatn (font loaded), connect button in brand green, welcome dialog and warnings in the site style, no requests to other hosts.
+
 ## 2026-11-04 (54) — Full PlayStation calibration tool + Xbox test with real controller drawings (owner request)
 
 The owner asked for a tool «کامل شبیه» dualshock-tools.github.io (screenshots: connect, controller info, calibrate stick centre / range, fine-tune, save permanently, restore, reboot, joystick info with circularity, quick test, debug) plus an Xbox test, with controllers drawn like the real ones. This also settles the open decision on WebHID calibration (PROGRESS 16).

@@ -1,0 +1,209 @@
+/* ATOM GAME CLUB look for the calibration tool: site fonts, colours and shapes (src/app/globals.css). */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("../lib/fonts/Vazirmatn-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root,
+[data-bs-theme="light"] {
+  --atom-green: #00c96b;
+  --atom-green-hover: #00b25f;
+  --atom-green-deep: #00703c;
+  --atom-black: #111111;
+  --bs-font-sans-serif: "Vazirmatn", Tahoma, system-ui, sans-serif;
+  --bs-body-font-family: var(--bs-font-sans-serif);
+  --bs-body-bg: #faf9f3;
+  --bs-body-color: #111111;
+  --bs-tertiary-bg: #ffffff;
+  --bs-secondary-bg: #f0eee3;
+  --bs-secondary-color: #5b5a52;
+  --bs-emphasis-color: #111111;
+  --bs-border-color: #e4e1d3;
+  --bs-primary: #00c96b;
+  --bs-primary-rgb: 0, 201, 107;
+  --bs-primary-text-emphasis: #00703c;
+  --bs-primary-bg-subtle: #e3f8ec;
+  --bs-primary-border-subtle: #9fe3bf;
+  --bs-success: #00703c;
+  --bs-success-rgb: 0, 112, 60;
+  --bs-danger: #b42318;
+  --bs-danger-rgb: 180, 35, 24;
+  --bs-warning-bg-subtle: #fff6cc;
+  --bs-info-bg-subtle: #e8f0fd;
+  --bs-link-color: #00703c;
+  --bs-link-color-rgb: 0, 112, 60;
+  --bs-link-hover-color: #008f4c;
+  --bs-link-hover-color-rgb: 0, 143, 76;
+  --bs-border-radius: 0.875rem;
+  --bs-border-radius-sm: 0.6rem;
+  --bs-border-radius-lg: 1.1rem;
+  --bs-focus-ring-color: rgba(0, 201, 107, 0.35);
+  --atom-shadow-card: 0 1px 2px rgb(17 17 17 / 0.04), 0 8px 24px -12px rgb(17 17 17 / 0.12);
+}
+
+[data-bs-theme="dark"] {
+  --bs-body-bg: #0f1110;
+  --bs-body-color: #f2f1ea;
+  --bs-tertiary-bg: #171a18;
+  --bs-secondary-bg: #222623;
+  --bs-secondary-color: #a9aaa0;
+  --bs-emphasis-color: #f2f1ea;
+  --bs-border-color: #2a2e2b;
+  --bs-primary-text-emphasis: #00c96b;
+  --bs-primary-bg-subtle: #0f2a1c;
+  --bs-primary-border-subtle: #1f5a3b;
+  --bs-success: #00c96b;
+  --bs-success-rgb: 0, 201, 107;
+  --bs-link-color: #00c96b;
+  --bs-link-color-rgb: 0, 201, 107;
+  --bs-link-hover-color: #19d47b;
+  --bs-link-hover-color-rgb: 25, 212, 123;
+  --atom-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+  line-height: 1.8;
+}
+dl.row dd,
+code,
+.font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  direction: ltr;
+}
+
+/* Header and footer: site-style bars */
+.navbar {
+  background: var(--bs-tertiary-bg) !important;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.navbar-brand {
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+footer.fixed-bottom {
+  background: var(--bs-tertiary-bg) !important;
+}
+
+/* Cards */
+.card {
+  border-color: var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--atom-shadow-card);
+  background: var(--bs-tertiary-bg);
+}
+.card-header {
+  background: transparent;
+  font-weight: 700;
+  border-bottom-color: var(--bs-border-color);
+}
+
+/* Buttons: never white on green — black text on the brand green (site rule) */
+.btn {
+  font-weight: 700;
+  border-radius: 0.75rem;
+}
+.btn-primary {
+  --bs-btn-color: #111111;
+  --bs-btn-bg: #00c96b;
+  --bs-btn-border-color: #00c96b;
+  --bs-btn-hover-color: #111111;
+  --bs-btn-hover-bg: #00b25f;
+  --bs-btn-hover-border-color: #00b25f;
+  --bs-btn-active-color: #111111;
+  --bs-btn-active-bg: #00a957;
+  --bs-btn-active-border-color: #00a957;
+  --bs-btn-disabled-color: #111111;
+  --bs-btn-disabled-bg: #00c96b;
+  --bs-btn-disabled-border-color: #00c96b;
+  --bs-btn-focus-shadow-rgb: 0, 201, 107;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-link-color);
+  --bs-btn-border-color: #00c96b;
+  --bs-btn-hover-color: #111111;
+  --bs-btn-hover-bg: #00c96b;
+  --bs-btn-hover-border-color: #00c96b;
+  --bs-btn-active-color: #111111;
+  --bs-btn-active-bg: #00b25f;
+  --bs-btn-active-border-color: #00b25f;
+  --bs-btn-disabled-color: var(--bs-link-color);
+  --bs-btn-disabled-border-color: #9fe3bf;
+  --bs-btn-focus-shadow-rgb: 0, 201, 107;
+}
+.btn-success {
+  --bs-btn-color: #111111;
+  --bs-btn-bg: #00c96b;
+  --bs-btn-border-color: #00c96b;
+  --bs-btn-hover-color: #111111;
+  --bs-btn-hover-bg: #00b25f;
+  --bs-btn-hover-border-color: #00b25f;
+  --bs-btn-disabled-color: #111111;
+  --bs-btn-disabled-bg: #00c96b;
+}
+.btn-secondary {
+  --bs-btn-color: #111111;
+  --bs-btn-bg: #f0eee3;
+  --bs-btn-border-color: #e4e1d3;
+  --bs-btn-hover-color: #111111;
+  --bs-btn-hover-bg: #e6e3d5;
+  --bs-btn-hover-border-color: #d9d5c4;
+}
+[data-bs-theme="dark"] .btn-secondary {
+  --bs-btn-color: #f2f1ea;
+  --bs-btn-bg: #222623;
+  --bs-btn-border-color: #2a2e2b;
+  --bs-btn-hover-color: #f2f1ea;
+  --bs-btn-hover-bg: #2b302c;
+}
+.btn-danger {
+  --bs-btn-bg: #b42318;
+  --bs-btn-border-color: #b42318;
+  --bs-btn-hover-bg: #9b1d14;
+  --bs-btn-hover-border-color: #9b1d14;
+}
+.btn-group .btn-secondary.active,
+.btn-check:checked + .btn {
+  --bs-btn-active-bg: #111111;
+  --bs-btn-active-color: #faf9f3;
+}
+
+/* Tabs, switches, alerts, modals */
+.nav-tabs .nav-link {
+  font-weight: 700;
+  color: var(--bs-secondary-color);
+}
+.nav-tabs .nav-link.active {
+  color: var(--bs-body-color);
+  border-top: 3px solid #00c96b;
+}
+.form-check-input:checked {
+  background-color: #00c96b;
+  border-color: #00c96b;
+}
+.form-check-input:focus,
+.form-control:focus,
+.form-select:focus {
+  border-color: #00c96b;
+  box-shadow: 0 0 0 0.25rem rgba(0, 201, 107, 0.25);
+}
+.progress-bar {
+  background-color: #00c96b;
+}
+.alert {
+  border-radius: var(--bs-border-radius);
+}
+.modal-content {
+  border-radius: 1.1rem;
+  border-color: var(--bs-border-color);
+}
+.stick-card-active {
+  border-color: #00c96b !important;
+  box-shadow: 0 0 10px rgba(0, 201, 107, 0.3) !important;
+}
+.stick-card-active .card-header {
+  background-color: #00c96b !important;
+  color: #111111 !important;
+}

@@ -740,8 +740,9 @@ async function init_svg_controller(model) {
 
   const infillColors = colorMode === 'dark' ? '#2b3035' : '#ffffff';
 
-  const lightBlue = '#7ecbff';
-  const midBlue = '#3399cc';
+  // ATOM GAME CLUB colours (were light/mid blue)
+  const lightBlue = colorMode === 'dark' ? '#1f5a3b' : '#cfeedd';
+  const midBlue = colorMode === 'dark' ? '#00c96b' : '#008f4c';
   
   const dualshock = document.getElementById('Controller');
   set_svg_group_color(dualshock, lightBlue);
@@ -934,7 +935,7 @@ function update_ds_button_svg(changes, BUTTON_MAP) {
   if (!changes || Object.keys(changes).length === 0) return;
 
   const colorMode = Storage.preferredTheme.get();
-  const pressedColor = colorMode === 'dark' ? '#00FF00' : '#1a237e';
+  const pressedColor = colorMode === 'dark' ? '#00c96b' : '#00703c';
   const defaultColor = colorMode === 'dark' ? '#2b3035' : '#ffffff';
 
   // Update L2/R2 analog infill

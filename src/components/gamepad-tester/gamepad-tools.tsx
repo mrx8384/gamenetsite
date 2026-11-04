@@ -45,7 +45,7 @@ export function GamepadTools() {
             title="تست و کالیبره دستهٔ پلی‌استیشن"
             src="/gamepad-tools/index.html"
             allow="hid"
-            className="h-[calc(100dvh-10rem)] min-h-[640px] w-full rounded-xl border bg-white"
+            className="h-[calc(100dvh-10rem)] min-h-[640px] w-full rounded-xl border bg-background shadow-card"
           />
         </div>
       ) : (

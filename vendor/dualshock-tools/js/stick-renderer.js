@@ -159,7 +159,7 @@ export function draw_stick_dial(ctx, center_x, center_y, sz, stick_x, stick_y, o
     // Draw filled circle at stick position
     ctx.beginPath();
     ctx.arc(center_x+display_x*sz, center_y+display_y*sz, highlight ? 4 : 3, 0, 2*Math.PI);
-    ctx.fillStyle = highlight ? '#2989f7ff' : colorMode === 'dark' ? '#00FF00' : '#030b84ff';
+    ctx.fillStyle = highlight ? '#00c96b' : colorMode === 'dark' ? '#00c96b' : '#00703c';
     ctx.fill();
 }
 
