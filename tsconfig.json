@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@ds-tools/*": ["./vendor/dualshock-tools/*"]
     }
   },
   "include": [

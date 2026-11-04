@@ -71,8 +71,10 @@ export function ControllerPicture({
   React.useEffect(() => {
     const root = box.current;
     if (!root || !isSony || sonySvg?.model !== model) return;
-    paint(root.querySelector("#Controller"), COLORS.body);
+    // Same parts as the original tool's colouring (core.js), in the site's colours.
+    paint(root.querySelector("#Controller"), COLORS.bodyStroke);
     for (const id of ["Button_outlines", "Button_outlines_behind", "L3_outline", "R3_outline", "Trackpad_outline"]) paint(root.querySelector(`#${id}`), COLORS.outline);
+    for (const id of ["Controller_infills", "Button_infills", "Button_infills_behind", "L3_infill", "R3_infill", "Trackpad_infill"]) paint(root.querySelector(`#${id}`), COLORS.idle);
   }, [isSony, model, sonySvg]);
 
   // Live state every render (the tester re-renders each animation frame).

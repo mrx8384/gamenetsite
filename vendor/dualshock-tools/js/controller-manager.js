@@ -13,6 +13,7 @@ class ControllerManager {
   constructor(uiDependencies = {}) {
     this.currentController = null;
     this.handleNvStatusUpdate = uiDependencies.handleNvStatusUpdate;
+    this.onChangesStateUpdate = uiDependencies.onChangesStateUpdate; // ATOM GAME CLUB: native UI hook (see _updateUI)
     this.has_changes_to_write = null; 
     this.inputHandler = null; // Callback function for input processing
 
@@ -94,6 +95,11 @@ class ControllerManager {
   * Update UI based on current has_changes_to_write state
   */
   _updateUI() {
+    // ATOM GAME CLUB: the site's native UI (no jQuery) listens through onChangesStateUpdate.
+    if (typeof this.onChangesStateUpdate === "function") {
+      this.onChangesStateUpdate(!!this.has_changes_to_write);
+      return;
+    }
     const saveBtn = $("#savechanges");
     saveBtn
       .prop('disabled', !this.has_changes_to_write)

@@ -12,6 +12,7 @@ Changes made here (the original source is otherwise unchanged; it runs without t
 - `css/main.css`, `css/finetune.css`: hand-converted from `scss/` (variables inlined, native CSS nesting).
 - `css/atom-theme.css` (loaded after Bootstrap): the site's look — Vazirmatn font (`lib/fonts`, OFL), brand colours for light and dark mode, black text on green buttons, rounded cards with the site shadow, green tabs/switches/focus rings.
 - `js/core.js`: controller drawing colours (body/outlines/pressed) changed from blue to the site greens; `js/stick-renderer.js`: stick dot colour likewise. Display only — no HID code touched.
+- `js/controller-manager.js`: `_updateUI()` first calls `this.onChangesStateUpdate(hasChanges)` when set (passed to `initControllerManager({ onChangesStateUpdate })`) (the site's native React UI imports these modules directly and has no jQuery); otherwise unchanged.
 - `assets/`: the original SVG drawings and `donate.png` (also used by the site's live controller picture).
 
 Licences of the bundled libraries: `lib/jquery.LICENSE.txt`, `lib/bootstrap/LICENSE`, `lib/fontawesome/LICENSE.txt`.
