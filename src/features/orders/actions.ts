@@ -19,6 +19,8 @@ import { addressSchema, placeOrderSchema } from "./schemas";
 import { cancelOrderTx, expireStaleOrders, generateOrderNumber, OrderError, PAYMENT_WINDOW_MINUTES } from "./service";
 
 const LOGIN_REQUIRED = "برای ادامه وارد حساب کاربری شوید.";
+/** Test payment credentials move no money: only admins may order while they are in use. */
+const TEST_MODE_ERROR = "درگاه پرداخت در حالت آزمایشی است و فعلاً فقط مدیر سایت می‌تواند سفارش ثبت کند.";
 
 async function session() {
   try {
@@ -85,6 +87,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
   if (!s) return fail(LOGIN_REQUIRED);
   const settings = await getCommerceSettings();
   if (!settings.salesEnabled || !getPaymentProvider()) return fail("فروش آنلاین در حال حاضر فعال نیست.");
+  if (getPaymentProvider()?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
   const parsed = placeOrderSchema.safeParse(input);
   if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
   const { ip } = await getRequestInfo();
@@ -200,6 +203,7 @@ export async function retryPayment(orderNumber: string): Promise<ActionResult<{ 
   if (!order) return fail("سفارش پیدا نشد.");
   if (order.status !== "AWAITING_PAYMENT") return fail("این سفارش قابل پرداخت نیست.");
   if (!getPaymentProvider()) return fail("درگاه پرداخت در دسترس نیست.");
+  if (getPaymentProvider()?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
   try {
     return ok({ redirectTo: await startPayment(order.id, s.user.phone) });
   } catch (e) {

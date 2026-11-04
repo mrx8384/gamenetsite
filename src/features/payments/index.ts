@@ -1,11 +1,14 @@
 import "server-only";
 import { env } from "@/lib/env";
+import { baleProvider } from "./providers/bale";
 import { sandboxProvider } from "./providers/sandbox";
 import type { PaymentProvider } from "./types";
 
 /** The active gateway, or null while payments are disabled. Real providers are registered here. */
 export function getPaymentProvider(): PaymentProvider | null {
   switch (env.PAYMENT_PROVIDER) {
+    case "bale":
+      return baleProvider;
     case "sandbox":
       return env.NODE_ENV === "production" ? null : sandboxProvider;
     default:

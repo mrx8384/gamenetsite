@@ -17,7 +17,10 @@ const envSchema = z.object({
 
   // Optional integrations — features stay disabled until configured.
   /** "sandbox" is a local test gateway and is refused in production. Real providers are added when credentials arrive. */
-  PAYMENT_PROVIDER: z.enum(["disabled", "sandbox"]).default("disabled"),
+  PAYMENT_PROVIDER: z.enum(["disabled", "sandbox", "bale"]).default("disabled"),
+  /** «پرداخت با کیف پول بله»: bot token (from @botfather in Bale) and the bot's wallet payment token. */
+  BALE_BOT_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
+  BALE_PROVIDER_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
   PAYMENT_MERCHANT_ID: z.string().optional(),
   SMS_PROVIDER: z.enum(["log", "smsir"]).default("log"),
   SMS_API_KEY: z.string().optional(),
@@ -52,6 +55,9 @@ function loadEnv(): Env {
     throw new Error(`Invalid environment variables:\n${issues}`);
   }
   const env = parsed.data;
+  if (env.PAYMENT_PROVIDER === "bale" && (!env.BALE_BOT_TOKEN || !env.BALE_PROVIDER_TOKEN)) {
+    throw new Error("PAYMENT_PROVIDER=bale requires BALE_BOT_TOKEN and BALE_PROVIDER_TOKEN");
+  }
   if (env.NODE_ENV === "production" && env.PAYMENT_PROVIDER === "sandbox") {
     throw new Error("PAYMENT_PROVIDER=sandbox is for development only");
   }

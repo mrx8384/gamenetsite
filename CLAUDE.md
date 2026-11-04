@@ -47,6 +47,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Hide/show sections (owner request 2026-10-31): **done** — Admin → تنظیمات سایت → نمایش بخش‌ها; new public sections must get a `SectionGate`, a key in `sections-schema.ts`, and respect `getSectionVisibility()` on the homepage/menus/sitemap. PROGRESS 42.
 - «ادامه با گوگل» (2026-10-31): **done and live** (owner set the OAuth client and signed in successfully on www.atomgclub.ir) — `src/features/auth/google*.ts`, `/api/auth/google(/callback)`, model `OAuthAccount`. PROGRESS 43.
 - Account deletion by admin + optional automatic removal of inactive accounts (owner request 2026-10-31): **done** — `src/features/users/cleanup.ts`, Admin → کاربران, `pnpm maintenance`. Accounts with orders are never deleted. PROGRESS 44.
+- Bale wallet payments (owner request 2026-11-04): **done, test token only so far** — `PAYMENT_PROVIDER=bale`, `src/features/payments/providers/bale/`, webhook `/api/payments/bale/webhook/<secret>`, `pnpm bale:webhook`. With `WALLET-TEST-…` only admins can order. PROGRESS 48.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -193,7 +194,7 @@ See `docs/ROADMAP.md` (Phases 3–12).
 - Authorization: every admin page/action calls `requireRole`/`assertRole` itself — the admin layout and `proxy.ts` are not security boundaries. The admin layout also admits `SUPPORT`, so **new admin pages must require `["ADMIN"]` explicitly** (only support pages allow `SUPPORT`).
 - Do **not** reverse-proxy the original catalog to the public internet (its admin is protected only by a localhost check).
 - Do **not** modify the ATOM GAME CLUB logo.
-- Do **not** enable real payments or paid subscriptions until the owner supplies provider details.
+- Do **not** enable real payments or paid subscriptions until the owner supplies provider details (Bale wallet supplied 2026-11-04; real provider token only in `.env`).
 - Tournaments: bracket logic lives only in the pure `src/features/tournaments/engine.ts` (covered by randomized playout tests that also check that persisting only the returned keys keeps the DB in sync). Organizer rights only via `src/features/tournaments/permissions.ts`; players never enter results.
 - Gamepad Tester: browser-based input tester is live (owner request 2026-10-23; partners with entitlement + admins). Stick **calibration** (writing to controllers over WebHID) is not implemented — needs owner decision (see PROGRESS 16).
 - Do **not** claim a feature works unless it was verified (tests, typecheck, lint, route check).

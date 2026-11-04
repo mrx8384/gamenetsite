@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-11-04 (48) — «پرداخت با کیف پول بله» (owner request, Bale bot wallet payments)
+
+- Owner created a Bale bot wallet and pasted the payment section of docs.bale.ai (docs host blocked in the sandbox).
+  New `PaymentProvider` `bale` (`src/features/payments/providers/bale/`): `createPayment` makes a random code
+  (`ATOM…`) and sends the customer to `/payments/bale?code=…` (login + order owner only) → «پرداخت در بله» opens
+  `https://ble.ir/<bot>?start=<code>` (bot username from `getMe`; the code can also be pasted to the bot) → the
+  webhook (`/api/payments/bale/webhook/<secret>`, secret = sha256 of the bot token, 404 otherwise) answers `/start` with
+  `sendInvoice` (Rials, payload = code) → `pre_checkout_query` approved only for an open, unexpired order with the
+  exact amount (`answerPreCheckoutQuery`, < 10 s) → `successful_payment` → `inquireTransaction` must say `paid` for the
+  same amount → existing `applyPaymentResult` (idempotent) marks the order PAID; bot confirms with the tracking code.
+  The transaction id is stored first, so `/api/payments/bale/status` (polled by the page every 3 s) re-checks if Bale
+  was unreachable. Pure rules in `logic.ts` (unit-tested).
+- Test token `WALLET-TEST-…` (no money moves): provider `testMode`; `placeOrder` / `retryPayment` refuse non-admins,
+  payment page shows «حالت آزمایشی». `pnpm bale:webhook [info|delete]` registers the webhook (token never printed).
+- Verified: `pnpm check` ✓ (446, new `tests/unit/bale-payments.test.ts`) · `pnpm build` ✓ · smoke 89/89 · end to end on
+  the production build with tapi.bale.ai stubbed in a test-only `--import` preload (Bale is blocked in the sandbox):
+  customer refused in test mode; admin order → payment page with bot link and test notice → `/start` → sendInvoice
+  (12 500 000 Rials, test token, payload = code) → wrong amount refused, right amount approved → successful_payment →
+  inquireTransaction(tx-123) → order PAID, page redirected to the order, bot message with tracking code; duplicate
+  update ignored; wrong webhook secret 404. Test data removed. Not yet tried against the real Bale API.
+
 ## 2026-11-03 (47) — Performance / PageSpeed pass (owner request)
 
 - PageSpeed Insights API refused (daily quota of the shared sandbox address), so Lighthouse 12 (same engine, mobile
