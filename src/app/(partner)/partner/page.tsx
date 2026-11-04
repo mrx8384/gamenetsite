@@ -114,6 +114,11 @@ async function PartnerContent({ searchParams }: { searchParams: Promise<Record<s
   return (
     <div className="space-y-6">
       {notice ? <Alert variant={notice.variant}>{notice.text}</Alert> : null}
+      {profile.showPartnerPrices ? (
+        <Alert variant="success">
+          قیمت همکاری برای شما فعال است: در <Link className="text-link underline" href="/shop">فروشگاه</Link> کنار هر محصولی که قیمت همکار دارد، قیمت همکار نمایش داده می‌شود و خریدتان با همان قیمت ثبت می‌شود.
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-lg font-bold">{profile.businessName}</p>
         <PartnerStatusBadge status="APPROVED" />

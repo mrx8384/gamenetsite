@@ -52,6 +52,8 @@ export const productSchema = z
     description: z.string().trim().max(20000).default(""),
     price: tomanSchema,
     compareAtPrice: optionalToman,
+    /** Only for approved partners chosen by the admin. */
+    partnerPrice: optionalToman.default(""),
     status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
     isFeatured: z.boolean().default(false),
     images: z.array(productImageSchema).max(12, "حداکثر ۱۲ تصویر").default([]),
@@ -59,6 +61,10 @@ export const productSchema = z
   .refine((p) => p.compareAtPrice === null || BigInt(p.compareAtPrice) > BigInt(p.price), {
     path: ["compareAtPrice"],
     message: "قیمت قبل از تخفیف باید از قیمت فعلی بیشتر باشد",
+  })
+  .refine((p) => p.partnerPrice === null || BigInt(p.partnerPrice) < BigInt(p.price), {
+    path: ["partnerPrice"],
+    message: "قیمت همکار باید از قیمت فروش کمتر باشد",
   });
 
 export const createProductSchema = productSchema.and(

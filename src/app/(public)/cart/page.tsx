@@ -54,7 +54,7 @@ async function CartContent() {
             </Link>
             <div className="min-w-0 flex-1 space-y-2">
               <Link href={`/shop/${encodeURIComponent(l.slug)}`} className="line-clamp-2 font-semibold hover:text-link">{l.title}</Link>
-              <p className="text-sm text-muted-foreground">{formatToman(BigInt(l.unitPrice))} × {formatNumber(l.quantity)}</p>
+              <p className="text-sm text-muted-foreground">{formatToman(BigInt(l.unitPrice))} × {formatNumber(l.quantity)}{l.partnerPrice ? <span className="ms-2 rounded bg-brand-green/10 px-1.5 py-0.5 text-xs font-bold text-link">قیمت همکار</span> : null}</p>
               {l.issue ? <p className="text-xs font-medium text-destructive">{issueText[l.issue]}</p> : null}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CartLineControls itemId={l.id} quantity={l.quantity} max={l.stock} />

@@ -25,7 +25,7 @@ async function NewProductForm() {
   return (
     <ProductForm
       categories={categories}
-      initial={{ title: "", slug: "", sku: "", categoryId: "", shortDescription: "", description: "", price: "", compareAtPrice: "", status: "DRAFT", isFeatured: false, initialStock: "0", images: [] }}
+      initial={{ title: "", slug: "", sku: "", categoryId: "", shortDescription: "", description: "", price: "", compareAtPrice: "", partnerPrice: "", status: "DRAFT", isFeatured: false, initialStock: "0", images: [] }}
     />
   );
 }

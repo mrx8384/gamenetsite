@@ -236,6 +236,8 @@ model Product {
   descriptionHtml  String?
   price            BigInt
   compareAtPrice   BigInt?
+  /// Price for approved partners that may see partner prices (Rials, below `price`); null = none.
+  partnerPrice     BigInt?
   /// CHECK (stock >= 0). Changed only together with an InventoryMovement.
   stock            Int           @default(0)
   status           ProductStatus @default(DRAFT)
@@ -608,13 +610,15 @@ model PartnerProfile {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
+  /// Chosen by the admin (at approval or later): this partner sees and pays product partner prices.
+  showPartnerPrices Boolean   @default(false)
   /// Approved logo: replaces the Atom logo in the partner's own area while a subscription is current.
-  logoId           String?
+  logoId            String?
   /// Uploaded by the partner, waiting for admin approval.
-  pendingLogoId    String?
-  logoSubmittedAt  DateTime?
+  pendingLogoId     String?
+  logoSubmittedAt   DateTime?
   /// Why the last submitted logo was rejected.
-  logoRejectReason String?   @db.VarChar(300)
+  logoRejectReason  String?   @db.VarChar(300)
 
   user          User                  @relation("PartnerOwner", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy    User?                 @relation("PartnerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)

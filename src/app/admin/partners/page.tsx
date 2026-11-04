@@ -63,7 +63,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
       orderBy: status === "PENDING" ? { submittedAt: "asc" } : { updatedAt: "desc" }, // oldest pending first
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: { id: true, businessName: true, businessType: true, city: true, province: true, status: true, submittedAt: true, pendingLogoId: true, user: { select: { name: true, phone: true, email: true } } },
+      select: { id: true, businessName: true, businessType: true, city: true, province: true, status: true, submittedAt: true, pendingLogoId: true, showPartnerPrices: true, user: { select: { name: true, phone: true, email: true } } },
     }),
   ]);
   const count = (s: PartnerStatusKey) => counts.find((c) => c.status === s)?._count ?? 0;
@@ -149,7 +149,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
                   <p className="ltr text-start text-xs text-muted-foreground">{p.user.phone ?? p.user.email}</p>
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{formatDateTime(p.submittedAt)}</TableCell>
-                <TableCell><span className="inline-flex flex-wrap items-center gap-1"><PartnerStatusBadge status={p.status} />{p.pendingLogoId ? <Badge variant="warning">لوگوی جدید</Badge> : null}</span></TableCell>
+                <TableCell><span className="inline-flex flex-wrap items-center gap-1"><PartnerStatusBadge status={p.status} />{p.pendingLogoId ? <Badge variant="warning">لوگوی جدید</Badge> : null}{p.showPartnerPrices && p.status === "APPROVED" ? <Badge variant="outline">قیمت همکار</Badge> : null}</span></TableCell>
                 <TableCell>
                   {/* Approve / reject / suspend live on the detail page (reasons, subscription grant). */}
                   <Button asChild size="sm" variant={p.status === "PENDING" ? "default" : "outline"} className="whitespace-nowrap">

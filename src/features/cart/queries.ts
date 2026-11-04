@@ -2,6 +2,8 @@ import "server-only";
 import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { findCartId } from "./service";
+import { canSeePartnerPrices } from "@/features/partners/pricing";
+import { effectiveUnitPrice } from "@/features/store/partner-price";
 
 export type CartLineIssue = "unavailable" | "price_on_request" | "out_of_stock" | "insufficient_stock" | null;
 
@@ -16,6 +18,8 @@ export interface CartLine {
   stock: number;
   lineTotal: string;
   issue: CartLineIssue;
+  /** The partner price is used for this line. */
+  partnerPrice: boolean;
 }
 
 export interface CartView {
@@ -39,7 +43,7 @@ export async function getCartView(userId: string | null): Promise<CartView> {
           quantity: true,
           product: {
             select: {
-              id: true, title: true, slug: true, price: true, stock: true, status: true,
+              id: true, title: true, slug: true, price: true, partnerPrice: true, stock: true, status: true,
               category: { select: { priceOnRequest: true, parent: { select: { priceOnRequest: true } } } },
               images: { orderBy: { sortOrder: "asc" }, take: 1, select: { media: { select: { storageKey: true } } } },
             },
@@ -48,16 +52,18 @@ export async function getCartView(userId: string | null): Promise<CartView> {
       })
     : [];
 
+  const partner = userId ? await canSeePartnerPrices(userId) : false;
   let subtotal = BigInt(0);
   const lines: CartLine[] = items.map(({ id, quantity, product: p }) => {
     const priceOnRequest = !!p.category && (p.category.priceOnRequest || !!p.category.parent?.priceOnRequest);
     const issue: CartLineIssue =
       p.status !== "ACTIVE" ? "unavailable" : priceOnRequest ? "price_on_request" : p.stock <= 0 ? "out_of_stock" : quantity > p.stock ? "insufficient_stock" : null;
-    const lineTotal = p.price * BigInt(quantity);
+    const unit = effectiveUnitPrice(p.price, p.partnerPrice, partner);
+    const lineTotal = unit * BigInt(quantity);
     if (!issue) subtotal += lineTotal;
     return {
       id, productId: p.id, title: p.title, slug: p.slug, imageKey: p.images[0]?.media.storageKey ?? null,
-      unitPrice: p.price.toString(), quantity, stock: p.stock, lineTotal: lineTotal.toString(), issue,
+      unitPrice: unit.toString(), quantity, stock: p.stock, lineTotal: lineTotal.toString(), issue, partnerPrice: unit !== p.price,
     };
   });
   const orderable = lines.length > 0 && lines.every((l) => !l.issue);

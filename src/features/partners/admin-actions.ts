@@ -29,7 +29,7 @@ const ALLOWED_FROM: Record<Decision, string[]> = {
  * transaction (admins keep their ADMIN role). Sessions read the role from the DB on every request,
  * so the change applies immediately without logging the user out.
  */
-export async function reviewPartner(profileId: string, decision: Decision, reason?: unknown): Promise<ActionResult<undefined>> {
+export async function reviewPartner(profileId: string, decision: Decision, reason?: unknown, options?: { showPartnerPrices?: unknown }): Promise<ActionResult<undefined>> {
   const actor = await admin();
   if (!actor) return fail("دسترسی غیرمجاز.");
   if (typeof profileId !== "string" || !(decision in ALLOWED_FROM)) return fail("درخواست نامعتبر است.");
@@ -48,7 +48,14 @@ export async function reviewPartner(profileId: string, decision: Decision, reaso
     const status = decision === "approve" ? "APPROVED" : decision === "reject" ? "REJECTED" : "SUSPENDED";
     await tx.partnerProfile.update({
       where: { id: profileId },
-      data: { status, reviewedById: actor.id, reviewedAt: new Date(), rejectionReason: note },
+      data: {
+        status,
+        reviewedById: actor.id,
+        reviewedAt: new Date(),
+        rejectionReason: note,
+        // Asked in the approval dialog: may this partner see product partner prices?
+        ...(decision === "approve" ? { showPartnerPrices: options?.showPartnerPrices === true } : {}),
+      },
     });
     if (profile.user.role !== "ADMIN") {
       await tx.user.update({ where: { id: profile.userId }, data: { role: status === "APPROVED" ? "PARTNER" : "USER" } });
@@ -59,9 +66,23 @@ export async function reviewPartner(profileId: string, decision: Decision, reaso
   if (result === "bad-state") return fail("این تغییر وضعیت برای وضعیت فعلی مجاز نیست. صفحه را تازه کنید.");
 
   const { ip } = await getRequestInfo();
-  await audit({ actorId: actor.id, action: { approve: "partners.approved", reject: "partners.rejected", suspend: "partners.suspended" }[decision], entity: "partner", entityId: profileId, ip, meta: { ...result, reason: note } });
+  await audit({ actorId: actor.id, action: { approve: "partners.approved", reject: "partners.rejected", suspend: "partners.suspended" }[decision], entity: "partner", entityId: profileId, ip, meta: { ...result, reason: note, ...(decision === "approve" ? { showPartnerPrices: options?.showPartnerPrices === true } : {}) } });
   revalidatePath("/admin/partners");
   revalidatePath(`/admin/partners/${profileId}`);
   const msg = { approve: "همکار تأیید شد.", reject: "درخواست رد شد.", suspend: "همکار تعلیق شد." }[decision];
   return ok(undefined, msg);
+}
+
+/** Turns partner prices on/off for an approved partner (also asked at approval). */
+export async function setPartnerPricesVisible(profileId: unknown, show: unknown): Promise<ActionResult<undefined>> {
+  const actor = await admin();
+  if (!actor) return fail("دسترسی غیرمجاز.");
+  if (typeof profileId !== "string" || typeof show !== "boolean") return fail("درخواست نامعتبر است.");
+  const { count } = await db.partnerProfile.updateMany({ where: { id: profileId }, data: { showPartnerPrices: show } });
+  if (!count) return fail("همکار پیدا نشد.");
+  const { ip } = await getRequestInfo();
+  await audit({ actorId: actor.id, action: show ? "partners.partner_prices_on" : "partners.partner_prices_off", entity: "partner", entityId: profileId, ip });
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${profileId}`);
+  return ok(undefined, show ? "قیمت همکاری برای این همکار نمایش داده می‌شود." : "قیمت همکاری برای این همکار نمایش داده نمی‌شود.");
 }

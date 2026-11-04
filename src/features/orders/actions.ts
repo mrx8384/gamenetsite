@@ -15,6 +15,8 @@ import { getCommerceSettings } from "@/features/settings/commerce";
 import { findCartId } from "@/features/cart/service";
 import { attachToOrder, lockCodeForOrder, REWARD_ERROR_TEXT, RewardError } from "@/features/game-rewards/service";
 import { orderDiscount } from "@/features/game-rewards/rules";
+import { canSeePartnerPrices } from "@/features/partners/pricing";
+import { effectiveUnitPrice } from "@/features/store/partner-price";
 import { addressSchema, placeOrderSchema } from "./schemas";
 import { cancelOrderTx, expireStaleOrders, generateOrderNumber, OrderError, PAYMENT_WINDOW_MINUTES } from "./service";
 
@@ -94,6 +96,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
   const cartItems = cartId ? await db.cartItem.findMany({ where: { cartId }, select: { productId: true, quantity: true } }) : [];
   if (cartItems.length === 0) return fail("سبد خرید شما خالی است.");
 
+  const partnerPrices = await canSeePartnerPrices(s.user.id);
   let orderId: string;
   try {
     orderId = await db.$transaction(async (tx) => {
@@ -103,7 +106,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
       if (locked.length !== ids.length) throw new OrderError("محصولی از سبد شما دیگر در دسترس نیست.");
       const products = await tx.product.findMany({
         where: { id: { in: ids } },
-        select: { id: true, title: true, sku: true, price: true, stock: true, status: true, category: { select: { priceOnRequest: true, parent: { select: { priceOnRequest: true } } } } },
+        select: { id: true, title: true, sku: true, price: true, partnerPrice: true, stock: true, status: true, category: { select: { priceOnRequest: true, parent: { select: { priceOnRequest: true } } } } },
       });
 
       let subtotal = BigInt(0);
@@ -112,9 +115,10 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
         if (p.status !== "ACTIVE") throw new OrderError(`«${p.title}» دیگر در دسترس نیست.`);
         if (p.category && (p.category.priceOnRequest || p.category.parent?.priceOnRequest)) throw new OrderError(`«${p.title}» فقط با استعلام تلفنی فروخته می‌شود.`);
         if (p.stock < ci.quantity) throw new OrderError(`موجودی «${p.title}» کافی نیست.`);
-        const lineTotal = p.price * BigInt(ci.quantity);
+        const unitPrice = effectiveUnitPrice(p.price, p.partnerPrice, partnerPrices);
+        const lineTotal = unitPrice * BigInt(ci.quantity);
         subtotal += lineTotal;
-        return { p, quantity: ci.quantity, lineTotal };
+        return { p, unitPrice, quantity: ci.quantity, lineTotal };
       });
       // پس‌کرایه: the carrier collects shipping on delivery, so nothing is charged online for it.
       const shippingCost = shipping.type === "PREPAID" ? shipping.price : BigInt(0);
@@ -155,7 +159,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           shippingType: shipping.type,
           paymentDeadline: new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000),
           items: {
-            create: lines.map((l) => ({ productId: l.p.id, titleSnapshot: l.p.title, skuSnapshot: l.p.sku, unitPrice: l.p.price, quantity: l.quantity, lineTotal: l.lineTotal })),
+            create: lines.map((l) => ({ productId: l.p.id, titleSnapshot: l.p.title, skuSnapshot: l.p.sku, unitPrice: l.unitPrice, quantity: l.quantity, lineTotal: l.lineTotal })),
           },
           statusHistory: { create: { to: "AWAITING_PAYMENT", actorId: s.user.id, note: "ثبت سفارش" } },
         },

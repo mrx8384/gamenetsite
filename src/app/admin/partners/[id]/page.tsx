@@ -9,6 +9,7 @@ import { PartnerStatusBadge } from "@/components/partners/partner-status";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PartnerLogoReview } from "@/components/admin/partners/partner-logo-review";
+import { PartnerPricesToggle } from "@/components/admin/partners/partner-prices-toggle";
 import { mediaUrl } from "@/lib/media";
 import { LoadingRows } from "@/components/ui/states";
 import { BUSINESS_TYPE_LABELS } from "@/features/partners/constants";
@@ -86,6 +87,10 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
           </CardContent>
         </Card>
         <div className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle>قیمت همکاری</CardTitle></CardHeader>
+            <CardContent><PartnerPricesToggle key={`${p.status}-${p.showPartnerPrices}`} id={p.id} initial={p.showPartnerPrices} disabled={p.status !== "APPROVED"} /></CardContent>
+          </Card>
           <Card className={p.pendingLogo ? "border-warning/50" : undefined}>
             <CardHeader><CardTitle>لوگوی همکار</CardTitle></CardHeader>
             <CardContent>

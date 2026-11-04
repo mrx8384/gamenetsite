@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +16,7 @@ type Decision = "reject" | "suspend";
 export function ReviewActions({ id, status, businessName }: { id: string; status: PartnerStatusKey; businessName: string }) {
   const router = useRouter();
   const [approveOpen, setApproveOpen] = React.useState(false);
+  const [showPrices, setShowPrices] = React.useState(false);
   const [reasonFor, setReasonFor] = React.useState<Decision | null>(null);
   const [reason, setReason] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -41,7 +41,7 @@ export function ReviewActions({ id, status, businessName }: { id: string; status
   return (
     <div className="flex flex-wrap gap-2">
       {canApprove ? (
-        <Button onClick={() => setApproveOpen(true)}><CheckCircle2 /> {status === "SUSPENDED" ? "فعال‌سازی دوباره" : "تأیید همکار"}</Button>
+        <Button onClick={() => { setShowPrices(false); setApproveOpen(true); }}><CheckCircle2 /> {status === "SUSPENDED" ? "فعال‌سازی دوباره" : "تأیید همکار"}</Button>
       ) : null}
       {status === "PENDING" ? (
         <Button variant="outline" className="text-destructive" onClick={() => { setReason(""); setError(null); setReasonFor("reject"); }}><XCircle /> رد درخواست</Button>
@@ -50,19 +50,38 @@ export function ReviewActions({ id, status, businessName }: { id: string; status
         <Button variant="outline" className="text-destructive" onClick={() => { setReason(""); setError(null); setReasonFor("suspend"); }}><Ban /> تعلیق همکار</Button>
       ) : null}
 
-      <ConfirmDialog
-        open={approveOpen}
-        onOpenChange={setApproveOpen}
-        title={`تأیید «${businessName}»؟`}
-        description="نقش این کاربر «همکار» می‌شود و به پنل همکار دسترسی پیدا می‌کند."
-        confirmLabel="بله، تأیید شود"
-        onConfirm={async () => {
-          const res = await reviewPartner(id, "approve");
-          if (!res.ok) return void toast.error(res.error);
-          toast.success(res.message);
-          router.refresh();
-        }}
-      />
+      <Dialog open={approveOpen} onOpenChange={(o) => !pending && setApproveOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{`تأیید «${businessName}»؟`}</DialogTitle>
+            <DialogDescription>نقش این کاربر «همکار» می‌شود و به پنل همکار دسترسی پیدا می‌کند.</DialogDescription>
+          </DialogHeader>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm">
+            <input type="checkbox" className="mt-1 size-4 accent-[var(--brand-green-dark)]" checked={showPrices} onChange={(e) => setShowPrices(e.target.checked)} />
+            <span>
+              <span className="font-semibold">قیمت همکاری را هم به این همکار نشان بده</span>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">محصولاتی که «قیمت همکار» دارند با همان قیمت به او نمایش داده می‌شوند و با همان قیمت می‌خرد. بعداً هم از صفحهٔ همین همکار قابل تغییر است.</span>
+            </span>
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setApproveOpen(false)}>انصراف</Button>
+            <Button
+              loading={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const res = await reviewPartner(id, "approve", undefined, { showPartnerPrices: showPrices });
+                  if (!res.ok) return void toast.error(res.error);
+                  toast.success(res.message);
+                  setApproveOpen(false);
+                  router.refresh();
+                })
+              }
+            >
+              بله، تأیید شود
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={reasonFor !== null} onOpenChange={(o) => !o && !pending && setReasonFor(null)}>
         <DialogContent className="max-w-md">

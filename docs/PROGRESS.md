@@ -1,5 +1,14 @@
 # Progress Log
 
+## 2026-11-04 (53) — Partner prices (owner request)
+
+- `Product.partnerPrice` (optional, below the sale price; product form «قیمت همکار») and `PartnerProfile.showPartnerPrices` (migration `partner_prices`).
+- Who sees it: approved, active partners the admin chose — **not** tied to a subscription. The approval dialog (`review-actions.tsx`) asks «قیمت همکاری را هم به این همکار نشان بده» (`reviewPartner(..., { showPartnerPrices })`); switch «نمایش قیمت همکاری» on `/admin/partners/[id]` (`setPartnerPricesVisible`, audited) and a «قیمت همکار» badge in the list. Partner dashboard tells them when it is on.
+- Shown per request only (`src/features/partners/pricing.ts`: `canSeePartnerPrices`, `partnerPricesForRequest` one query per request; `PartnerPriceLine` in `<Suspense>` on product cards and the product page) — never in cached pages or JSON-LD.
+- Charged: cart (`getCartView`, «قیمت همکار» badge) and `placeOrder` use `effectiveUnitPrice` (pure, `src/features/store/partner-price.ts`); the order line snapshots the partner price.
+
+Verified: typecheck, lint, 454 unit tests, build; browser: partner before approval sees nothing → approved with the box ticked → sees «قیمت همکار» on /shop and the product page; normal customer and guest do not; cart/checkout show 80,000 instead of 100,000 Toman and the order line was stored at the partner price; admin switch off/on hides/shows it; product form keeps the value. Test data removed.
+
 ## 2026-11-04 (52) — Partner area with the partner's own brand; automatic product codes (owner request)
 
 **White-label partner area.** `/partner/**` moved from `(public)` to its own route group `(partner)` (URLs unchanged) with `src/components/partners/partner-shell.tsx`: while the partner is APPROVED, active and has a current subscription (`getPartnerBranding`, `src/features/partners/branding.ts`), the header shows only their logo/name and a partner nav (داشبورد · تورنومنت‌ها · تست دسته), the footer only their name — no Atom logo. Otherwise the normal site header/footer. A neutral skeleton bar is the loading fallback (no Atom-logo flash). Tab icon: `/partner/brand-icon` redirects to the partner's approved logo (or a neutral `public/partner-icon.svg`; the site icon for non-white-label users); the root `favicon.ico` link is still emitted before it. New `/partner/gamepad-tester` (same tester, inside the partner area); the dashboard links to it.

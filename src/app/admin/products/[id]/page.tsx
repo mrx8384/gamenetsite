@@ -129,6 +129,7 @@ async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
           description: desc?.format === "plain" ? (desc.text ?? "") : "",
           price: (product.price / BigInt(10)).toString(),
           compareAtPrice: product.compareAtPrice ? (product.compareAtPrice / BigInt(10)).toString() : "",
+          partnerPrice: product.partnerPrice ? (product.partnerPrice / BigInt(10)).toString() : "",
           status: product.status,
           isFeatured: product.isFeatured,
           initialStock: "0",

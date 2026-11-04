@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ImageOff } from "lucide-react";
@@ -5,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatToman, toPersianDigits } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import type { ProductCardData } from "@/features/store/queries";
+import { PartnerPriceLine } from "./partner-price";
 
 /** `priority`: first cards on a page (visible without scrolling) load their image right away. */
 export function ProductCard({ product, priority = false }: { product: ProductCardData; priority?: boolean }) {
@@ -50,6 +52,11 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
             </>
           )}
         </div>
+        {product.priceOnRequest ? null : (
+          <Suspense fallback={null}>
+            <PartnerPriceLine productId={product.id} />
+          </Suspense>
+        )}
       </div>
     </Link>
   );

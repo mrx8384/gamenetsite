@@ -9,6 +9,7 @@ import { SectionHeading } from "@/components/home/section-heading";
 import { PurchaseBox } from "@/components/cart/purchase-box";
 import { PriceTag } from "@/components/store/price-tag";
 import { ProductCard } from "@/components/store/product-card";
+import { PartnerPriceLine } from "@/components/store/partner-price";
 import { ProductGallery } from "@/components/store/product-gallery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProductBySlug, getRelatedProducts } from "@/features/store/queries";
@@ -105,6 +106,11 @@ async function ProductContent({ params }: { params: Promise<{ slug: string }> })
             <p className="ltr text-start text-xs text-muted-foreground">SKU: {product.sku}</p>
           </div>
           {product.priceOnRequest ? null : <PriceTag price={product.price} compareAtPrice={product.compareAtPrice} size="lg" />}
+          {product.priceOnRequest ? null : (
+            <Suspense fallback={null}>
+              <div className="w-fit"><PartnerPriceLine productId={product.id} size="lg" /></div>
+            </Suspense>
+          )}
           <p className={inStock ? "flex items-center gap-2 font-medium text-success" : "flex items-center gap-2 font-medium text-destructive"}>
             {inStock ? <CheckCircle2 className="size-5" aria-hidden /> : <PackageX className="size-5" aria-hidden />}
             {inStock ? (product.stock <= 5 ? `موجود — فقط ${formatNumber(product.stock)} عدد باقی مانده` : "موجود در انبار") : "ناموجود"}

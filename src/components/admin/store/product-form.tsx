@@ -24,6 +24,8 @@ export interface ProductFormValues {
   description: string;
   price: string; // Toman, as typed
   compareAtPrice: string;
+  /** Toman, as typed; empty = no partner price. */
+  partnerPrice: string;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   isFeatured: boolean;
   initialStock: string;
@@ -50,7 +52,7 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
   const form = useForm<ProductFormValues>({ defaultValues: initial });
   const { register, control, formState, setError } = form;
   const [skuPending, startSku] = React.useTransition();
-  const [priceValue, compareValue] = useWatch({ control, name: ["price", "compareAtPrice"] });
+  const [priceValue, compareValue, partnerValue] = useWatch({ control, name: ["price", "compareAtPrice", "partnerPrice"] });
   const errors = formState.errors;
 
   async function onSubmit(values: ProductFormValues) {
@@ -195,6 +197,13 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
               <Input id="compareAtPrice" inputMode="numeric" dir="ltr" className="text-start" aria-invalid={!!errors.compareAtPrice} {...register("compareAtPrice")} />
               <TomanHint value={compareValue} />
               <FieldError message={errors.compareAtPrice?.message} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="partnerPrice">قیمت همکار (اختیاری)</Label>
+              <Input id="partnerPrice" inputMode="numeric" dir="ltr" className="text-start" aria-invalid={!!errors.partnerPrice} aria-describedby="partnerPrice-help" {...register("partnerPrice")} />
+              <TomanHint value={partnerValue} />
+              <p id="partnerPrice-help" className="text-xs leading-5 text-muted-foreground">فقط همکاران تأییدشده‌ای که هنگام تأیید برایشان «نمایش قیمت همکاری» را زده‌اید این قیمت را می‌بینند و با آن خرید می‌کنند.</p>
+              <FieldError message={errors.partnerPrice?.message} />
             </div>
           </CardContent>
         </Card>

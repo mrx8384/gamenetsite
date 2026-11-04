@@ -48,3 +48,22 @@ describe("automatic product codes", () => {
     expect(productSchema.safeParse({ ...base, sku: "کد" }).success).toBe(false);
   });
 });
+
+import { effectiveUnitPrice } from "@/features/store/partner-price";
+
+describe("partner prices", () => {
+  const price = BigInt(1_000_000);
+  it("applies only to allowed partners and only when lower", () => {
+    expect(effectiveUnitPrice(price, BigInt(800_000), true)).toBe(BigInt(800_000));
+    expect(effectiveUnitPrice(price, BigInt(800_000), false)).toBe(price);
+    expect(effectiveUnitPrice(price, null, true)).toBe(price);
+    expect(effectiveUnitPrice(price, BigInt(1_200_000), true)).toBe(price);
+    expect(effectiveUnitPrice(price, BigInt(0), true)).toBe(price);
+  });
+  it("form: partner price must be below the sale price", () => {
+    const base = { title: "دسته", slug: "dasteh", sku: "", price: "1000", compareAtPrice: "", status: "ACTIVE" };
+    expect(productSchema.parse({ ...base, partnerPrice: "800" }).partnerPrice).toBe("8000");
+    expect(productSchema.parse({ ...base, partnerPrice: "" }).partnerPrice).toBeNull();
+    expect(productSchema.safeParse({ ...base, partnerPrice: "1200" }).success).toBe(false);
+  });
+});
