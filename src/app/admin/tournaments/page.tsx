@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
+import { Ticket } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { Button } from "@/components/ui/button";
 import { ManagedTournamentList } from "@/components/tournaments/manage/pages";
 import { LoadingRows } from "@/components/ui/states";
 import { requireRole } from "@/lib/auth/dal";
@@ -10,7 +13,7 @@ export const metadata: Metadata = { title: "تورنومنت‌ها" };
 export default function AdminTournamentsPage() {
   return (
     <>
-      <AdminPageHeader title="تورنومنت‌ها" description="ساخت تورنومنت، ثبت‌نام، جدول مسابقات و ثبت نتایج. تورنومنت‌های همکاران هم این‌جا دیده می‌شوند." />
+      <AdminPageHeader title="تورنومنت‌ها" description="ساخت تورنومنت، ثبت‌نام، جدول مسابقات و ثبت نتایج. تورنومنت‌های همکاران هم این‌جا دیده می‌شوند." actions={<Button asChild variant="outline"><Link href="/admin/tournaments/payments"><Ticket /> پرداخت‌های ثبت‌نام</Link></Button>} />
       <Suspense fallback={<LoadingRows rows={4} />}>
         <Content />
       </Suspense>

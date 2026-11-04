@@ -24,14 +24,15 @@ function refresh() {
   revalidatePath("/partner");
 }
 
-/** Create/update a plan. Plans are never purchasable here: `isActive` is not settable (always false). */
+/** Create/update a plan. `isActive` = buyable online (only with a price above 0). */
 export async function savePlan(id: string | null, input: unknown): Promise<ActionResult<{ id: string }>> {
   const actor = await admin();
   if (!actor) return fail("دسترسی غیرمجاز.");
   const parsed = planSchema.safeParse(input);
   if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
   const { priceToman, ...rest } = parsed.data;
-  const data = { ...rest, description: rest.description || null, price: priceToman, isActive: false };
+  if (rest.isActive && priceToman <= BigInt(0)) return fail("اشتراک رایگان را نمی‌شود آنلاین فروخت؛ قیمت بگذارید یا آن را دستی اعطا کنید.", { isActive: "برای فروش آنلاین قیمت لازم است." });
+  const data = { ...rest, description: rest.description || null, price: priceToman };
   try {
     const plan = id
       ? await db.subscriptionPlan.update({ where: { id }, data, select: { id: true } })

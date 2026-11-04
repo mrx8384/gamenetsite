@@ -58,6 +58,7 @@ model User {
   pagesUpdated         Page[]
   organizedTournaments Tournament[]            @relation("TournamentOrganizer")
   tournamentEntries    TournamentParticipant[]
+  tournamentPayments   TournamentEntry[]
   supportConversation  SupportConversation?
   supportMessages      SupportMessage[]
   gamePoints           GamePointsEntry[]
@@ -180,12 +181,12 @@ model Media {
   uploaderId   String?
   createdAt    DateTime @default(now())
 
-  uploader       User?          @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
-  productImages  ProductImage[]
-  categoryImages Category[]
-  newsCovers     NewsPost[]
-  catalogGames   CatalogGame[]
-  organizations  ContractOrganization[]
+  uploader        User?                  @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  productImages   ProductImage[]
+  categoryImages  Category[]
+  newsCovers      NewsPost[]
+  catalogGames    CatalogGame[]
+  organizations   ContractOrganization[]
   parkAttractions ParkAttraction[]
 
   @@index([sha256])
@@ -467,8 +468,9 @@ model Payment {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  order        Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  subscription PartnerSubscription?
+  order           Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  subscription    PartnerSubscription?
+  tournamentEntry TournamentEntry?
 
   @@unique([provider, authority])
   @@index([orderId])
@@ -769,6 +771,8 @@ model Tournament {
   rules                 String?          @db.VarChar(5000)
   prize                 String?          @db.VarChar(500)
   entryFeeNote          String?          @db.VarChar(200)
+  /// Online registration fee in Rials (0 = free). Paid through the site's payment gateway.
+  entryFee              BigInt           @default(0)
   startsAt              DateTime?
   format                TournamentFormat
   status                TournamentStatus @default(DRAFT)
@@ -792,6 +796,7 @@ model Tournament {
   organizer    User?                   @relation("TournamentOrganizer", fields: [organizerId], references: [id], onDelete: SetNull)
   participants TournamentParticipant[]
   matches      TournamentMatch[]
+  entries      TournamentEntry[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -814,11 +819,52 @@ model TournamentParticipant {
   matchesAsPlayer1 TournamentMatch[] @relation("MatchPlayer1")
   matchesAsPlayer2 TournamentMatch[] @relation("MatchPlayer2")
   matchesWon       TournamentMatch[] @relation("MatchWinner")
+  paidEntry        TournamentEntry?
 
   @@unique([tournamentId, userId])
   @@unique([tournamentId, name])
   @@index([tournamentId, seed])
   @@map("tournament_participants")
+}
+
+enum TournamentEntryStatus {
+  AWAITING_PAYMENT
+  PAID
+  CANCELLED
+  /// Paid, but the player could not be (or is no longer) in the tournament: the money must be returned.
+  REFUND_NEEDED
+  REFUNDED
+}
+
+/// A paid online registration. The participant row is created only after the payment is confirmed.
+/// Kept (with name snapshots) when the tournament is deleted, as a payment record.
+model TournamentEntry {
+  id              String                @id @default(cuid())
+  tournamentId    String?
+  tournamentName  String                @db.VarChar(120)
+  userId          String
+  name            String                @db.VarChar(60)
+  amount          BigInt
+  status          TournamentEntryStatus @default(AWAITING_PAYMENT)
+  paymentDeadline DateTime
+  paymentId       String?               @unique
+  participantId   String?               @unique
+  /// Placed while the gateway used test credentials (no money moved).
+  isTest          Boolean               @default(false)
+  note            String?               @db.VarChar(300)
+  paidAt          DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  tournament  Tournament?            @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  payment     Payment?               @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  participant TournamentParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, status])
+  @@index([userId])
+  @@index([status, paymentDeadline])
+  @@map("tournament_entries")
 }
 
 model TournamentMatch {

@@ -53,6 +53,20 @@ async function main() {
     () => db.order.count({ where: { status: "AWAITING_PAYMENT", paymentDeadline: { lt: now } } }),
   );
   await count(
+    "expiredTournamentEntries",
+    async () => (await db.tournamentEntry.updateMany({ where: { status: "AWAITING_PAYMENT", paymentDeadline: { lt: now } }, data: { status: "CANCELLED", note: "مهلت پرداخت تمام شد" } })).count,
+    () => db.tournamentEntry.count({ where: { status: "AWAITING_PAYMENT", paymentDeadline: { lt: now } } }),
+  );
+  {
+    // Same rule as SUBSCRIPTION_PAYMENT_MINUTES (src/features/subscriptions/purchase.ts).
+    const where = { status: "INACTIVE" as const, paymentId: { not: null }, payment: { status: "INITIATED" as const, createdAt: { lt: new Date(now.getTime() - 20 * 60_000) } } };
+    await count(
+      "expiredSubscriptionPurchases",
+      async () => (await db.partnerSubscription.updateMany({ where, data: { status: "CANCELLED", note: "مهلت پرداخت تمام شد" } })).count,
+      () => db.partnerSubscription.count({ where }),
+    );
+  }
+  await count(
     "endedSubscriptions",
     async () => (await db.partnerSubscription.updateMany({ where: { status: "ACTIVE", endsAt: { lt: now } }, data: { status: "EXPIRED" } })).count,
     () => db.partnerSubscription.count({ where: { status: "ACTIVE", endsAt: { lt: now } } }),

@@ -14,6 +14,9 @@ import { RESERVED_SLUGS } from "./constants";
 import { canCreateTournament, manageableTournament } from "./permissions";
 import { participantNameSchema, scoreSchema, tournamentSchema } from "./schemas";
 import * as service from "./service";
+import { getPaymentProvider } from "@/features/payments";
+import { openGatewayPayment, paymentBlockedForTestMode, TEST_MODE_ERROR } from "@/features/payments/targets";
+import { ENTRY_PAYMENT_MINUTES, expireStaleEntries, markEntryForRefund, takenPlaces } from "./entries";
 
 async function actor() {
   try {
@@ -49,6 +52,7 @@ function toData(v: ReturnType<typeof tournamentSchema.parse>) {
     rules: v.rules || null,
     prize: v.prize || null,
     entryFeeNote: v.entryFeeNote || null,
+    entryFee: v.entryFeeToman,
     startsAt: v.startsAt ? new Date(v.startsAt) : null,
     format: v.format,
     maxParticipants: v.maxParticipants ?? null,
@@ -100,7 +104,10 @@ export async function setTournamentStatus(id: string, status: unknown): Promise<
   if (!user || !t) return fail(DENIED);
   if (status !== "DRAFT" && status !== "REGISTRATION" && status !== "CANCELLED") return fail("وضعیت نامعتبر است.");
   if ((t.status === "IN_PROGRESS" || t.status === "COMPLETED") && status !== "CANCELLED") return fail("تورنومنت شروع شده است؛ ابتدا جدول را بازنشانی کنید.");
-  await db.tournament.update({ where: { id }, data: { status } });
+  await db.$transaction(async (tx) => {
+    await tx.tournament.update({ where: { id }, data: { status } });
+    if (status === "CANCELLED") await tx.tournamentEntry.updateMany({ where: { tournamentId: id, status: "PAID" }, data: { status: "REFUND_NEEDED", note: "تورنومنت لغو شد" } });
+  });
   changed(user.id, `status_${status.toLowerCase()}`, id);
   return ok(undefined, status === "REGISTRATION" ? "ثبت‌نام باز شد و تورنومنت در سایت نمایش داده می‌شود." : status === "DRAFT" ? "تورنومنت به پیش‌نویس برگشت." : "تورنومنت لغو شد.");
 }
@@ -109,7 +116,12 @@ export async function deleteTournament(id: string): Promise<ActionResult<undefin
   const user = await actor();
   const t = await manageableTournament(user, id);
   if (!user || !t) return fail(DENIED);
-  await db.tournament.delete({ where: { id } });
+  await db.$transaction(async (tx) => {
+    // Paid entries stay as payment records (tournament name is kept on them); unfinished ones need a refund.
+    if (t.status !== "COMPLETED") await tx.tournamentEntry.updateMany({ where: { tournamentId: id, status: "PAID" }, data: { status: "REFUND_NEEDED", note: "تورنومنت حذف شد" } });
+    await tx.tournamentEntry.updateMany({ where: { tournamentId: id, status: "AWAITING_PAYMENT" }, data: { status: "CANCELLED", note: "تورنومنت حذف شد" } });
+    await tx.tournament.delete({ where: { id } });
+  });
   changed(user.id, "deleted", id, { name: t.name });
   return ok(undefined, "تورنومنت حذف شد.");
 }
@@ -247,7 +259,10 @@ export async function removeParticipant(participantId: string): Promise<ActionRe
   if (!user || !p) return fail(DENIED);
   const r = await editableParticipants(user, p.tournamentId);
   if ("error" in r) return fail(r.error ?? DENIED);
-  await db.tournamentParticipant.delete({ where: { id: p.id } });
+  await db.$transaction(async (tx) => {
+    await markEntryForRefund(tx, p.id, "شرکت‌کننده توسط برگزارکننده حذف شد");
+    await tx.tournamentParticipant.delete({ where: { id: p.id } });
+  });
   const rest = await db.tournamentParticipant.findMany({ where: { tournamentId: p.tournamentId }, orderBy: { seed: "asc" }, select: { id: true } });
   await renumber(p.tournamentId, rest.map((x) => x.id));
   changed(user.id, "participant_removed", p.tournamentId, { name: p.name });
@@ -319,13 +334,15 @@ export async function clearMatch(matchId: string): Promise<ActionResult<undefine
 
 // ───────────── Players: self registration ─────────────
 
-export async function registerForTournament(tournamentId: string, displayName: unknown): Promise<ActionResult<undefined>> {
+export async function registerForTournament(tournamentId: string, displayName: unknown): Promise<ActionResult<{ redirectTo?: string }>> {
   const user = await actor();
   if (!user) return fail("برای ثبت‌نام ابتدا وارد حساب کاربری شوید.");
   if (typeof tournamentId !== "string") return fail("درخواست نامعتبر است.");
   if (!(await rateLimit(`tournament-register:${user.id}`, 20, 60 * 60)).allowed) return fail(RATE_LIMIT_ERROR);
   const name = participantNameSchema.safeParse(displayName);
   if (!name.success) return fail(name.error.issues[0]?.message ?? "نام نامعتبر است.", { name: name.error.issues[0]?.message ?? "" });
+  const fee = await db.tournament.findUnique({ where: { id: tournamentId }, select: { entryFee: true } });
+  if (fee && fee.entryFee > BigInt(0)) return registerPaid(user, tournamentId, name.data);
   try {
     await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
@@ -344,7 +361,64 @@ export async function registerForTournament(tournamentId: string, displayName: u
     throw e;
   }
   changed(user.id, "registered", tournamentId);
-  return ok(undefined, "ثبت‌نام شما انجام شد.");
+  return ok({}, "ثبت‌نام شما انجام شد.");
+}
+
+/**
+ * Registration with an online fee: holds a place for ENTRY_PAYMENT_MINUTES and sends the player to the
+ * gateway. The participant is added only when the payment is confirmed (see entries.ts).
+ */
+async function registerPaid(user: { id: string; role: string; phone: string | null }, tournamentId: string, name: string): Promise<ActionResult<{ redirectTo?: string }>> {
+  const provider = getPaymentProvider();
+  if (!provider) return fail("پرداخت آنلاین در حال حاضر فعال نیست؛ برای ثبت‌نام با برگزارکننده تماس بگیرید.");
+  if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
+  await expireStaleEntries();
+  let created: { paymentId: string; entryId: string; amount: bigint; tournamentName: string };
+  try {
+    created = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
+      const t = await tx.tournament.findUnique({ where: { id: tournamentId } });
+      if (!t || t.status !== "REGISTRATION" || !t.allowSelfRegistration) throw new service.TournamentError("ثبت‌نام این تورنومنت باز نیست.");
+      if (await tx.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } })) throw new service.TournamentError("شما قبلاً در این تورنومنت ثبت‌نام کرده‌اید.");
+      // A new attempt replaces the player's earlier unpaid one.
+      await tx.tournamentEntry.updateMany({ where: { tournamentId, userId: user.id, status: "AWAITING_PAYMENT" }, data: { status: "CANCELLED", note: "جایگزین با تلاش جدید" } });
+      if (t.maxParticipants && (await takenPlaces(tx, tournamentId)) >= t.maxParticipants) throw new service.TournamentError("ظرفیت تورنومنت تکمیل است.");
+      const clash =
+        (await tx.tournamentParticipant.findFirst({ where: { tournamentId, name }, select: { id: true } })) ??
+        (await tx.tournamentEntry.findFirst({ where: { tournamentId, name, status: "AWAITING_PAYMENT", paymentDeadline: { gt: new Date() } }, select: { id: true } }));
+      if (clash) throw new service.TournamentError("این نام قبلاً ثبت شده است؛ نام دیگری انتخاب کنید.");
+      const payment = await tx.payment.create({ data: { provider: provider.key, amount: t.entryFee }, select: { id: true } });
+      const entry = await tx.tournamentEntry.create({
+        data: {
+          tournamentId,
+          tournamentName: t.name,
+          userId: user.id,
+          name,
+          amount: t.entryFee,
+          paymentId: payment.id,
+          isTest: provider.testMode === true,
+          paymentDeadline: new Date(Date.now() + ENTRY_PAYMENT_MINUTES * 60_000),
+        },
+        select: { id: true },
+      });
+      return { paymentId: payment.id, entryId: entry.id, amount: t.entryFee, tournamentName: t.name };
+    });
+  } catch (e) {
+    if (e instanceof service.TournamentError) return fail(e.message, e.message.includes("نام") ? { name: e.message } : undefined);
+    throw e;
+  }
+  changed(user.id, "payment_started", tournamentId, { entryId: created.entryId });
+  try {
+    const redirectTo = await openGatewayPayment(created.paymentId, { amount: created.amount, description: `ثبت‌نام تورنومنت ${created.tournamentName} — ${name}`, mobile: user.phone });
+    return ok({ redirectTo });
+  } catch (e) {
+    console.error("[tournaments] payment start failed", e);
+    await db.$transaction([
+      db.payment.update({ where: { id: created.paymentId }, data: { status: "CANCELLED" } }),
+      db.tournamentEntry.update({ where: { id: created.entryId }, data: { status: "CANCELLED", note: "خطا در اتصال به درگاه" } }),
+    ]);
+    return fail("اتصال به درگاه پرداخت ناموفق بود؛ لطفاً دوباره تلاش کنید.");
+  }
 }
 
 export async function withdrawFromTournament(tournamentId: string): Promise<ActionResult<undefined>> {
@@ -354,9 +428,26 @@ export async function withdrawFromTournament(tournamentId: string): Promise<Acti
   if (!t || t.status !== "REGISTRATION") return fail("انصراف فقط پیش از شروع تورنومنت ممکن است.");
   const p = await db.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id } });
   if (!p) return fail("شما در این تورنومنت ثبت‌نام نکرده‌اید.");
+  if (await db.tournamentEntry.findFirst({ where: { participantId: p.id, status: "PAID" }, select: { id: true } })) {
+    return fail("ثبت‌نام شما پولی بوده است؛ برای انصراف و بازگشت هزینه با پشتیبانی اتم تماس بگیرید.");
+  }
   await db.tournamentParticipant.delete({ where: { id: p.id } });
   const rest = await db.tournamentParticipant.findMany({ where: { tournamentId }, orderBy: { seed: "asc" }, select: { id: true } });
   await renumber(tournamentId, rest.map((x) => x.id));
   changed(user.id, "withdrawn", tournamentId);
   return ok(undefined, "انصراف شما ثبت شد.");
+}
+
+// ───────────── Admin: paid registrations ─────────────
+
+/** Records that the money of a paid registration was returned to the player (done outside the site). */
+export async function markEntryRefunded(entryId: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || user.role !== "ADMIN") return fail(DENIED);
+  if (typeof entryId !== "string" || !entryId) return fail("درخواست نامعتبر است.");
+  const { count } = await db.tournamentEntry.updateMany({ where: { id: entryId, status: "REFUND_NEEDED" }, data: { status: "REFUNDED" } });
+  if (!count) return fail("این پرداخت در انتظار بازپرداخت نیست.");
+  const { ip } = await getRequestInfo();
+  await audit({ actorId: user.id, action: "tournaments.entry_refunded", entity: "tournament_entry", entityId: entryId, ip });
+  return ok(undefined, "بازپرداخت ثبت شد.");
 }

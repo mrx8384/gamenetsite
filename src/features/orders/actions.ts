@@ -6,11 +6,11 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { assertUser, AuthorizationError } from "@/lib/auth/dal";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import { env } from "@/lib/env";
 import { fail, GENERIC_ERROR, ok, RATE_LIMIT_ERROR, zodFieldErrors, type ActionResult } from "@/lib/action-result";
 import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { getPaymentProvider } from "@/features/payments";
+import { openGatewayPayment } from "@/features/payments/targets";
 import { getCommerceSettings } from "@/features/settings/commerce";
 import { findCartId } from "@/features/cart/service";
 import { attachToOrder, lockCodeForOrder, REWARD_ERROR_TEXT, RewardError } from "@/features/game-rewards/service";
@@ -66,16 +66,7 @@ async function startPayment(orderId: string, mobile: string | null): Promise<str
   if (!provider) throw new OrderError("no_provider");
   const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, select: { number: true, total: true } });
   const payment = await db.payment.create({ data: { orderId, provider: provider.key, amount: order.total }, select: { id: true } });
-  const callbackUrl = new URL(`/api/payments/callback/${provider.key}`, env.APP_URL).toString();
-  const { authority, redirectUrl } = await provider.createPayment({
-    paymentId: payment.id,
-    amount: order.total,
-    description: `سفارش ${order.number} — اتم گیم کلاب`,
-    callbackUrl,
-    mobile,
-  });
-  await db.payment.update({ where: { id: payment.id }, data: { authority } });
-  return redirectUrl;
+  return openGatewayPayment(payment.id, { amount: order.total, description: `سفارش ${order.number} — اتم گیم کلاب`, mobile });
 }
 
 /**

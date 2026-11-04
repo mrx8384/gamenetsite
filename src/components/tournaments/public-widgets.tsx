@@ -22,7 +22,25 @@ export function LiveRefresh({ active }: { active: boolean }) {
   return null;
 }
 
-export function RegistrationBox({ tournamentId, state, defaultName, entryName, slug }: { tournamentId: string; state: "guest" | "open" | "registered" | "full"; defaultName: string; entryName?: string; slug: string }) {
+export function RegistrationBox({
+  tournamentId,
+  state,
+  defaultName,
+  entryName,
+  slug,
+  feeLabel,
+  paid = false,
+}: {
+  tournamentId: string;
+  state: "guest" | "open" | "registered" | "full";
+  defaultName: string;
+  entryName?: string;
+  slug: string;
+  /** e.g. «۵۰٬۰۰۰ تومان» when registration is paid online. */
+  feeLabel?: string;
+  /** The player paid online (withdrawing goes through support). */
+  paid?: boolean;
+}) {
   const router = useRouter();
   const [name, setName] = React.useState(defaultName);
   const [error, setError] = React.useState<string | null>(null);
@@ -40,7 +58,10 @@ export function RegistrationBox({ tournamentId, state, defaultName, entryName, s
   if (state === "registered") {
     return (
       <div className="space-y-2 text-sm">
-        <p className="font-bold text-success">شما با نام «{entryName}» ثبت‌نام کرده‌اید.</p>
+        <p className="font-bold text-success">شما با نام «{entryName}» ثبت‌نام کرده‌اید.{paid ? " هزینهٔ ثبت‌نام پرداخت شده است." : ""}</p>
+        {paid ? (
+          <p className="text-muted-foreground">برای انصراف و بازگشت هزینه با پشتیبانی اتم تماس بگیرید.</p>
+        ) : (
         <Button
           variant="outline"
           size="sm"
@@ -56,6 +77,7 @@ export function RegistrationBox({ tournamentId, state, defaultName, entryName, s
         >
           انصراف از تورنومنت
         </Button>
+        )}
       </div>
     );
   }
@@ -71,16 +93,18 @@ export function RegistrationBox({ tournamentId, state, defaultName, entryName, s
             return void toast.error(res.error);
           }
           setError(null);
+          if (res.data.redirectTo) return void window.location.assign(res.data.redirectTo); // gateway page (may be external)
           toast.success(res.message);
           router.refresh();
         });
       }}
     >
       <Label htmlFor="reg-name">نام شما در جدول (گیمرتگ)</Label>
-      <div className="flex gap-2">
-        <Input id="reg-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} aria-invalid={!!error} aria-describedby={error ? "reg-error" : undefined} />
-        <Button type="submit" loading={pending}>ثبت‌نام</Button>
+      <div className="flex flex-wrap gap-2">
+        <Input id="reg-name" className="min-w-0 flex-1" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} aria-invalid={!!error} aria-describedby={error ? "reg-error" : undefined} />
+        <Button type="submit" loading={pending}>{feeLabel ? `ثبت‌نام و پرداخت ${feeLabel}` : "ثبت‌نام"}</Button>
       </div>
+      {feeLabel ? <p className="text-xs leading-6 text-muted-foreground">هزینهٔ ثبت‌نام آنلاین پرداخت می‌شود؛ بعد از پرداخت، نام شما به فهرست شرکت‌کنندگان اضافه می‌شود.</p> : null}
       {error ? <p id="reg-error" role="alert" className="text-xs font-medium text-destructive">{error}</p> : null}
     </form>
   );

@@ -1,8 +1,8 @@
 /**
- * Subscription purchasing is OFF by owner instruction. Flip only when the owner approves paid
- * subscriptions AND a real payment provider is configured. Nothing else in the code enables buying.
+ * Online subscription purchase (owner request 2026-11-04, after connecting the Bale wallet gateway).
+ * A plan is buyable only when the admin marks it «قابل خرید آنلاین» (`isActive`) and a gateway is configured.
  */
-export const SUBSCRIPTION_PURCHASE_ENABLED = false as const;
+export const SUBSCRIPTION_PURCHASE_ENABLED = true as boolean;
 
 /** Entitlement keys a plan can grant. Gated features check these through `hasEntitlement`. */
 export const ENTITLEMENTS = {

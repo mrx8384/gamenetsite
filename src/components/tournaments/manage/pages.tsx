@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Plus, Trophy } from "lucide-react";
 import { TournamentBoard } from "@/components/tournaments/board";
 import { ParticipantsManager, StatusControls } from "@/components/tournaments/manage/controls";
+import { TournamentEntriesCard } from "@/components/tournaments/manage/entries";
 import { emptyTournament, TournamentForm, type TournamentFormValues } from "@/components/tournaments/manage/tournament-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ function formValues(t: TournamentView): TournamentFormValues {
     rules: t.rules ?? "",
     prize: t.prize ?? "",
     entryFeeNote: t.entryFeeNote ?? "",
+    entryFeeToman: BigInt(t.entryFee) > BigInt(0) ? (BigInt(t.entryFee) / BigInt(10)).toString() : "",
     startsAtLocal: isoToTehranInput(t.startsAt),
     format: t.format,
     maxParticipants: t.maxParticipants?.toString() ?? "",
@@ -111,6 +113,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
           <TournamentBoard t={t} manage />
         </section>
       ) : null}
+      <TournamentEntriesCard tournamentId={t.id} isAdmin={user.role === "ADMIN"} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader><CardTitle className="text-base">شرکت‌کنندگان</CardTitle></CardHeader>

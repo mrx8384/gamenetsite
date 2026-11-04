@@ -14,20 +14,19 @@ describe("bale wallet gateway rules", () => {
   });
 
   it("builds a valid invoice in Rials with the code as payload", () => {
-    const p = invoiceParams({ chatId: 42, code: CODE, orderNumber: "AT-1405-00012", amountRial: BigInt(12_500_000), providerToken: "WALLET-TEST-1111111111111111", siteName: "اتم گیم کلاب" });
+    const p = invoiceParams({ chatId: 42, code: CODE, title: "سفارش AT-1405-00012", amountRial: BigInt(12_500_000), providerToken: "WALLET-TEST-1111111111111111", siteName: "اتم گیم کلاب" });
     expect(p.payload).toBe(CODE);
     expect(p.prices).toEqual([{ label: "سفارش AT-1405-00012", amount: 12_500_000 }]);
     expect(p.title.length).toBeLessThanOrEqual(32);
     expect(Buffer.byteLength(p.payload)).toBeLessThanOrEqual(128);
-    expect(() => invoiceParams({ chatId: 1, code: CODE, orderNumber: "x", amountRial: BigInt(0), providerToken: "t", siteName: "s" })).toThrow();
+    expect(() => invoiceParams({ chatId: 1, code: CODE, title: "x", amountRial: BigInt(0), providerToken: "t", siteName: "s" })).toThrow();
   });
 
   it("approves pre-checkout only for an open order with the exact amount", () => {
-    const state = { paymentStatus: "INITIATED", orderStatus: "AWAITING_PAYMENT", amountRial: BigInt(1000), paymentDeadline: new Date(Date.now() + 60_000) };
+    const state = { paymentStatus: "INITIATED", open: true, amountRial: BigInt(1000) };
     expect(checkPreCheckout(state, { currency: "IRR", total_amount: 1000 })).toEqual({ ok: true });
     expect(checkPreCheckout(state, { currency: "IRR", total_amount: 999 }).ok).toBe(false);
-    expect(checkPreCheckout({ ...state, orderStatus: "CANCELLED" }, { total_amount: 1000 }).ok).toBe(false);
-    expect(checkPreCheckout({ ...state, paymentDeadline: new Date(Date.now() - 1000) }, { total_amount: 1000 }).ok).toBe(false);
+    expect(checkPreCheckout({ ...state, open: false }, { total_amount: 1000 }).ok).toBe(false);
     expect(checkPreCheckout({ ...state, paymentStatus: "SUCCEEDED" }, { total_amount: 1000 }).ok).toBe(false);
     expect(checkPreCheckout(null, { total_amount: 1000 }).ok).toBe(false);
   });

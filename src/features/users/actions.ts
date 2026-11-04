@@ -88,16 +88,20 @@ export async function deleteUser(userId: unknown): Promise<ActionResult<undefine
   if (userId === s.user.id) return fail("نمی‌توانید حساب خودتان را حذف کنید.");
   const target = await db.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, phone: true, role: true, _count: { select: { orders: true } }, partnerProfile: { select: { id: true, _count: { select: { subscriptions: { where: { paymentId: { not: null } } } } } } } },
+    select: { name: true, email: true, phone: true, role: true, _count: { select: { orders: true, tournamentPayments: { where: { status: { in: ["PAID", "REFUND_NEEDED", "REFUNDED"] } } } } }, partnerProfile: { select: { id: true, _count: { select: { subscriptions: { where: { payment: { status: "SUCCEEDED" } } } } } } } },
   });
   if (!target) return fail("کاربر پیدا نشد.");
-  const blocker = deletionBlocker({ role: target.role, orderCount: target._count.orders, paidSubscriptionCount: target.partnerProfile?._count.subscriptions ?? 0 });
+  const blocker = deletionBlocker({ role: target.role, orderCount: target._count.orders, paidEntryCount: target._count.tournamentPayments, paidSubscriptionCount: target.partnerProfile?._count.subscriptions ?? 0 });
   if (blocker) return fail(blocker);
 
   const { ip } = await getRequestInfo();
   // Audit first: the entry keeps who was removed (the user row and its links disappear).
   await audit({ actorId: s.user.id, action: "users.deleted", entity: "user", entityId: userId, ip, meta: { name: target.name, email: target.email, phone: target.phone, role: target.role, partner: !!target.partnerProfile } });
-  await db.user.delete({ where: { id: userId } });
+  await db.$transaction([
+    // Unpaid/abandoned registrations only (paid ones block deletion above).
+    db.tournamentEntry.deleteMany({ where: { userId } }),
+    db.user.delete({ where: { id: userId } }),
+  ]);
   revalidatePath("/admin/users");
   return ok(undefined, "حساب کاربر حذف شد.");
 }

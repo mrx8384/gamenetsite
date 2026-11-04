@@ -6,6 +6,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { DeleteButton } from "@/components/admin/store/delete-button";
 import { PlanDialog } from "@/components/admin/subscriptions/plan-dialog";
 import { Alert } from "@/components/ui/alert";
+import { getPaymentProvider } from "@/features/payments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +29,10 @@ export default function SubscriptionsPage() {
         description="تعریف اشتراک‌های همکاران و امکاناتی که هر اشتراک فعال می‌کند."
         actions={<PlanDialog trigger={<Button><Plus /> اشتراک جدید</Button>} />}
       />
-      <Alert variant="warning" className="mb-6">
-        خرید آنلاین اشتراک فعلاً غیرفعال است و اشتراک‌ها (در صورت انتخاب) با برچسب «به‌زودی» نمایش داده می‌شوند. برای فعال کردن اشتراک یک همکار، از صفحهٔ همان همکار «اعطای اشتراک رایگان» را بزنید.
+      <Alert variant={getPaymentProvider() ? "info" : "warning"} className="mb-6">
+        {getPaymentProvider()
+          ? `اشتراکی که «قابل خرید آنلاین» باشد را همکاران تأییدشده از پنل همکار با ${getPaymentProvider()!.label} می‌خرند و خودکار فعال می‌شود. اشتراک رایگان را از صفحهٔ همان همکار با «اعطای اشتراک رایگان» بدهید.`
+          : "درگاه پرداخت روی سرور تنظیم نشده است؛ تا آن موقع اشتراک‌ها با «به‌زودی» نمایش داده می‌شوند. اشتراک رایگان را از صفحهٔ همکار اعطا کنید."}
       </Alert>
       <Suspense fallback={<LoadingRows rows={5} />}>
         <SubscriptionsContent />
@@ -71,12 +74,12 @@ async function SubscriptionsContent() {
                 <TableCell className="whitespace-nowrap">{p.price === BigInt(0) ? "رایگان" : formatToman(p.price)}</TableCell>
                 <TableCell>{formatNumber(p.durationDays)} روز</TableCell>
                 <TableCell className="text-sm">{p.features.length ? p.features.map((f) => ENTITLEMENTS[f as EntitlementKey] ?? f).join("، ") : "—"}</TableCell>
-                <TableCell>{p.isVisible ? <Badge variant="info">نمایش «به‌زودی»</Badge> : <Badge variant="outline">مخفی</Badge>}</TableCell>
-                <TableCell><Badge variant="outline">غیرفعال</Badge></TableCell>
+                <TableCell>{p.isVisible ? <Badge variant="info">نمایش</Badge> : <Badge variant="outline">مخفی</Badge>}</TableCell>
+                <TableCell>{p.isActive ? <Badge variant="success">آنلاین</Badge> : <Badge variant="outline">«به‌زودی»</Badge>}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <PlanDialog
-                      plan={{ id: p.id, code: p.code, name: p.name, description: p.description ?? "", priceToman: (p.price / BigInt(10)).toString(), durationDays: String(p.durationDays), features: p.features.filter((f): f is EntitlementKey => f in ENTITLEMENTS), isVisible: p.isVisible, sortOrder: String(p.sortOrder) }}
+                      plan={{ id: p.id, code: p.code, name: p.name, description: p.description ?? "", priceToman: (p.price / BigInt(10)).toString(), durationDays: String(p.durationDays), features: p.features.filter((f): f is EntitlementKey => f in ENTITLEMENTS), isVisible: p.isVisible, isActive: p.isActive, sortOrder: String(p.sortOrder) }}
                       trigger={<Button variant="ghost" size="icon-sm" aria-label={`ویرایش ${p.name}`}><Pencil /></Button>}
                     />
                     <DeleteButton title={`حذف «${p.name}»؟`} description={p._count.subscriptions ? "این اشتراک سابقهٔ استفاده دارد و حذف نمی‌شود." : "این اشتراک حذف می‌شود."} action={deletePlan.bind(null, p.id)} />

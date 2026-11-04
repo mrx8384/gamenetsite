@@ -1,12 +1,17 @@
-import { Check, Clock } from "lucide-react";
+import Link from "next/link";
+import { Check, Clock, CreditCard } from "lucide-react";
+import { BuyPlanButton } from "@/components/partners/buy-plan-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { VisiblePlan } from "@/features/partners/queries";
 import { ENTITLEMENTS, type EntitlementKey } from "@/features/subscriptions/constants";
 import { formatNumber, formatToman } from "@/lib/format";
 
-/** Plan list. Purchasing is disabled: every card shows a disabled «به‌زودی» button. */
-export function PlanCards({ plans, note }: { plans: VisiblePlan[]; note: string }) {
+/**
+ * Plan list. Buyable plans get a pay button for approved partners (`canBuy`, partner panel) and a link to
+ * the partner panel elsewhere; other plans show a disabled «به‌زودی».
+ */
+export function PlanCards({ plans, note, canBuy = false }: { plans: VisiblePlan[]; note: string; canBuy?: boolean }) {
   if (plans.length === 0) return <p className="rounded-xl border border-dashed bg-surface/60 p-6 text-center text-sm text-muted-foreground">{note}</p>;
   return (
     <div className="space-y-4">
@@ -26,9 +31,18 @@ export function PlanCards({ plans, note }: { plans: VisiblePlan[]; note: string 
                 ))}
               </ul>
             ) : null}
-            <Button className="mt-4" variant="secondary" disabled aria-disabled>
-              <Clock /> به‌زودی
-            </Button>
+            <div className="mt-auto" />
+            {p.purchasable && canBuy ? (
+              <BuyPlanButton planId={p.id} />
+            ) : p.purchasable ? (
+              <Button asChild className="mt-4" variant="outline">
+                <Link href="/partner"><CreditCard /> خرید از پنل همکار</Link>
+              </Button>
+            ) : (
+              <Button className="mt-4" variant="secondary" disabled aria-disabled>
+                <Clock /> به‌زودی
+              </Button>
+            )}
           </div>
         ))}
       </div>

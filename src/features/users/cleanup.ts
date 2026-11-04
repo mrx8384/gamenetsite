@@ -32,6 +32,7 @@ export function inactiveUsersWhere(cutoff: Date): Prisma.UserWhereInput {
     OR: [{ lastLoginAt: null }, { lastLoginAt: { lt: cutoff } }],
     sessions: { none: { lastSeenAt: { gte: cutoff } } },
     orders: { none: {} },
+    tournamentPayments: { none: {} },
     partnerProfile: { is: null },
   };
 }
@@ -41,9 +42,10 @@ export function inactiveUsersWhere(cutoff: Date): Prisma.UserWhereInput {
  * records. A partner file (application, free subscriptions) is removed with the account; tournaments it
  * organized stay and are managed by admins.
  */
-export function deletionBlocker(u: { role: string; orderCount: number; paidSubscriptionCount?: number }): string | null {
+export function deletionBlocker(u: { role: string; orderCount: number; paidSubscriptionCount?: number; paidEntryCount?: number }): string | null {
   if (u.role === "ADMIN") return "حساب مدیر را نمی‌شود حذف کرد؛ اول نقش او را تغییر دهید.";
   if (u.orderCount > 0) return "این کاربر سفارش ثبت کرده و برای حفظ سوابق فروش حذف نمی‌شود؛ می‌توانید حسابش را غیرفعال کنید.";
+  if ((u.paidEntryCount ?? 0) > 0) return "این کاربر هزینهٔ ثبت‌نام تورنومنت پرداخت کرده و برای حفظ سوابق پرداخت حذف نمی‌شود؛ می‌توانید حسابش را غیرفعال کنید.";
   if ((u.paidSubscriptionCount ?? 0) > 0) return "این همکار اشتراک پولی خریده و برای حفظ سوابق فروش حذف نمی‌شود؛ می‌توانید حسابش را غیرفعال کنید.";
   return null;
 }

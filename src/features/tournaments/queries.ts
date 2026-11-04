@@ -26,6 +26,8 @@ export interface TournamentView {
   rules: string | null;
   prize: string | null;
   entryFeeNote: string | null;
+  /** Online registration fee in Rials, as a string (0 = free). */
+  entryFee: string;
   startsAt: string | null;
   format: TournamentFormatKey;
   status: TournamentStatusKey;
@@ -57,6 +59,7 @@ function toView(t: Row): TournamentView {
     rules: t.rules,
     prize: t.prize,
     entryFeeNote: t.entryFeeNote,
+    entryFee: t.entryFee.toString(),
     startsAt: t.startsAt?.toISOString() ?? null,
     format: t.format,
     status: t.status,

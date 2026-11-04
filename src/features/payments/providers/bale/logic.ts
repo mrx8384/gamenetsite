@@ -16,34 +16,35 @@ export function codeFromMessage(text: string | undefined | null): string | null 
 
 const cut = (s: string, max: number) => (s.length <= max ? s : s.slice(0, max - 1) + "…");
 
-/** sendInvoice body. Title ≤ 32 chars, description ≤ 255, payload ≤ 128 bytes, amounts in Rials. */
-export function invoiceParams(p: { chatId: number | string; code: string; orderNumber: string; amountRial: bigint; providerToken: string; siteName: string }) {
+/**
+ * sendInvoice body. Title ≤ 32 chars, description ≤ 255, payload ≤ 128 bytes, amounts in Rials.
+ * `title` names what is paid for, e.g. «سفارش ATM-123456» or «اشتراک طلایی».
+ */
+export function invoiceParams(p: { chatId: number | string; code: string; title: string; amountRial: bigint; providerToken: string; siteName: string }) {
   if (p.amountRial <= BigInt(0) || p.amountRial > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("amount out of range");
   return {
     chat_id: p.chatId,
-    title: cut(`سفارش ${p.orderNumber}`, 32),
-    description: cut(`پرداخت سفارش ${p.orderNumber} — ${p.siteName}`, 255),
+    title: cut(p.title, 32),
+    description: cut(`پرداخت ${p.title} — ${p.siteName}`, 255),
     payload: p.code,
     provider_token: p.providerToken,
-    prices: [{ label: cut(`سفارش ${p.orderNumber}`, 32), amount: Number(p.amountRial) }],
+    prices: [{ label: cut(p.title, 32), amount: Number(p.amountRial) }],
   };
 }
 
 export interface PayableState {
   paymentStatus: string;
-  orderStatus: string;
+  /** What the payment is for is still waiting for it (not expired or cancelled). */
+  open: boolean;
   amountRial: bigint;
-  paymentDeadline: Date | null;
 }
 
 /** Decision for a pre_checkout_query (must be answered within 10 s). */
-export function checkPreCheckout(state: PayableState | null, query: { currency?: string; total_amount?: number }, now = new Date()): { ok: true } | { ok: false; message: string } {
+export function checkPreCheckout(state: PayableState | null, query: { currency?: string; total_amount?: number }): { ok: true } | { ok: false; message: string } {
   if (!state || state.paymentStatus !== "INITIATED") return { ok: false, message: "این درخواست پرداخت معتبر نیست؛ از سایت دوباره اقدام کنید." };
-  if (state.orderStatus !== "AWAITING_PAYMENT" || (state.paymentDeadline && state.paymentDeadline < now)) {
-    return { ok: false, message: "مهلت پرداخت این سفارش تمام شده است؛ از سایت دوباره اقدام کنید." };
-  }
+  if (!state.open) return { ok: false, message: "مهلت این پرداخت تمام شده است؛ از سایت دوباره اقدام کنید." };
   if ((query.currency ?? "IRR") !== "IRR" || BigInt(query.total_amount ?? -1) !== state.amountRial) {
-    return { ok: false, message: "مبلغ پرداخت با سفارش یکی نیست؛ از سایت دوباره اقدام کنید." };
+    return { ok: false, message: "مبلغ پرداخت درست نیست؛ از سایت دوباره اقدام کنید." };
   }
   return { ok: true };
 }

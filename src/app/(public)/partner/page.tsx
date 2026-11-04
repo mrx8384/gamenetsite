@@ -19,7 +19,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "پنل همکار", robots: { index: false } };
 
-export default function PartnerPage() {
+export default function PartnerPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   return (
     <Container className="py-8 sm:py-12">
       <h1 className="mb-6 flex items-center gap-3 text-3xl font-black">
@@ -27,7 +27,7 @@ export default function PartnerPage() {
         پنل همکار
       </h1>
       <Suspense fallback={<LoadingRows rows={6} />}>
-        <PartnerContent />
+        <PartnerContent searchParams={searchParams} />
       </Suspense>
     </Container>
   );
@@ -47,8 +47,16 @@ function toFormValues(p: MyPartnerProfile) {
   };
 }
 
-async function PartnerContent() {
+const PAYMENT_NOTICE: Record<string, { variant: "success" | "destructive" | "warning"; text: string }> = {
+  paid: { variant: "success", text: "پرداخت انجام شد و اشتراک شما فعال شد." },
+  already_processed: { variant: "success", text: "این پرداخت قبلاً ثبت شده است." },
+  failed: { variant: "destructive", text: "پرداخت انجام نشد. اگر مبلغی کم شده، تا ۷۲ ساعت به حسابتان برمی‌گردد؛ می‌توانید دوباره خرید کنید." },
+  error: { variant: "warning", text: "نتیجهٔ پرداخت هنوز مشخص نیست؛ چند دقیقه بعد همین صفحه را ببینید یا با پشتیبانی تماس بگیرید." },
+};
+
+async function PartnerContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireUser("/partner");
+  const notice = PAYMENT_NOTICE[String((await searchParams).payment ?? "")];
   const [profile, t] = await Promise.all([getMyPartnerProfile(user.id), getSiteSettings("partners")]);
 
   if (user.role === "ADMIN" && !profile) {
@@ -103,6 +111,7 @@ async function PartnerContent() {
 
   return (
     <div className="space-y-6">
+      {notice ? <Alert variant={notice.variant}>{notice.text}</Alert> : null}
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-lg font-bold">{profile.businessName}</p>
         <PartnerStatusBadge status="APPROVED" />
@@ -147,7 +156,7 @@ async function PartnerContent() {
 
       <section className="space-y-3" aria-labelledby="plans-title">
         <h2 id="plans-title" className="text-xl font-bold">{t.plansTitle}</h2>
-        <PlanCards plans={plans} note={t.plansNote} />
+        <PlanCards plans={plans} note={t.plansNote} canBuy />
       </section>
 
       <Card>

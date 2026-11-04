@@ -20,6 +20,8 @@ export const planSchema = z.object({
   durationDays: z.preprocess((v) => (typeof v === "string" ? toEnglishDigits(v) : v), z.coerce.number("مدت معتبر نیست").int("مدت باید عدد صحیح باشد").min(1, "حداقل ۱ روز").max(3650, "حداکثر ۳۶۵۰ روز")),
   features: z.array(z.enum(ENTITLEMENT_KEYS)).max(ENTITLEMENT_KEYS.length).default([]),
   isVisible: z.boolean().default(false),
+  /** Buyable online by approved partners (needs a payment gateway and a price above 0). */
+  isActive: z.boolean().default(false),
   sortOrder: z.preprocess((v) => (typeof v === "string" ? toEnglishDigits(v) : v), z.coerce.number().int().min(0).max(9999)).default(0),
 });
 

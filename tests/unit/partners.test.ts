@@ -45,8 +45,8 @@ describe("entitlements", () => {
   it("denies when the plan lacks the feature", () => {
     expect(evaluateEntitlement(subject({}, { subscriptions: [sub({ features: [] })] }), "GAMEPAD_TESTER", now)).toBe(false);
   });
-  it("purchasing stays disabled", () => {
-    expect(SUBSCRIPTION_PURCHASE_ENABLED).toBe(false);
+  it("online purchase is enabled (owner request 2026-11-04); each plan opts in with isActive", () => {
+    expect(SUBSCRIPTION_PURCHASE_ENABLED).toBe(true);
   });
 });
 

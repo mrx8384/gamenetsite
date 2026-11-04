@@ -68,8 +68,8 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
       take: PAGE_SIZE,
       select: {
         id: true, name: true, email: true, phone: true, role: true, isActive: true, createdAt: true, lastLoginAt: true,
-        _count: { select: { orders: true } },
-        partnerProfile: { select: { id: true, _count: { select: { subscriptions: { where: { paymentId: { not: null } } } } } } },
+        _count: { select: { orders: true, tournamentPayments: { where: { status: { in: ["PAID", "REFUND_NEEDED", "REFUNDED"] } } } } },
+        partnerProfile: { select: { id: true, _count: { select: { subscriptions: { where: { payment: { status: "SUCCEEDED" } } } } } } },
       },
     }),
     db.siteSetting.findUnique({ where: { key: ACCOUNTS_SETTINGS_KEY } }),
@@ -150,7 +150,7 @@ async function UsersTable({ searchParams }: { searchParams: Promise<Search> }) {
                 <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(u.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">{u.lastLoginAt ? formatDate(u.lastLoginAt) : "—"}</TableCell>
                 <TableCell className="sticky end-0 bg-surface shadow-[8px_0_8px_-8px_rgb(0_0_0/0.15)]">
-                  <UserRowActions user={{ id: u.id, name: u.name, role: u.role, isActive: u.isActive, hasPartnerProfile: !!u.partnerProfile }} isSelf={u.id === admin.id} deleteBlocker={deletionBlocker({ role: u.role, orderCount: u._count.orders, paidSubscriptionCount: u.partnerProfile?._count.subscriptions ?? 0 })} />
+                  <UserRowActions user={{ id: u.id, name: u.name, role: u.role, isActive: u.isActive, hasPartnerProfile: !!u.partnerProfile }} isSelf={u.id === admin.id} deleteBlocker={deletionBlocker({ role: u.role, orderCount: u._count.orders, paidEntryCount: u._count.tournamentPayments, paidSubscriptionCount: u.partnerProfile?._count.subscriptions ?? 0 })} />
                 </TableCell>
               </TableRow>
             ))}

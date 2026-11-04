@@ -22,10 +22,11 @@ export interface PlanFormData {
   durationDays: string;
   features: EntitlementKey[];
   isVisible: boolean;
+  isActive: boolean;
   sortOrder: string;
 }
 
-const empty: PlanFormData = { code: "", name: "", description: "", priceToman: "0", durationDays: "30", features: [], isVisible: false, sortOrder: "0" };
+const empty: PlanFormData = { code: "", name: "", description: "", priceToman: "0", durationDays: "30", features: [], isVisible: false, isActive: false, sortOrder: "0" };
 
 export function PlanDialog({ plan, trigger }: { plan?: PlanFormData; trigger: React.ReactNode }) {
   const router = useRouter();
@@ -97,8 +98,16 @@ export function PlanDialog({ plan, trigger }: { plan?: PlanFormData; trigger: Re
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" className="size-4 accent-[var(--brand-green-dark)]" checked={v.isVisible} onChange={(e) => setV({ ...v, isVisible: e.target.checked })} />
-              نمایش در صفحهٔ همکاران (با برچسب «به‌زودی»)
+              نمایش در صفحهٔ همکاران
             </label>
+            <label className="flex cursor-pointer items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1 size-4 accent-[var(--brand-green-dark)]" checked={v.isActive} onChange={(e) => setV({ ...v, isActive: e.target.checked })} />
+              <span>
+                قابل خرید آنلاین
+                <span className="block text-xs text-muted-foreground">همکار تأییدشده از پنل خودش با درگاه پرداخت می‌کند و اشتراک خودکار فعال می‌شود. اگر نزنید، «به‌زودی» نشان داده می‌شود.</span>
+              </span>
+            </label>
+            {err("isActive")}
             <div className="grid gap-1.5">
               <Label htmlFor="pl-sort">ترتیب نمایش</Label>
               <Input id="pl-sort" dir="ltr" inputMode="numeric" className="text-start" value={v.sortOrder} onChange={(e) => setV({ ...v, sortOrder: e.target.value })} />

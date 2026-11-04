@@ -1,5 +1,19 @@
 # Progress Log
 
+## 2026-11-04 (51) — Online subscription purchase + tournament entry fees (owner request)
+
+The owner connected the Bale wallet gateway and asked that (1) partners can buy subscriptions and (2) tournaments — by Atom or by partners — take the entry fee online.
+
+**One payment layer** (`src/features/payments/targets.ts`): a `Payment` pays for an order (`orderId`), a subscription (`PartnerSubscription.paymentId`) or a tournament entry (`TournamentEntry.paymentId`). `findPaymentTarget` gives the owner, title («سفارش …», «اشتراک …», «ثبت‌نام تورنومنت …»), whether it is still payable, the return page and `needsRefund`; `applyGatewayResult` dispatches the verified result; `openGatewayPayment` registers it with the provider. The callback route, Bale bot (invoice title, pre-checkout, confirmations), Bale payment page and status poll use it; orders' `startPayment` too. `checkPreCheckout` now takes `open` instead of order fields.
+
+**Subscriptions:** `SUBSCRIPTION_PURCHASE_ENABLED = true`; a plan is sold online only when the admin ticks «قابل خرید آنلاین» (`isActive`, needs price > 0). `buySubscription` (approved partners) creates an INACTIVE subscription + payment (20-min window, earlier unpaid attempt replaced); on payment it becomes ACTIVE, queued after the current period (`nextGrantStart`, partner row lock). Partner page shows the buy button and the result; public `/partners` links to the partner panel.
+
+**Tournaments:** `Tournament.entryFee` (form: «هزینهٔ ثبت‌نام آنلاین — تومان»; only with online registration). Paid registration holds a place 20 min (`TournamentEntry` AWAITING_PAYMENT, counted with participants for capacity); after payment the participant is added inside a tournament lock. If that is impossible (closed, full, name/user taken, tournament deleted) the entry becomes REFUND_NEEDED and the player is told the money will be returned. Removing a paid player, cancelling or deleting an unfinished tournament marks PAID entries REFUND_NEEDED; paid players can't self-withdraw (support). Entries keep the tournament name and survive deletion. Organizer page: «پرداخت‌های ثبت‌نام» card; admin `/admin/tournaments/payments`: refunds («بازپرداخت شد» records a refund done outside the site) and per-organizer totals (the money reaches the site's gateway account; partners are settled by the owner). Maintenance expires unpaid entries and subscription purchases. Accounts with paid entries are not deleted; abandoned entries are removed with the account.
+
+With a `WALLET-TEST-…` token only admins can pay (all kinds).
+
+Verified: typecheck, lint, 450 unit tests (new `tournament-fee.test.ts`), build; browser + mocked Bale API with a non-test token: partner bought a plan (invoice, pre-checkout, confirmation → subscription active, «برگزاری فعال»), player paid a tournament fee (added, paid badge, no self-withdraw), second player paid after the organizer filled the last place (refund notice, REFUND_NEEDED → marked refunded by admin, per-organizer total), store order still paid end-to-end. Test data removed.
+
 ## 2026-11-04 (50) — Partner accounts deletable; checkout on phones (owner reports)
 
 - **Deleting partner accounts:** the owner made a partner account for testing and could not delete it. `deletionBlocker` no longer blocks a partner file; it still blocks admins, accounts with orders, and partners with a paid subscription (`paymentId`). The partner file and free subscriptions are removed with the account (cascade); tournaments it organized stay (`organizerId` → null) for admins to manage. The confirm text says so. Automatic inactive cleanup still never touches partners.

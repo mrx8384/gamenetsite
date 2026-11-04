@@ -12,8 +12,8 @@ import { LoadingRows } from "@/components/ui/states";
 import { getPaymentProviderByKey } from "@/features/payments";
 import { botUsername, isTestToken } from "@/features/payments/providers/bale/api";
 import { botLink } from "@/features/payments/providers/bale/logic";
+import { findPaymentTarget, paidResult } from "@/features/payments/targets";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { db } from "@/lib/db";
 import { formatToman } from "@/lib/format";
 
 export const metadata: Metadata = { title: "پرداخت با کیف پول بله", robots: { index: false } };
@@ -34,14 +34,9 @@ async function Content({ searchParams }: { searchParams: Promise<Record<string, 
   const code = String((await searchParams).code ?? "");
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/payments/bale?code=${code}`)}`);
-  const p = code
-    ? await db.payment.findUnique({
-        where: { provider_authority: { provider: "bale", authority: code } },
-        select: { status: true, amount: true, order: { select: { number: true, userId: true, status: true } } },
-      })
-    : null;
-  if (!p?.order || p.order.userId !== user.id) notFound();
-  if (p.status === "SUCCEEDED") redirect(`/account/orders/${encodeURIComponent(p.order.number)}?payment=paid`);
+  const p = code ? await findPaymentTarget({ provider_authority: { provider: "bale", authority: code } }) : null;
+  if (!p || p.userId !== user.id) notFound();
+  if (p.status === "SUCCEEDED") redirect(`${p.returnPath}?payment=${paidResult(p)}`);
 
   let link: string | null = null;
   try {
@@ -58,7 +53,7 @@ async function Content({ searchParams }: { searchParams: Promise<Record<string, 
         </span>
         <div className="space-y-1">
           <h1 className="text-xl font-black">پرداخت با کیف پول بله</h1>
-          <p className="text-sm text-muted-foreground">سفارش <span className="ltr font-medium">{p.order.number}</span></p>
+          <p className="text-sm text-muted-foreground">{p.title}</p>
           <p className="text-2xl font-black">{formatToman(p.amount)}</p>
         </div>
         {isTestToken() ? (
@@ -69,7 +64,7 @@ async function Content({ searchParams }: { searchParams: Promise<Record<string, 
         <ol className="space-y-2 text-start text-sm leading-7 text-muted-foreground">
           <li>۱. روی دکمهٔ زیر بزنید تا بات فروشگاه در اپ <b>بله</b> باز شود و «شروع» را بزنید.</li>
           <li>۲. بات یک «درخواست پول» با همین مبلغ می‌فرستد؛ آن را با کیف پول بله پرداخت کنید.</li>
-          <li>۳. بعد از پرداخت به همین صفحه برگردید؛ سفارش خودکار تأیید می‌شود.</li>
+          <li>۳. بعد از پرداخت به همین صفحه برگردید؛ پرداخت خودکار تأیید می‌شود.</li>
         </ol>
         {link ? (
           <Button asChild size="lg" className="w-full">
@@ -82,7 +77,7 @@ async function Content({ searchParams }: { searchParams: Promise<Record<string, 
           اگر بات کد را نشناخت، این کد را در گفت‌وگو با بات بفرستید:
           <code dir="ltr" className="mt-1 block rounded-lg bg-secondary px-2 py-1 text-xs break-all select-all">{code}</code>
         </p>
-        <BalePaymentStatus code={code} />
+        <BalePaymentStatus code={code} returnPath={p.returnPath} />
       </CardContent>
     </Card>
   );

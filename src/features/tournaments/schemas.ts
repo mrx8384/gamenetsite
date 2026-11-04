@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { toEnglishDigits } from "@/lib/format";
+import { parseTomanToRial } from "@/lib/text";
 import { MAX_PARTICIPANTS, TOURNAMENT_FORMATS } from "./constants";
 
 const optionalText = (max: number) => z.string().trim().max(max, `حداکثر ${max.toLocaleString("fa-IR")} کاراکتر`).default("");
@@ -17,6 +18,15 @@ export const tournamentSchema = z
     rules: optionalText(5000),
     prize: optionalText(500),
     entryFeeNote: optionalText(200),
+    /** Online registration fee in Toman (empty/0 = free); stored as Rials. */
+    entryFeeToman: z
+      .string()
+      .default("")
+      .transform((v, ctx) => {
+        const rial = parseTomanToRial(v.trim() || "0");
+        if (rial === null || rial < BigInt(0) || rial > BigInt(10_000_000_000)) ctx.addIssue({ code: "custom", message: "مبلغ ثبت‌نام معتبر نیست" });
+        return rial ?? BigInt(0);
+      }),
     /** ISO string (the browser converts the local date/time) or empty. */
     startsAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "تاریخ معتبر نیست"),
     format: z.enum(TOURNAMENT_FORMATS, "نوع تورنومنت را انتخاب کنید"),
@@ -36,6 +46,7 @@ export const tournamentSchema = z
       if (!v.advancePerGroup) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "تعداد صعودکننده از هر گروه را وارد کنید" });
       if (v.groupCount && v.advancePerGroup && v.groupCount * v.advancePerGroup < 2) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "حداقل ۲ نفر باید به مرحلهٔ حذفی صعود کنند" });
     }
+    if (v.entryFeeToman > BigInt(0) && !v.allowSelfRegistration) ctx.addIssue({ code: "custom", path: ["entryFeeToman"], message: "هزینهٔ آنلاین فقط وقتی معنا دارد که ثبت‌نام آنلاین باز باشد" });
     if (v.pointsWin < v.pointsDraw) ctx.addIssue({ code: "custom", path: ["pointsWin"], message: "امتیاز برد باید از امتیاز مساوی کمتر نباشد" });
   });
 

@@ -21,6 +21,8 @@ export interface TournamentFormValues {
   rules: string;
   prize: string;
   entryFeeNote: string;
+  /** Toman, digits only (empty = free). */
+  entryFeeToman: string;
   startsAtLocal: string; // yyyy-MM-ddTHH:mm in Tehran time
   format: TournamentFormatKey;
   maxParticipants: string;
@@ -42,6 +44,7 @@ export const emptyTournament: TournamentFormValues = {
   rules: "",
   prize: "",
   entryFeeNote: "",
+  entryFeeToman: "",
   startsAtLocal: "",
   format: "SINGLE_ELIMINATION",
   maxParticipants: "16",
@@ -170,7 +173,13 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
             <Input id="t-prize" value={v.prize} onChange={text("prize")} maxLength={500} />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="t-fee">ورودی (اختیاری)</Label>
+            <Label htmlFor="t-fee-online">هزینهٔ ثبت‌نام آنلاین — تومان (اختیاری)</Label>
+            <Input id="t-fee-online" inputMode="numeric" dir="ltr" className="text-start" value={v.entryFeeToman} onChange={text("entryFeeToman")} placeholder="0" aria-invalid={!!errors.entryFeeToman} aria-describedby="t-fee-online-help" />
+            <p id="t-fee-online-help" className="text-xs leading-5 text-muted-foreground">اگر مبلغی بگذارید، بازیکن هنگام ثبت‌نام در سایت آن را با درگاه پرداخت می‌کند و بعد از پرداخت به فهرست اضافه می‌شود. خالی یا صفر = رایگان.</p>
+            {err("entryFeeToman")}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="t-fee">توضیح ورودی (اختیاری)</Label>
             <Input id="t-fee" value={v.entryFeeNote} onChange={text("entryFeeNote")} maxLength={200} placeholder="مثلاً ۵۰ هزار تومان، پرداخت حضوری" />
           </div>
           <div className="grid gap-1.5 sm:col-span-2">
