@@ -47,7 +47,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Hide/show sections (owner request 2026-10-31): **done** — Admin → تنظیمات سایت → نمایش بخش‌ها; new public sections must get a `SectionGate`, a key in `sections-schema.ts`, and respect `getSectionVisibility()` on the homepage/menus/sitemap. PROGRESS 42.
 - «ادامه با گوگل» (2026-10-31): **done and live** (owner set the OAuth client and signed in successfully on www.atomgclub.ir) — `src/features/auth/google*.ts`, `/api/auth/google(/callback)`, model `OAuthAccount`. PROGRESS 43.
 - Account deletion by admin + optional automatic removal of inactive accounts (owner request 2026-10-31): **done** — `src/features/users/cleanup.ts`, Admin → کاربران, `pnpm maintenance`. Accounts with orders are never deleted. PROGRESS 44.
-- Bale wallet payments (owner request 2026-11-04): **done, test token only so far** — `PAYMENT_PROVIDER=bale`, `src/features/payments/providers/bale/`, webhook `/api/payments/bale/webhook/<secret>`, `pnpm bale:webhook`. With `WALLET-TEST-…` only admins can order. PROGRESS 48.
+- Bale wallet payments (owner request 2026-11-04): **done, test token only so far** — `PAYMENT_PROVIDER=bale`, `src/features/payments/providers/bale/`, webhook `/api/payments/bale/webhook/<secret>`, `pnpm bale:webhook`. With `WALLET-TEST-…` only admins can order. PROGRESS 48. Orders placed in test mode get `isTest` and can be deleted by admins (real orders never) — PROGRESS 49.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

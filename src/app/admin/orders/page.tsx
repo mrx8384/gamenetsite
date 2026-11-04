@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Receipt, Search } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { Badge } from "@/components/ui/badge";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +50,7 @@ async function OrdersTable({ searchParams }: { searchParams: Promise<SP> }) {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: { id: true, number: true, status: true, total: true, createdAt: true, recipientName: true, phone: true, user: { select: { name: true } } },
+      select: { id: true, number: true, isTest: true, status: true, total: true, createdAt: true, recipientName: true, phone: true, user: { select: { name: true } } },
     }),
     db.order.groupBy({ by: ["status"], _count: true }),
   ]);
@@ -107,7 +108,7 @@ async function OrdersTable({ searchParams }: { searchParams: Promise<SP> }) {
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateTime(o.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatToman(o.total)}</TableCell>
-                <TableCell><OrderStatusBadge status={o.status} /></TableCell>
+                <TableCell><span className="inline-flex items-center gap-1"><OrderStatusBadge status={o.status} />{o.isTest ? <Badge variant="outline">آزمایشی</Badge> : null}</span></TableCell>
               </TableRow>
             ))}
           </TableBody>

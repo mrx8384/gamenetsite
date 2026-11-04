@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import { DeleteTestOrder } from "@/components/admin/orders/delete-test-order";
 import { OrderAdminPanel } from "@/components/admin/orders/order-admin-panel";
 import { OrderDetails } from "@/components/orders/order-details";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
@@ -48,13 +49,17 @@ async function AdminOrder({ params }: { params: Promise<{ id: string }> }) {
           <h1 className="ltr text-start text-2xl font-black">{order.number}</h1>
           <p className="text-sm text-muted-foreground">ثبت در {formatDateTime(order.createdAt)} · مشتری: {order.user.name} {order.user.phone ? <span className="ltr">({toPersianDigits(order.user.phone)})</span> : null}</p>
         </div>
-        <OrderStatusBadge status={order.status} />
+        <div className="flex items-center gap-2">
+          {order.isTest ? <Badge variant="outline">آزمایشی</Badge> : null}
+          <OrderStatusBadge status={order.status} />
+        </div>
       </div>
       {order.adminNote?.includes("بازپرداخت") ? <Alert variant="warning" title="نیاز به اقدام">{order.adminNote}</Alert> : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <OrderDetails order={order} stacked />
         <div className="space-y-6">
           <OrderAdminPanel orderId={order.id} transitions={ADMIN_TRANSITIONS[order.status]} adminNote={order.adminNote ?? ""} />
+          {order.isTest ? <DeleteTestOrder orderId={order.id} number={order.number} /> : null}
           <Card>
             <CardHeader><CardTitle className="text-base">پرداخت‌ها</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">

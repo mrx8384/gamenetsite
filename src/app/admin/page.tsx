@@ -35,7 +35,7 @@ async function Stats() {
     db.user.count({ where: { createdAt: { gte: daysAgo(7) } } }),
     db.order.count({ where: { status: { in: ["PAID", "PROCESSING"] } } }),
     db.order.count({ where: { status: "AWAITING_PAYMENT" } }),
-    db.order.aggregate({ where: { paidAt: { gte: daysAgo(30) }, status: { notIn: ["CANCELLED", "REFUNDED"] } }, _sum: { total: true } }),
+    db.order.aggregate({ where: { isTest: false, paidAt: { gte: daysAgo(30) }, status: { notIn: ["CANCELLED", "REFUNDED"] } }, _sum: { total: true } }),
     db.contactMessage.count({ where: { status: "NEW" } }),
     db.newsPost.count({ where: { status: "DRAFT" } }),
     db.partnerProfile.count({ where: { status: "PENDING" } }),

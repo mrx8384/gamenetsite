@@ -147,6 +147,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           number,
           userId: s.user.id,
           status: "AWAITING_PAYMENT",
+          isTest: getPaymentProvider()?.testMode === true,
           subtotal,
           shippingCost,
           discount,

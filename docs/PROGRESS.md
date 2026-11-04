@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-11-04 (49) — Deleting test orders (owner request)
+
+The owner placed two purchases with the Bale test token and could not remove them. Instead of a new "developer" role (which could delete real sales too), orders now carry `Order.isTest`:
+- set automatically in `placeOrder` when the payment provider is in test mode (`testMode`);
+- migration `order_is_test` backfills existing orders that have `bale`/`sandbox` payments (so the two Bale test orders are already marked; the real Bale token has not been used yet);
+- `deleteTestOrder` (`src/features/orders/admin-actions.ts`, ADMIN only): refuses non-test orders; cancels via `cancelOrderTx` (stock + reward card back) or, for shipped/delivered, returns stock with a CORRECTION movement; deletes payments and the order; keeps inventory movements with a note; audit `orders.test_deleted`;
+- admin orders list + detail show «آزمایشی»; detail has «حذف سفارش آزمایشی» with confirm; dashboard 30-day sales excludes test orders.
+
+Verified: typecheck, lint, 446 unit tests, build; browser test with `[TEST]` data (test order deleted, stock restored, payment removed, audit written; real order shows no delete button); test data removed.
+
 ## 2026-11-04 (48) — «پرداخت با کیف پول بله» (owner request, Bale bot wallet payments)
 
 - Owner created a Bale bot wallet and pasted the payment section of docs.bale.ai (docs host blocked in the sandbox).

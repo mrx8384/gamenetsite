@@ -69,3 +69,40 @@ export async function saveAdminNote(orderId: string, note: string): Promise<Acti
   revalidatePath(`/admin/orders/${orderId}`);
   return ok(undefined, "یادداشت ذخیره شد.");
 }
+
+/**
+ * Deletes an order placed with test payment credentials (`isTest`), e.g. while trying the Bale test wallet.
+ * Real orders can never be deleted (sales records). Stock that the order still holds is returned first.
+ */
+export async function deleteTestOrder(orderId: unknown): Promise<ActionResult<undefined>> {
+  const user = await admin();
+  if (!user) return fail("دسترسی غیرمجاز.");
+  if (typeof orderId !== "string" || !orderId) return fail("سفارش پیدا نشد.");
+  const order = await db.order.findUnique({ where: { id: orderId }, select: { number: true, isTest: true, status: true } });
+  if (!order) return fail("سفارش پیدا نشد.");
+  if (!order.isTest) return fail("فقط سفارش‌های آزمایشی قابل حذف‌اند؛ سفارش واقعی برای حفظ سوابق فروش حذف نمی‌شود.");
+
+  await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+    // Unpaid/paid/processing: the normal cancel returns stock and frees a discount card.
+    const cancelled = await cancelOrderTx(tx, orderId, user.id, "حذف سفارش آزمایشی");
+    if (!cancelled) {
+      const current = await tx.order.findUniqueOrThrow({ where: { id: orderId }, select: { status: true, items: { select: { productId: true, quantity: true } } } });
+      // Shipped/delivered test orders still hold their stock.
+      if (current.status === "SHIPPED" || current.status === "DELIVERED") {
+        for (const item of current.items) {
+          if (!item.productId) continue;
+          await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
+          await tx.inventoryMovement.create({ data: { productId: item.productId, delta: item.quantity, reason: "CORRECTION", note: `حذف سفارش آزمایشی ${order.number}`, actorId: user.id } });
+        }
+      }
+    }
+    await tx.payment.deleteMany({ where: { orderId } });
+    await tx.inventoryMovement.updateMany({ where: { orderId }, data: { note: `سفارش آزمایشی ${order.number} (حذف‌شده)` } });
+    await tx.order.delete({ where: { id: orderId } }); // items + status history cascade
+  });
+  updateTag(CACHE_TAGS.products);
+  const { ip } = await getRequestInfo();
+  await audit({ actorId: user.id, action: "orders.test_deleted", entity: "order", entityId: orderId, ip, meta: { number: order.number, status: order.status } });
+  return ok(undefined, `سفارش آزمایشی ${order.number} حذف شد.`);
+}
