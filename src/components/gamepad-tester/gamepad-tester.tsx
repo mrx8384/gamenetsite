@@ -20,6 +20,7 @@ import {
   type DriftVerdict,
 } from "@/features/gamepad-tester/analysis";
 import { cn } from "@/lib/utils";
+import { ControllerPicture, pictureModel } from "./controller-picture";
 
 interface PadSnapshot {
   index: number;
@@ -252,7 +253,7 @@ export function GamepadTester() {
         <p className="rounded-lg bg-warning-soft p-3 text-sm text-warning">این دسته نقشهٔ استاندارد ندارد؛ نام دکمه‌ها ممکن است با دسته مطابقت نداشته باشد.</p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Buttons */}
         <Card>
           <CardHeader>
@@ -263,6 +264,7 @@ export function GamepadTester() {
             <CardDescription>همهٔ دکمه‌ها را یکی‌یکی بزنید؛ دکمه‌هایی که کار کنند سبز می‌مانند.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <ControllerPicture model={pictureModel(family, pad.id)} buttons={pad.buttons} axes={pad.axes} />
             <div className="h-2 overflow-hidden rounded-full bg-secondary" aria-hidden>
               <div className="h-full bg-brand-green transition-[width]" style={{ width: `${(testedSet.size / Math.max(1, total)) * 100}%` }} />
             </div>

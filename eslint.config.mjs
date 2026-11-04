@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     "src/generated/**",
     "services/**", // original Python Game Catalog (kept unchanged)
     "public/atom-world/**", // 3D world: third-party decoders (minified) and the generated offline worker
+    "vendor/**", // DualShock Calibration GUI (MIT), served as-is by /gamepad-tools
   ]),
 ]);
 

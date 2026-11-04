@@ -11,7 +11,7 @@ const isHttps = (process.env.APP_URL ?? "").startsWith("https://");
  * scripts, styles, fonts, frames or connections; the site cannot be framed; forms post only here.
  * User-generated HTML is sanitized on the server before it is stored (src/lib/rich-text).
  */
-const buildCsp = ({ world = false, map = false } = {}) => [
+const buildCsp = ({ world = false, map = false, toolsHost = false, tool = false } = {}) => [
   "default-src 'self'",
   // 3D world only (`world`): 'wasm-unsafe-eval' lets its self-hosted model decoders (/atom-world/decoders)
   // compile WebAssembly — it does not allow JavaScript eval.
@@ -25,8 +25,10 @@ const buildCsp = ({ world = false, map = false } = {}) => [
   "object-src 'none'",
   // Contact page only (`map`): the Google Maps embed of the shop location (owner request 2026-10-31).
   // Embed URLs are always rebuilt on www.google.com by src/lib/map-location.ts.
-  `frame-src ${map ? "https://www.google.com" : "'none'"}`,
-  "frame-ancestors 'none'",
+  // Gamepad tester pages (`toolsHost`) embed the PlayStation calibration tool from this site (/gamepad-tools).
+  `frame-src ${map ? "https://www.google.com" : toolsHost ? "'self'" : "'none'"}`,
+  // The tool itself (`tool`) may be framed by this site only.
+  `frame-ancestors ${tool ? "'self'" : "'none'"}`,
   "base-uri 'self'",
   "form-action 'self'",
   "manifest-src 'self'",
@@ -38,6 +40,9 @@ const csp = buildCsp();
 const worldCsp = buildCsp({ world: true });
 /** /contact: the same policy plus the Google Maps frame. */
 const contactCsp = buildCsp({ map: true });
+/** Gamepad tester pages and the calibration tool they embed (vendor/dualshock-tools via /gamepad-tools). */
+const toolsHostCsp = buildCsp({ toolsHost: true });
+const toolCsp = buildCsp({ tool: true });
 
 const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
@@ -87,6 +92,9 @@ const nextConfig: NextConfig = {
       // control the page /atom-world itself — nothing else of the site
       { source: "/atom-world/:file(sw\\.js|offline-manifest\\.json)", headers: [{ key: "Cache-Control", value: "no-cache" }] },
       { source: "/atom-world/sw.js", headers: [{ key: "Service-Worker-Allowed", value: "/atom-world" }] },
+      // Gamepad tester: the pages frame /gamepad-tools/… (same origin, WebHID allowed by `allow="hid"`).
+      { source: "/:area(partner|tournaments)/gamepad-tester", headers: [{ key: "Content-Security-Policy", value: toolsHostCsp }] },
+      { source: "/gamepad-tools/:path*", headers: [{ key: "Content-Security-Policy", value: toolCsp }, { key: "X-Frame-Options", value: "SAMEORIGIN" }] },
     ];
   },
 };

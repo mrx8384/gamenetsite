@@ -51,6 +51,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Online subscription purchase + tournament entry fees (owner request 2026-11-04): **done** — `src/features/subscriptions/purchase*.ts`, `Tournament.entryFee`, model `TournamentEntry` (participant created only after payment; REFUND_NEEDED when it can't be), `src/features/tournaments/entries.ts`, admin `/admin/tournaments/payments` (refunds, per-organizer totals for partner settlement: money goes to the site's gateway account). PROGRESS 51.
 - White-label partner area + partner logo approval + automatic product codes (owner request 2026-11-04): **done** — route group `src/app/(partner)` (`partner-shell.tsx`, `getPartnerBranding`): subscribed partners see their own logo/name and no Atom logo in `/partner/**`; logo sent by the partner, used after admin approval (`logo-actions.ts`); SKU empty → `ATM-00001…`. PROGRESS 52.
 - Partner prices (owner request 2026-11-04): **done** — `Product.partnerPrice`, `PartnerProfile.showPartnerPrices` (asked at approval, switch on the partner page; not tied to subscriptions); shown per request only (`src/features/partners/pricing.ts`, never in cached output) and charged in cart/checkout via `effectiveUnitPrice`. PROGRESS 53.
+- Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -199,7 +200,7 @@ See `docs/ROADMAP.md` (Phases 3–12).
 - Do **not** modify the ATOM GAME CLUB logo.
 - Real provider tokens only in `.env` (Bale wallet supplied 2026-11-04). Every payment (order, subscription, tournament entry) goes through `src/features/payments/targets.ts` (`findPaymentTarget`, `applyGatewayResult`, `openGatewayPayment`); a new payable thing needs a relation on `Payment` and a branch there. With a test token only admins may pay (`paymentBlockedForTestMode`).
 - Tournaments: bracket logic lives only in the pure `src/features/tournaments/engine.ts` (covered by randomized playout tests that also check that persisting only the returned keys keeps the DB in sync). Organizer rights only via `src/features/tournaments/permissions.ts`; players never enter results.
-- Gamepad Tester: browser-based input tester is live (owner request 2026-10-23; partners with entitlement + admins). Stick **calibration** (writing to controllers over WebHID) is not implemented — needs owner decision (see PROGRESS 16).
+- Gamepad Tester: two tabs (PROGRESS 54) — PlayStation calibration/tests = vendored MIT tool `vendor/dualshock-tools/` (served by `/gamepad-tools/…` to permitted users only; keep its HID code unchanged, record any change in its `ATOM_CHANGES.md`; never re-enable its analytics or CDNs) and our Gamepad API tester for Xbox/others with real controller drawings (`controller-picture.tsx`).
 - Do **not** claim a feature works unless it was verified (tests, typecheck, lint, route check).
 - No mock functionality in place of real implementation; sample data only when marked as dev data.
 - Work phase by phase; before each phase list scope, affected files, dependencies, risks; after it run tests/typecheck/lint and update `docs/PROGRESS.md`.

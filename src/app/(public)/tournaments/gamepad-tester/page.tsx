@@ -7,7 +7,7 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GamepadTester } from "@/components/gamepad-tester/gamepad-tester";
+import { GamepadTools } from "@/components/gamepad-tester/gamepad-tools";
 import { canUseGamepadTester, getGamepadAccess, type GamepadAccess } from "@/features/gamepad-tester/access";
 import { getSiteSettings } from "@/features/settings/site";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -46,7 +46,7 @@ async function AccessPanel({ locked }: { locked: string; granted: string }) {
   if (canUseGamepadTester(access)) {
     return (
       <section aria-label="ابزار تست دسته" className="w-full max-w-5xl">
-        <GamepadTester />
+        <GamepadTools />
       </section>
     );
   }

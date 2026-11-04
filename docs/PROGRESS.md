@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-11-04 (54) — Full PlayStation calibration tool + Xbox test with real controller drawings (owner request)
+
+The owner asked for a tool «کامل شبیه» dualshock-tools.github.io (screenshots: connect, controller info, calibrate stick centre / range, fine-tune, save permanently, restore, reboot, joystick info with circularity, quick test, debug) plus an Xbox test, with controllers drawn like the real ones. This also settles the open decision on WebHID calibration (PROGRESS 16).
+
+- **PlayStation (DS4, DualSense, DualSense Edge, VR2):** the MIT-licensed DualShock Calibration GUI 2.35 is vendored in `vendor/dualshock-tools/` (see its `ATOM_CHANGES.md`): no CDNs (local Bootstrap/jQuery/Font Awesome, SRI verified), analytics that posted controller data to the author's server disabled, Google Analytics removed, Persian by default with the 271 missing strings translated, SCSS hand-converted. Its HID protocol code is used unchanged (not re-implemented) to avoid damaging controllers. Our build does not run its toolchain.
+- Served by `src/app/gamepad-tools/[...path]/route.ts` only to users allowed to use the tester (`getGamepadAccess` → `canUseGamepadTester`), path-safe (`resolveToolFile`, unit-tested). CSP: tester pages may frame `'self'`; `/gamepad-tools/*` may be framed by this site only (`frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`); everything else unchanged.
+- **Tester page** (`/tournaments/gamepad-tester`, `/partner/gamepad-tester`): `GamepadTools` with two tabs — «پلی‌استیشن — کالیبره و تست کامل» (the tool in an iframe with `allow="hid"`; needs desktop Chrome/Edge + USB) and «ایکس‌باکس و سایر دسته‌ها — تست» (our Gamepad API tester). Xbox controllers cannot be calibrated from a browser (no WebHID access), so that tab tests only.
+- **Real controller drawings** (`controller-picture.tsx`): DualSense / Edge / DualShock 4 use the tool's SVGs; Xbox is our own drawing (offset sticks, coloured ABXY, guide, View/Menu/Share, bumpers, triggers with %). Pressed buttons light up (ABXY in their own colour), triggers fill, sticks move.
+
+Verified: typecheck, lint, unit tests (`gamepad-tools.test.ts`), build; browser (admin): `/gamepad-tools/index.html` is 403 for guests; the tool loads in the iframe in Persian/RTL with Bootstrap + jQuery, WebHID available, no requests to other hosts, no console errors or 404s; fake Xbox / DualSense pads light the right parts of the right drawing. Real controllers were not available in the sandbox — calibration itself must be tried on a real controller (USB, Chrome/Edge).
+
 ## 2026-11-04 (53) — Partner prices (owner request)
 
 - `Product.partnerPrice` (optional, below the sale price; product form «قیمت همکار») and `PartnerProfile.showPartnerPrices` (migration `partner_prices`).
