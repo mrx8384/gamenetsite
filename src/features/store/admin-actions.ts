@@ -8,6 +8,7 @@ import { assertRole, AuthorizationError } from "@/lib/auth/dal";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { fail, GENERIC_ERROR, isUniqueViolation, ok, uniqueViolationTarget, zodFieldErrors, type ActionResult } from "@/lib/action-result";
 import { getRequestInfo } from "@/lib/request-info";
+import { generateSku } from "./sku-server";
 import { categorySchema, createProductSchema, productSchema, stockAdjustSchema } from "./schemas";
 
 async function admin() {
@@ -92,6 +93,12 @@ async function nextFeaturedSort(): Promise<number> {
   return (last._max.featuredSort ?? 0) + 1;
 }
 
+/** Fills the form's product code with the next automatic one (the admin can still edit it). */
+export async function suggestSku(): Promise<ActionResult<{ sku: string }>> {
+  if (!(await admin())) return fail("دسترسی غیرمجاز.");
+  return ok({ sku: await generateSku() });
+}
+
 export async function createProduct(input: unknown): Promise<ActionResult<{ id: string }>> {
   const user = await admin();
   if (!user) return fail("دسترسی غیرمجاز.");
@@ -105,6 +112,7 @@ export async function createProduct(input: unknown): Promise<ActionResult<{ id: 
       const p = await tx.product.create({
         data: {
           ...rest,
+          sku: rest.sku || (await generateSku(tx)),
           featuredSort: rest.isFeatured ? await nextFeaturedSort() : 0,
           shortDescription: rest.shortDescription || null,
           descriptionJson: plainDescription(description),
@@ -150,6 +158,7 @@ export async function updateProduct(id: string, input: unknown): Promise<ActionR
         where: { id },
         data: {
           ...rest,
+          sku: rest.sku || (await generateSku()),
           ...featuredSort,
           shortDescription: rest.shortDescription || null,
           descriptionJson: plainDescription(description) ?? Prisma.DbNull,

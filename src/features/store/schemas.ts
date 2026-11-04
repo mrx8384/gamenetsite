@@ -40,11 +40,13 @@ export const productSchema = z
   .object({
     title: z.string().trim().min(2, "عنوان حداقل ۲ حرف است").max(200).transform(normalizePersian),
     slug: slugSchema,
+    /** Empty = generated automatically (ATM-00001…). */
     sku: z
       .string()
       .trim()
+      .default("")
       .transform((v) => toEnglishDigits(v).toUpperCase())
-      .pipe(z.string().regex(/^[A-Z0-9-]{2,64}$/, "کد کالا (SKU) فقط حروف انگلیسی، عدد و خط تیره")),
+      .pipe(z.union([z.literal(""), z.string().regex(/^[A-Z0-9-]{2,64}$/, "کد کالا (SKU) فقط حروف انگلیسی، عدد و خط تیره")])),
     categoryId: z.string().trim().optional().transform((v) => v || null),
     shortDescription: z.string().trim().max(500, "توضیح کوتاه حداکثر ۵۰۰ کاراکتر").default(""),
     description: z.string().trim().max(20000).default(""),

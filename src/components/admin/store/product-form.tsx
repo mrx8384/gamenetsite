@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { createProduct, updateProduct } from "@/features/store/admin-actions";
+import { createProduct, suggestSku, updateProduct } from "@/features/store/admin-actions";
 import { formatNumber } from "@/lib/format";
 import { parseTomanToRial, slugify } from "@/lib/text";
 import { ImageManager, type ManagedImage } from "./image-manager";
@@ -49,6 +49,7 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
   const [slugTouched, setSlugTouched] = React.useState(!!productId);
   const form = useForm<ProductFormValues>({ defaultValues: initial });
   const { register, control, formState, setError } = form;
+  const [skuPending, startSku] = React.useTransition();
   const [priceValue, compareValue] = useWatch({ control, name: ["price", "compareAtPrice"] });
   const errors = formState.errors;
 
@@ -99,7 +100,24 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="sku">کد کالا (SKU)</Label>
-                <Input id="sku" dir="ltr" className="text-start uppercase" placeholder="ATM-001" aria-invalid={!!errors.sku} {...register("sku")} />
+                <div className="flex gap-2">
+                  <Input id="sku" dir="ltr" className="min-w-0 flex-1 text-start uppercase" placeholder="خودکار" aria-invalid={!!errors.sku} aria-describedby="sku-help" {...register("sku")} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    loading={skuPending}
+                    onClick={() =>
+                      startSku(async () => {
+                        const res = await suggestSku();
+                        if (!res.ok) return void toast.error(res.error);
+                        form.setValue("sku", res.data.sku, { shouldDirty: true });
+                      })
+                    }
+                  >
+                    ساخت خودکار
+                  </Button>
+                </div>
+                <p id="sku-help" className="text-xs text-muted-foreground">خالی بگذارید تا سیستم هنگام ذخیره کد بسازد (مثل ATM-00012)، یا خودتان کد دلخواه بنویسید.</p>
                 <FieldError message={errors.sku?.message} />
               </div>
             </div>

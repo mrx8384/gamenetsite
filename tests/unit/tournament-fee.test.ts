@@ -31,3 +31,20 @@ describe("paid plans and records", () => {
     expect(deletionBlocker({ role: "USER", orderCount: 0, paidEntryCount: 0 })).toBeNull();
   });
 });
+
+import { formatAutoSku, nextAutoSku } from "@/features/store/sku";
+import { productSchema } from "@/features/store/schemas";
+
+describe("automatic product codes", () => {
+  it("continues after the highest ATM number and ignores manual codes", () => {
+    expect(nextAutoSku([])).toBe("ATM-00001");
+    expect(nextAutoSku(["ATM-00009", "ATM-00002", "PS5-PAD", "ATM-X1"])).toBe("ATM-00010");
+    expect(formatAutoSku(123456)).toBe("ATM-123456");
+  });
+  it("accepts an empty code (auto) and still validates manual ones", () => {
+    const base = { title: "دسته", slug: "dasteh", price: "1000", compareAtPrice: "", status: "ACTIVE" };
+    expect(productSchema.parse({ ...base, sku: "" }).sku).toBe("");
+    expect(productSchema.parse({ ...base, sku: "ps5-۱۲" }).sku).toBe("PS5-12");
+    expect(productSchema.safeParse({ ...base, sku: "کد" }).success).toBe(false);
+  });
+});

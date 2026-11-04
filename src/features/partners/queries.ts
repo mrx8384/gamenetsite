@@ -9,6 +9,8 @@ export async function getMyPartnerProfile(userId: string) {
     where: { userId },
     include: {
       subscriptions: { orderBy: { createdAt: "desc" }, take: 10, include: { plan: { select: { name: true, features: true } } } },
+      logo: { select: { storageKey: true } },
+      pendingLogo: { select: { storageKey: true } },
     },
   });
 }

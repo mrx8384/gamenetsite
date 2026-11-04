@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-11-04 (52) — Partner area with the partner's own brand; automatic product codes (owner request)
+
+**White-label partner area.** `/partner/**` moved from `(public)` to its own route group `(partner)` (URLs unchanged) with `src/components/partners/partner-shell.tsx`: while the partner is APPROVED, active and has a current subscription (`getPartnerBranding`, `src/features/partners/branding.ts`), the header shows only their logo/name and a partner nav (داشبورد · تورنومنت‌ها · تست دسته), the footer only their name — no Atom logo. Otherwise the normal site header/footer. A neutral skeleton bar is the loading fallback (no Atom-logo flash). Tab icon: `/partner/brand-icon` redirects to the partner's approved logo (or a neutral `public/partner-icon.svg`; the site icon for non-white-label users); the root `favicon.ico` link is still emitted before it. New `/partner/gamepad-tester` (same tester, inside the partner area); the dashboard links to it.
+
+**Partner logo with approval.** `PartnerProfile.logoId` (approved), `pendingLogoId`, `logoSubmittedAt`, `logoRejectReason` (migration `partner_logo`; both Media relations added to `deleteUnusedMedia` and maintenance). Partner: «لوگوی شما» card on `/partner` (send, take back, see rejection reason) → `submitPartnerLogo` (approved partners, re-encoded WebP ≤ 600 px, folder `partners`). Admin: «لوگوی همکار» card on `/admin/partners/[id]` (approve = replace, reject with reason, remove current) and a «لوگوی جدید در انتظار تأیید» box + badge on `/admin/partners`. All in `src/features/partners/logo-actions.ts`, audited.
+
+**Product codes.** SKU may be left empty: the server assigns the next `ATM-00001…` (`src/features/store/sku.ts` pure + `sku-server.ts`), also on edit when cleared; «ساخت خودکار» button fills the field (`suggestSku`) and manual codes still work.
+
+Verified: typecheck, lint, 452 unit tests, build; browser: partner without subscription sees the site header (Atom logo), subscribed partner sees no Atom logo on /partner, /partner/tournaments, /partner/gamepad-tester (phone width OK); logo sent → pending → admin list notice → approved → shown in the partner header and tab icon; products saved with empty code got ATM-00001/2/3. Test data and the test upload removed.
+
 ## 2026-11-04 (51) — Online subscription purchase + tournament entry fees (owner request)
 
 The owner connected the Bale wallet gateway and asked that (1) partners can buy subscriptions and (2) tournaments — by Atom or by partners — take the entry fee online.

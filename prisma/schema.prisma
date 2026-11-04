@@ -181,13 +181,15 @@ model Media {
   uploaderId   String?
   createdAt    DateTime @default(now())
 
-  uploader        User?                  @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
-  productImages   ProductImage[]
-  categoryImages  Category[]
-  newsCovers      NewsPost[]
-  catalogGames    CatalogGame[]
-  organizations   ContractOrganization[]
-  parkAttractions ParkAttraction[]
+  uploader            User?                  @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  productImages       ProductImage[]
+  categoryImages      Category[]
+  newsCovers          NewsPost[]
+  catalogGames        CatalogGame[]
+  organizations       ContractOrganization[]
+  parkAttractions     ParkAttraction[]
+  partnerLogos        PartnerProfile[]       @relation("PartnerLogo")
+  partnerPendingLogos PartnerProfile[]       @relation("PartnerPendingLogo")
 
   @@index([sha256])
   @@map("media")
@@ -606,8 +608,18 @@ model PartnerProfile {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
+  /// Approved logo: replaces the Atom logo in the partner's own area while a subscription is current.
+  logoId           String?
+  /// Uploaded by the partner, waiting for admin approval.
+  pendingLogoId    String?
+  logoSubmittedAt  DateTime?
+  /// Why the last submitted logo was rejected.
+  logoRejectReason String?   @db.VarChar(300)
+
   user          User                  @relation("PartnerOwner", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy    User?                 @relation("PartnerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  logo          Media?                @relation("PartnerLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  pendingLogo   Media?                @relation("PartnerPendingLogo", fields: [pendingLogoId], references: [id], onDelete: SetNull)
   subscriptions PartnerSubscription[]
 
   @@index([status, submittedAt])

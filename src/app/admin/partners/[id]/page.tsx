@@ -8,6 +8,8 @@ import { SubscriptionPanel } from "@/components/admin/partners/subscription-pane
 import { PartnerStatusBadge } from "@/components/partners/partner-status";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PartnerLogoReview } from "@/components/admin/partners/partner-logo-review";
+import { mediaUrl } from "@/lib/media";
 import { LoadingRows } from "@/components/ui/states";
 import { BUSINESS_TYPE_LABELS } from "@/features/partners/constants";
 import { subscriptionPhase } from "@/features/subscriptions/entitlement-rules";
@@ -48,6 +50,8 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
       user: { select: { id: true, name: true, phone: true, email: true, role: true, isActive: true, createdAt: true } },
       reviewedBy: { select: { name: true } },
       subscriptions: { orderBy: { createdAt: "desc" }, include: { plan: { select: { name: true } } } },
+      logo: { select: { storageKey: true } },
+      pendingLogo: { select: { storageKey: true } },
     },
   });
   if (!p) notFound();
@@ -66,7 +70,7 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
       {p.rejectionReason && p.status !== "APPROVED" ? <Alert variant="destructive">دلیل {p.status === "SUSPENDED" ? "تعلیق" : "رد"}: {p.rejectionReason}</Alert> : null}
       {!p.user.isActive ? <Alert variant="warning">حساب کاربری این همکار غیرفعال است.</Alert> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card>
           <CardHeader><CardTitle>اطلاعات کسب‌وکار</CardTitle></CardHeader>
           <CardContent>
@@ -82,6 +86,12 @@ async function PartnerDetail({ params }: { params: Promise<{ id: string }> }) {
           </CardContent>
         </Card>
         <div className="space-y-6">
+          <Card className={p.pendingLogo ? "border-warning/50" : undefined}>
+            <CardHeader><CardTitle>لوگوی همکار</CardTitle></CardHeader>
+            <CardContent>
+              <PartnerLogoReview partnerId={p.id} logoUrl={p.logo ? mediaUrl(p.logo.storageKey) : null} pendingUrl={p.pendingLogo ? mediaUrl(p.pendingLogo.storageKey) : null} />
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader><CardTitle>حساب کاربری</CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">

@@ -49,6 +49,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Account deletion by admin + optional automatic removal of inactive accounts (owner request 2026-10-31): **done** — `src/features/users/cleanup.ts`, Admin → کاربران, `pnpm maintenance`. Accounts with orders (or a paid partner subscription) are never deleted; partner accounts can be (PROGRESS 50). PROGRESS 44.
 - Bale wallet payments (owner request 2026-11-04): **done, test token only so far; owner confirmed the bot payment flow works on the live site** — `PAYMENT_PROVIDER=bale`, `src/features/payments/providers/bale/`, webhook `/api/payments/bale/webhook/<secret>`, `pnpm bale:webhook`. With `WALLET-TEST-…` only admins can order. PROGRESS 48. Orders placed in test mode get `isTest` and can be deleted by admins (real orders never) — PROGRESS 49.
 - Online subscription purchase + tournament entry fees (owner request 2026-11-04): **done** — `src/features/subscriptions/purchase*.ts`, `Tournament.entryFee`, model `TournamentEntry` (participant created only after payment; REFUND_NEEDED when it can't be), `src/features/tournaments/entries.ts`, admin `/admin/tournaments/payments` (refunds, per-organizer totals for partner settlement: money goes to the site's gateway account). PROGRESS 51.
+- White-label partner area + partner logo approval + automatic product codes (owner request 2026-11-04): **done** — route group `src/app/(partner)` (`partner-shell.tsx`, `getPartnerBranding`): subscribed partners see their own logo/name and no Atom logo in `/partner/**`; logo sent by the partner, used after admin approval (`logo-actions.ts`); SKU empty → `ATM-00001…`. PROGRESS 52.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
@@ -103,7 +104,7 @@ Do not add dependencies beyond this list without a stated reason.
 │  │  ├─ (public)/      Public pages with header + footer (route group, URL has no prefix)
 │  │  ├─ (auth)/        login, register, forgot-password, reset-password
 │  │  ├─ account/       Profile, orders, addresses (USER+)
-│  │  ├─ partner/       Partner dashboard (PARTNER)
+│  │  ├─ (partner)/     Partner area /partner/** (own layout: partner's brand while subscribed)
 │  │  ├─ admin/         Admin panel (ADMIN)
 │  │  └─ api/           Route handlers (auth, uploads, webhooks/payment callbacks)
 │  ├─ components/

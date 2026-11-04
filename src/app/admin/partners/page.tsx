@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Handshake, Search } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { Badge } from "@/components/ui/badge";
 import { PartnerStatusBadge } from "@/components/partners/partner-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,8 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
         }
       : {}),
   };
-  const [counts, total, partners] = await Promise.all([
+  const [logoQueue, counts, total, partners] = await Promise.all([
+    db.partnerProfile.findMany({ where: { pendingLogoId: { not: null } }, orderBy: { logoSubmittedAt: "asc" }, take: 20, select: { id: true, businessName: true } }),
     db.partnerProfile.groupBy({ by: ["status"], _count: true }),
     db.partnerProfile.count({ where }),
     db.partnerProfile.findMany({
@@ -61,7 +63,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
       orderBy: status === "PENDING" ? { submittedAt: "asc" } : { updatedAt: "desc" }, // oldest pending first
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: { id: true, businessName: true, businessType: true, city: true, province: true, status: true, submittedAt: true, user: { select: { name: true, phone: true, email: true } } },
+      select: { id: true, businessName: true, businessType: true, city: true, province: true, status: true, submittedAt: true, pendingLogoId: true, user: { select: { name: true, phone: true, email: true } } },
     }),
   ]);
   const count = (s: PartnerStatusKey) => counts.find((c) => c.status === s)?._count ?? 0;
@@ -78,6 +80,16 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
 
   return (
     <div className="space-y-4">
+      {logoQueue.length ? (
+        <div className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm">
+          <p className="mb-2 font-semibold">لوگوی جدید در انتظار تأیید ({formatNumber(logoQueue.length)})</p>
+          <div className="flex flex-wrap gap-2">
+            {logoQueue.map((l) => (
+              <Link key={l.id} href={`/admin/partners/${l.id}`} className="rounded-full border bg-surface px-3 py-1 text-link hover:underline">{l.businessName}</Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <nav className="flex flex-wrap gap-2" aria-label="وضعیت">
         {STATUSES.map((s) => (
           <Link key={s} href={link({ status: s, page: "1" })} aria-current={status === s ? "page" : undefined}
@@ -102,6 +114,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
               <div className="flex items-start justify-between gap-2">
                 <Link href={`/admin/partners/${p.id}`} className="font-bold text-link hover:underline">{p.businessName}</Link>
                 <PartnerStatusBadge status={p.status} />
+                {p.pendingLogoId ? <Badge variant="warning">لوگوی جدید</Badge> : null}
               </div>
               <p className="text-sm text-muted-foreground">{BUSINESS_TYPE_LABELS[p.businessType]} · {p.city}، {p.province}</p>
               <p className="text-sm">{p.user.name} <span className="ltr inline-block text-xs text-muted-foreground">{p.user.phone ?? p.user.email}</span></p>
@@ -136,7 +149,7 @@ async function PartnerList({ searchParams }: { searchParams: Promise<SP> }) {
                   <p className="ltr text-start text-xs text-muted-foreground">{p.user.phone ?? p.user.email}</p>
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{formatDateTime(p.submittedAt)}</TableCell>
-                <TableCell><PartnerStatusBadge status={p.status} /></TableCell>
+                <TableCell><span className="inline-flex flex-wrap items-center gap-1"><PartnerStatusBadge status={p.status} />{p.pendingLogoId ? <Badge variant="warning">لوگوی جدید</Badge> : null}</span></TableCell>
                 <TableCell>
                   {/* Approve / reject / suspend live on the detail page (reasons, subscription grant). */}
                   <Button asChild size="sm" variant={p.status === "PENDING" ? "default" : "outline"} className="whitespace-nowrap">

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Gamepad, Handshake, Lock, ShieldCheck, Trophy } from "lucide-react";
+import { Gamepad, Handshake, ImageIcon, Lock, ShieldCheck, Trophy } from "lucide-react";
+import { PartnerLogoCard } from "@/components/partners/partner-logo-card";
+import { mediaUrl } from "@/lib/media";
 import { Container } from "@/components/layout/container";
 import { PartnerForm } from "@/components/partners/partner-form";
 import { PartnerStatusBadge } from "@/components/partners/partner-status";
@@ -141,7 +143,7 @@ async function PartnerContent({ searchParams }: { searchParams: Promise<Record<s
           <CardContent className="space-y-2 text-sm">
             {gamepad ? <Badge variant="success">دسترسی فعال</Badge> : <Badge variant="outline"><Lock className="size-3" /> نیازمند اشتراک فعال</Badge>}
             <p className="text-muted-foreground">تست دکمه‌ها، استیک‌ها، دریفت و لرزش دسته در مرورگر.</p>
-            <Link href="/tournaments/gamepad-tester" className="text-link underline underline-offset-4">صفحهٔ تست دسته</Link>
+            <Link href="/partner/gamepad-tester" className="text-link underline underline-offset-4">صفحهٔ تست دسته</Link>
           </CardContent>
         </Card>
         <Card>
@@ -153,6 +155,18 @@ async function PartnerContent({ searchParams }: { searchParams: Promise<Record<s
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ImageIcon className="size-5" /> لوگوی شما</CardTitle></CardHeader>
+        <CardContent>
+          <PartnerLogoCard
+            logoUrl={profile.logo ? mediaUrl(profile.logo.storageKey) : null}
+            pendingUrl={profile.pendingLogo ? mediaUrl(profile.pendingLogo.storageKey) : null}
+            rejectReason={profile.logoRejectReason}
+            whiteLabel={!!sub}
+          />
+        </CardContent>
+      </Card>
 
       <section className="space-y-3" aria-labelledby="plans-title">
         <h2 id="plans-title" className="text-xl font-bold">{t.plansTitle}</h2>
