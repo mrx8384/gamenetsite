@@ -26,7 +26,7 @@ export interface OrderDetailData {
 /** Items, totals, address and history — shared by the customer and admin order pages. */
 export function OrderDetails({ order, stacked = false }: { order: OrderDetailData; stacked?: boolean }) {
   return (
-    <div className={stacked ? "grid gap-6" : "grid gap-6 lg:grid-cols-[1fr_320px]"}>
+    <div className={stacked ? "grid grid-cols-1 gap-6" : "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"}>
       <div className="space-y-6">
         <Table>
           <TableHeader>

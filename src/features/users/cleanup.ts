@@ -36,10 +36,14 @@ export function inactiveUsersWhere(cutoff: Date): Prisma.UserWhereInput {
   };
 }
 
-/** Why an admin can't delete this account (null = allowed). Orders are kept for sales records. */
-export function deletionBlocker(u: { role: string; orderCount: number; hasPartnerProfile: boolean }): string | null {
+/**
+ * Why an admin can't delete this account (null = allowed). Orders and paid subscriptions are kept for sales
+ * records. A partner file (application, free subscriptions) is removed with the account; tournaments it
+ * organized stay and are managed by admins.
+ */
+export function deletionBlocker(u: { role: string; orderCount: number; paidSubscriptionCount?: number }): string | null {
   if (u.role === "ADMIN") return "حساب مدیر را نمی‌شود حذف کرد؛ اول نقش او را تغییر دهید.";
-  if (u.role === "PARTNER" || u.hasPartnerProfile) return "این کاربر پروندهٔ همکاری دارد؛ اول در بخش «همکاران» تکلیف همکاری را روشن کنید یا حساب را غیرفعال کنید.";
   if (u.orderCount > 0) return "این کاربر سفارش ثبت کرده و برای حفظ سوابق فروش حذف نمی‌شود؛ می‌توانید حسابش را غیرفعال کنید.";
+  if ((u.paidSubscriptionCount ?? 0) > 0) return "این همکار اشتراک پولی خریده و برای حفظ سوابق فروش حذف نمی‌شود؛ می‌توانید حسابش را غیرفعال کنید.";
   return null;
 }

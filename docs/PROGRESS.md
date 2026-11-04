@@ -1,5 +1,12 @@
 # Progress Log
 
+## 2026-11-04 (50) — Partner accounts deletable; checkout on phones (owner reports)
+
+- **Deleting partner accounts:** the owner made a partner account for testing and could not delete it. `deletionBlocker` no longer blocks a partner file; it still blocks admins, accounts with orders, and partners with a paid subscription (`paymentId`). The partner file and free subscriptions are removed with the account (cascade); tournaments it organized stay (`organizerId` → null) for admins to manage. The confirm text says so. Automatic inactive cleanup still never touches partners.
+- **Checkout on phones:** the page was 444 px wide on a 390 px phone (form cut off on the left). The grid lacked `grid-cols-1`/`minmax(0,1fr)` and the long product name in the summary (`truncate` without `min-w-0`) set the min width. Fixed in `checkout-form.tsx` (plus `min-w-0` on the code input, wrapping address line) and the same grid rule in `order-details.tsx` and the admin order page. The pay button now wraps its label (it was clipped) and reads «پرداخت با …» instead of nested parentheses.
+
+Verified: typecheck, lint, 446 unit tests, build; browser tests on iPhone 13 emulation (cart/checkout/Bale page all 390/390 wide) and a `[TEST]` partner with a free subscription and tournament (deleted; tournament kept); test data removed.
+
 ## 2026-11-04 (49) — Deleting test orders (owner request)
 
 The owner placed two purchases with the Bale test token and could not remove them. Instead of a new "developer" role (which could delete real sales too), orders now carry `Order.isTest`:

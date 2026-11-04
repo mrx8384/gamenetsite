@@ -3,13 +3,14 @@ import { accountsSettingsSchema, deletionBlocker, inactiveCutoff, inactiveUsersW
 
 describe("account deletion rules", () => {
   it("allows deleting an ordinary account without orders", () => {
-    expect(deletionBlocker({ role: "USER", orderCount: 0, hasPartnerProfile: false })).toBeNull();
-    expect(deletionBlocker({ role: "SUPPORT", orderCount: 0, hasPartnerProfile: false })).toBeNull();
+    expect(deletionBlocker({ role: "USER", orderCount: 0 })).toBeNull();
+    expect(deletionBlocker({ role: "SUPPORT", orderCount: 0 })).toBeNull();
   });
   it("keeps admins, partners and customers with orders", () => {
-    expect(deletionBlocker({ role: "ADMIN", orderCount: 0, hasPartnerProfile: false })).toMatch(/مدیر/);
-    expect(deletionBlocker({ role: "USER", orderCount: 0, hasPartnerProfile: true })).toMatch(/همکار/);
-    expect(deletionBlocker({ role: "USER", orderCount: 2, hasPartnerProfile: false })).toMatch(/سفارش/);
+    expect(deletionBlocker({ role: "ADMIN", orderCount: 0 })).toMatch(/مدیر/);
+    expect(deletionBlocker({ role: "PARTNER", orderCount: 0, paidSubscriptionCount: 0 })).toBeNull();
+    expect(deletionBlocker({ role: "PARTNER", orderCount: 0, paidSubscriptionCount: 1 })).toMatch(/اشتراک پولی/);
+    expect(deletionBlocker({ role: "USER", orderCount: 2 })).toMatch(/سفارش/);
   });
 });
 

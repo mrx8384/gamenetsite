@@ -34,9 +34,9 @@ export function UserRowActions({
   isSelf,
   deleteBlocker,
 }: {
-  user: { id: string; name: string; role: Role; isActive: boolean };
+  user: { id: string; name: string; role: Role; isActive: boolean; hasPartnerProfile?: boolean };
   isSelf: boolean;
-  /** Why the account can't be deleted (orders, partner, admin), or null. */
+  /** Why the account can't be deleted (admin, orders, paid subscription), or null. */
   deleteBlocker: string | null;
 }) {
   const router = useRouter();
@@ -126,7 +126,7 @@ export function UserRowActions({
                 ? toast.error(deleteBlocker)
                 : setPending({
                     title: "حذف همیشگی حساب؟",
-                    description: `حساب «${user.name}» برای همیشه حذف می‌شود؛ همراه با نشانی‌ها، سبد خرید، گفت‌وگوهای پشتیبانی، امتیازها و کارت‌های تخفیفش. این کار برگشت ندارد. اگر فقط می‌خواهید دیگر وارد نشود، «غیرفعال کردن» را بزنید.`,
+                    description: `حساب «${user.name}» برای همیشه حذف می‌شود؛ همراه با نشانی‌ها، سبد خرید، گفت‌وگوهای پشتیبانی، امتیازها و کارت‌های تخفیفش${user.hasPartnerProfile ? "، و پروندهٔ همکاری و اشتراک‌های رایگانش (تورنومنت‌هایی که برگزار کرده می‌مانند و مدیران آن‌ها را مدیریت می‌کنند)" : ""}. این کار برگشت ندارد. اگر فقط می‌خواهید دیگر وارد نشود، «غیرفعال کردن» را بزنید.`,
                     confirmLabel: "حذف همیشگی",
                     destructive: true,
                     run: () => deleteUser(user.id),

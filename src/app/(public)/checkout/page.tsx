@@ -48,7 +48,7 @@ async function CheckoutContent() {
       addresses={addresses}
       userName={user.name}
       userPhone={user.phone}
-      payLabel={`پرداخت (${provider.label})`}
+      payLabel={`پرداخت با ${provider.label}`}
       shippingMethods={shippingMethods}
       subtotal={cart.subtotal}
       lines={cart.lines.map((l) => ({ id: l.id, title: l.title, quantity: l.quantity }))}

@@ -88,15 +88,15 @@ export async function deleteUser(userId: unknown): Promise<ActionResult<undefine
   if (userId === s.user.id) return fail("نمی‌توانید حساب خودتان را حذف کنید.");
   const target = await db.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, phone: true, role: true, _count: { select: { orders: true } }, partnerProfile: { select: { id: true } } },
+    select: { name: true, email: true, phone: true, role: true, _count: { select: { orders: true } }, partnerProfile: { select: { id: true, _count: { select: { subscriptions: { where: { paymentId: { not: null } } } } } } } },
   });
   if (!target) return fail("کاربر پیدا نشد.");
-  const blocker = deletionBlocker({ role: target.role, orderCount: target._count.orders, hasPartnerProfile: !!target.partnerProfile });
+  const blocker = deletionBlocker({ role: target.role, orderCount: target._count.orders, paidSubscriptionCount: target.partnerProfile?._count.subscriptions ?? 0 });
   if (blocker) return fail(blocker);
 
   const { ip } = await getRequestInfo();
   // Audit first: the entry keeps who was removed (the user row and its links disappear).
-  await audit({ actorId: s.user.id, action: "users.deleted", entity: "user", entityId: userId, ip, meta: { name: target.name, email: target.email, phone: target.phone, role: target.role } });
+  await audit({ actorId: s.user.id, action: "users.deleted", entity: "user", entityId: userId, ip, meta: { name: target.name, email: target.email, phone: target.phone, role: target.role, partner: !!target.partnerProfile } });
   await db.user.delete({ where: { id: userId } });
   revalidatePath("/admin/users");
   return ok(undefined, "حساب کاربر حذف شد.");

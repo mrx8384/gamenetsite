@@ -87,10 +87,10 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="min-w-0 space-y-6">
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-bold">آدرس تحویل</h2>
           <AddressFormDialog defaults={{ recipientName: userName, phone: userPhone ?? "" }} onSaved={setAddressId} />
         </div>
@@ -103,7 +103,7 @@ export function CheckoutForm({
                 <input type="radio" name="address" value={a.id} checked={selected === a.id} onChange={() => setAddressId(a.id)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" />
                 <div className="min-w-0 flex-1 text-sm leading-7">
                   <p className="font-semibold"><MapPin className="me-1 inline size-4 text-muted-foreground" />{a.province}، {a.city}</p>
-                  <p className="text-muted-foreground">{a.line}</p>
+                  <p className="break-words text-muted-foreground">{a.line}</p>
                   <p className="text-muted-foreground">{a.recipientName} · <span className="ltr">{toPersianDigits(a.phone)}</span> · کد پستی <span className="ltr">{toPersianDigits(a.postalCode)}</span></p>
                 </div>
                 <Button
@@ -167,7 +167,7 @@ export function CheckoutForm({
           </div>
         ) : (
           <div className="flex gap-2">
-            <Input id="reward-code" dir="ltr" className="font-mono" placeholder="ATOM-XXXX-XXXX" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} maxLength={40} autoComplete="off" />
+            <Input id="reward-code" dir="ltr" className="min-w-0 flex-1 font-mono" placeholder="ATOM-XXXX-XXXX" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} maxLength={40} autoComplete="off" />
             <Button type="button" variant="outline" loading={checking} disabled={codeInput.trim().length < 4} onClick={applyCode}>
               اعمال
             </Button>
@@ -180,14 +180,14 @@ export function CheckoutForm({
         <Textarea id="order-note" rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
       </section>
     </div>
-      <div className="space-y-3 lg:sticky lg:top-24 lg:self-start">
+      <div className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
         <OrderSummary subtotal={subtotal} shipping={summaryShipping} discount={card ? { amount: discount.toString(), label: `تخفیف کارت اتم (${formatNumber(card.discountPercent)}٪)` } : undefined}>
           <ul className="space-y-1 border-t pt-3 text-xs text-muted-foreground">
             {lines.map((l) => (
-              <li key={l.id} className="flex justify-between gap-2"><span className="truncate">{l.title}</span><span>× {formatNumber(l.quantity)}</span></li>
+              <li key={l.id} className="flex justify-between gap-2"><span className="min-w-0 truncate">{l.title}</span><span className="shrink-0">× {formatNumber(l.quantity)}</span></li>
             ))}
           </ul>
-          <Button size="lg" className="w-full" disabled={!selected || !method} loading={pending} onClick={pay}>
+          <Button size="lg" className="h-auto min-h-11 w-full py-2.5 leading-6 whitespace-normal" disabled={!selected || !method} loading={pending} onClick={pay}>
             {payLabel}
           </Button>
           <p className="text-center text-xs text-muted-foreground">با ثبت سفارش، کالاها ۲۰ دقیقه برای شما رزرو می‌شوند تا پرداخت را کامل کنید.</p>
