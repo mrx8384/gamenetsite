@@ -25,6 +25,7 @@ import {
   startTournament,
 } from "@/features/tournaments/actions";
 import { BULK_MAX_LINES, parseBulkNames } from "@/features/tournaments/bulk";
+import { Answers, EditParticipantButton } from "./community";
 import type { TournamentStatusKey } from "@/features/tournaments/constants";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -44,13 +45,13 @@ function useAction() {
 
 type Confirm = { title: string; description: string; label: string; destructive?: boolean; fn: () => Promise<ActionResult<unknown>>; after?: () => void };
 
-export function StatusControls({ id, slug, status, participantCount, basePath, notCheckedIn = null }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string; notCheckedIn?: number | null }) {
+export function StatusControls({ id, slug, status, participantCount, basePath, owner = true, notCheckedIn = null }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string; owner?: boolean; notCheckedIn?: number | null }) {
   const { pending, run, router } = useAction();
   const [confirm, setConfirm] = React.useState<Confirm | null>(null);
   const started = status === "IN_PROGRESS" || status === "COMPLETED";
   return (
     <div className="flex flex-wrap gap-2">
-      {status === "DRAFT" || status === "CANCELLED" ? (
+      {owner && (status === "DRAFT" || status === "CANCELLED") ? (
         <Button loading={pending} onClick={() => run(() => setTournamentStatus(id, "REGISTRATION"))}><Megaphone /> انتشار و باز کردن ثبت‌نام</Button>
       ) : null}
       {status === "DRAFT" || status === "REGISTRATION" ? (
@@ -69,7 +70,7 @@ export function StatusControls({ id, slug, status, participantCount, basePath, n
           <Play /> شروع تورنومنت
         </Button>
       ) : null}
-      {status === "REGISTRATION" ? (
+      {owner && status === "REGISTRATION" ? (
         <Button variant="outline" loading={pending} onClick={() => run(() => setTournamentStatus(id, "DRAFT"))}><Undo2 /> بازگشت به پیش‌نویس</Button>
       ) : null}
       {started ? (
@@ -77,14 +78,16 @@ export function StatusControls({ id, slug, status, participantCount, basePath, n
           <RotateCcw /> بازنشانی جدول
         </Button>
       ) : null}
-      {status !== "CANCELLED" && status !== "COMPLETED" ? (
+      {owner && status !== "CANCELLED" && status !== "COMPLETED" ? (
         <Button variant="outline" className="text-destructive" onClick={() => setConfirm({ title: "لغو تورنومنت؟", description: "تورنومنت با برچسب «لغوشده» نمایش داده می‌شود.", label: "لغو تورنومنت", destructive: true, fn: () => setTournamentStatus(id, "CANCELLED") })}>
           <Ban /> لغو
         </Button>
       ) : null}
-      <Button variant="outline" className="text-destructive" onClick={() => setConfirm({ title: "حذف کامل تورنومنت؟", description: "تورنومنت، شرکت‌کنندگان و همهٔ نتایج برای همیشه حذف می‌شود.", label: "حذف", destructive: true, fn: () => deleteTournament(id), after: () => router.push(basePath) })}>
-        <Trash2 /> حذف
-      </Button>
+      {owner ? (
+        <Button variant="outline" className="text-destructive" onClick={() => setConfirm({ title: "حذف کامل تورنومنت؟", description: "تورنومنت، شرکت‌کنندگان و همهٔ نتایج برای همیشه حذف می‌شود.", label: "حذف", destructive: true, fn: () => deleteTournament(id), after: () => router.push(basePath) })}>
+          <Trash2 /> حذف
+        </Button>
+      ) : null}
       {status !== "DRAFT" ? (
         <Button asChild variant="ghost"><Link href={`/tournaments/${slug}`} target="_blank"><ExternalLink /> مشاهده در سایت</Link></Button>
       ) : null}
@@ -108,7 +111,7 @@ export function StatusControls({ id, slug, status, participantCount, basePath, n
   );
 }
 
-type ManagedParticipant = { id: string; name: string; seed: number; userId: string | null; finalRank: number | null; checkedInAt: Date | null; disqualifiedAt: Date | null };
+type ManagedParticipant = { id: string; name: string; seed: number; userId: string | null; finalRank: number | null; checkedInAt: Date | null; disqualifiedAt: Date | null; members: string[] };
 
 export function ParticipantsManager({
   tournamentId,
@@ -117,6 +120,8 @@ export function ParticipantsManager({
   max,
   checkIn = false,
   inProgress = false,
+  teamSize = null,
+  answers = {},
 }: {
   tournamentId: string;
   participants: ManagedParticipant[];
@@ -126,6 +131,9 @@ export function ParticipantsManager({
   checkIn?: boolean;
   /** Running: players can be disqualified (their remaining matches go to the opponents). */
   inProgress?: boolean;
+  teamSize?: number | null;
+  /** Sign-up answers per participant id (organizers only). */
+  answers?: Record<string, { q: string; a: string }[]>;
 }) {
   const { pending, run, router } = useAction();
   const [dq, setDq] = React.useState<ManagedParticipant | null>(null);
@@ -162,9 +170,14 @@ export function ParticipantsManager({
       ) : (
         <ol className="divide-y rounded-xl border">
           {participants.map((p, i) => (
-            <li key={p.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+            <li key={p.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               <span className="w-7 text-muted-foreground">{fa(p.seed)}</span>
-              <span className="flex-1 truncate font-medium">{p.name}</span>
+              <div className="min-w-40 flex-1">
+                <p className="truncate font-medium">{p.name}</p>
+                {p.members.length ? <p className="text-xs text-muted-foreground">اعضا: {p.members.join("، ")}</p> : null}
+                <Answers answers={answers[p.id]} />
+              </div>
+              <EditParticipantButton participant={p} teamSize={teamSize} />
               {p.userId ? <span className="text-xs text-success">ثبت‌نام آنلاین</span> : <span className="text-xs text-muted-foreground">دستی</span>}
               {p.finalRank ? <span className="text-xs font-bold">رتبهٔ {fa(p.finalRank)}</span> : null}
               {editable && checkIn ? (

@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FORMAT_LABELS, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
-import { canManageTournament } from "@/features/tournaments/permissions";
+import { tournamentRole } from "@/features/tournaments/permissions";
+import { env } from "@/lib/env";
+import { CoOrganizersCard, ShareCard, WaitlistCard } from "@/components/tournaments/manage/community";
 import { isoToTehranInput } from "@/features/tournaments/time";
-import { getManagedTournaments, getTournamentForManage, type TournamentView } from "@/features/tournaments/queries";
+import { getManagedTournaments, getTournamentForManage, getTournamentPrivate, type TournamentView } from "@/features/tournaments/queries";
 import { formatDateTime, formatNumber } from "@/lib/format";
 
 type Actor = { id: string; role: "ADMIN" | "USER" | "PARTNER" | "SUPPORT" };
@@ -92,12 +94,20 @@ function formValues(t: TournamentView): TournamentFormValues {
     tiebreak: t.tiebreak,
     swissRounds: t.swissRounds ? String(t.swissRounds) : "",
     leaderboardRounds: String(t.leaderboardRounds ?? 1),
+    teamSize: t.teamSize ? String(t.teamSize) : "",
+    signupQuestions: t.signupQuestions,
+    allowPlayerReports: t.allowPlayerReports,
+    allowPredictions: t.allowPredictions,
+    waitlistEnabled: t.waitlistEnabled,
   };
 }
 
 export async function ManageTournament({ id, user, basePath }: { id: string; user: Actor; basePath: string }) {
   const t = await getTournamentForManage(id);
-  if (!t || !canManageTournament(user, t)) notFound();
+  const role = t ? await tournamentRole(user, t) : null;
+  if (!t || !role) notFound();
+  const owner = role === "owner";
+  const priv = await getTournamentPrivate(t.id);
   const started = t.status === "IN_PROGRESS" || t.status === "COMPLETED";
   const editable = t.status === "DRAFT" || t.status === "REGISTRATION";
   return (
@@ -108,7 +118,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
           <Badge variant={STATUS_BADGE[t.status]}>{STATUS_LABELS[t.status]}</Badge>
           <span className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format]} · {t.game}</span>
         </div>
-        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} notCheckedIn={t.checkInMinutes !== null ? t.participants.filter((p) => !p.checkedInAt).length : null} />
+        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} owner={owner} notCheckedIn={t.checkInMinutes !== null ? t.participants.filter((p) => !p.checkedInAt).length : null} />
         {t.status === "DRAFT" ? <p className="text-sm text-muted-foreground">پیش‌نویس در سایت نمایش داده نمی‌شود. با «انتشار» ثبت‌نام باز و تورنومنت در صفحهٔ تورنومنت‌ها دیده می‌شود.</p> : null}
       </div>
       {started ? (
@@ -118,16 +128,25 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
           <TournamentBoard t={t} manage />
         </section>
       ) : null}
-      <TournamentEntriesCard tournamentId={t.id} isAdmin={user.role === "ADMIN"} />
+      {owner ? <TournamentEntriesCard tournamentId={t.id} isAdmin={user.role === "ADMIN"} /> : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader><CardTitle className="text-base">شرکت‌کنندگان</CardTitle></CardHeader>
-          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} checkIn={t.checkInMinutes !== null} inProgress={t.status === "IN_PROGRESS"} /></CardContent>
+          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} checkIn={t.checkInMinutes !== null} inProgress={t.status === "IN_PROGRESS"} teamSize={t.teamSize} answers={priv.answers} /></CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle className="text-base">تنظیمات</CardTitle></CardHeader>
-          <CardContent><TournamentForm id={t.id} initial={formValues(t)} basePath={basePath} structureLocked={started} /></CardContent>
-        </Card>
+        <div className="space-y-6">
+          {owner ? (
+            <Card>
+              <CardHeader><CardTitle className="text-base">تنظیمات</CardTitle></CardHeader>
+              <CardContent><TournamentForm id={t.id} initial={formValues(t)} basePath={basePath} structureLocked={started} /></CardContent>
+            </Card>
+          ) : (
+            <p className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">شما همکار برگزاری این تورنومنت هستید. تنظیمات، انتشار، لغو و حذف با برگزارکنندهٔ اصلی است.</p>
+          )}
+          {editable && (priv.waitlist.length > 0 || t.maxParticipants) ? <WaitlistCard list={priv.waitlist} enabled={t.waitlistEnabled} isFree={BigInt(t.entryFee) === BigInt(0)} /> : null}
+          {owner ? <CoOrganizersCard tournamentId={t.id} list={priv.coOrganizers} /> : null}
+          <ShareCard tournamentId={t.id} slug={t.slug} published={t.status !== "DRAFT"} origin={env.APP_URL.replace(/\/$/, "")} />
+        </div>
       </div>
     </div>
   );

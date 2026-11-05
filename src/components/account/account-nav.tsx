@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Handshake, Package, ShieldCheck, UserRound } from "lucide-react";
+import { Handshake, Package, ShieldCheck, Trophy, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/account", label: "اطلاعات حساب", icon: UserRound },
   { href: "/account/orders", label: "سفارش‌های من", icon: Package },
+  { href: "/account/tournaments", label: "تورنومنت‌های من", icon: Trophy },
   { href: "/account/security", label: "امنیت و نشست‌ها", icon: ShieldCheck },
   { href: "/partner", label: "پنل همکار", icon: Handshake },
 ];

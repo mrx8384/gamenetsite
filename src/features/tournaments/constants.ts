@@ -66,6 +66,8 @@ export const STAGE_LABELS: Record<string, string> = {
 };
 
 export const MAX_PARTICIPANTS = 256;
+export const MAX_SIGNUP_QUESTIONS = 5;
+export const MAX_CO_ORGANIZERS = 10;
 export const RESERVED_SLUGS = new Set(["gamepad-tester", "new"]);
 
 export const groupName = (i: number) => `گروه ${"ABCDEFGHIJKLMNOP"[i] ?? i + 1}`;

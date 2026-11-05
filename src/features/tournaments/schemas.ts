@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { toEnglishDigits } from "@/lib/format";
 import { parseTomanToRial } from "@/lib/text";
-import { GRAND_FINAL_MODES, MAX_PARTICIPANTS, TIEBREAKS, TOURNAMENT_FORMATS } from "./constants";
+import { GRAND_FINAL_MODES, MAX_PARTICIPANTS, MAX_SIGNUP_QUESTIONS, TIEBREAKS, TOURNAMENT_FORMATS } from "./constants";
 import { parseSetScores } from "./engine";
 
 const optionalText = (max: number) => z.string().trim().max(max, `حداکثر ${max.toLocaleString("fa-IR")} کاراکتر`).default("");
@@ -47,6 +47,15 @@ export const tournamentSchema = z
     swissRounds: optionalInt(1, 20, "تعداد دورها باید بین ۱ و ۲۰ باشد"),
     /** Leaderboard: number of rounds/events at the start (more can be added later). */
     leaderboardRounds: optionalInt(1, 50, "تعداد دورها باید بین ۱ و ۵۰ باشد"),
+    /** Players per team incl. captain (empty = individual). */
+    teamSize: optionalInt(2, 10, "تعداد نفرات هر تیم باید بین ۲ و ۱۰ باشد"),
+    signupQuestions: z
+      .array(z.object({ label: z.string().trim().min(2, "متن سؤال را بنویسید").max(120, "حداکثر ۱۲۰ کاراکتر"), required: z.boolean().default(false) }))
+      .max(MAX_SIGNUP_QUESTIONS, `حداکثر ${MAX_SIGNUP_QUESTIONS.toLocaleString("fa-IR")} سؤال`)
+      .default([]),
+    allowPlayerReports: z.boolean().default(false),
+    allowPredictions: z.boolean().default(false),
+    waitlistEnabled: z.boolean().default(true),
     pointsWin: intField(0, 10, "امتیاز برد معتبر نیست").default(3),
     pointsDraw: intField(0, 10, "امتیاز مساوی معتبر نیست").default(1),
     pointsLoss: intField(0, 10, "امتیاز باخت معتبر نیست").default(0),
@@ -104,3 +113,64 @@ export const matchDetailsSchema = z.object({
   /** ISO string (the browser converts Tehran local time) or empty. */
   scheduledAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "زمان معتبر نیست"),
 });
+
+const nameField = z.string().trim().min(2, "نام حداقل ۲ کاراکتر").max(60, "حداکثر ۶۰ کاراکتر");
+
+/**
+ * Sign-up form of a player (or team captain): name, team members and answers to the tournament's
+ * questions. Built per tournament because the rules (team size, required questions) differ.
+ */
+export function signupSchema(t: { teamSize: number | null; questions: { label: string; required: boolean }[] }) {
+  const extra = t.teamSize ? t.teamSize - 1 : 0;
+  return z
+    .object({
+      name: nameField,
+      members: z.array(z.string().trim().max(60, "حداکثر ۶۰ کاراکتر")).max(9).default([]),
+      answers: z.array(z.string().trim().max(500, "حداکثر ۵۰۰ کاراکتر")).max(MAX_SIGNUP_QUESTIONS).default([]),
+    })
+    .transform((v, ctx) => {
+      const members = v.members.slice(0, extra).filter(Boolean);
+      if (members.length < extra) ctx.addIssue({ code: "custom", path: ["members"], message: `نام ${extra.toLocaleString("fa-IR")} هم‌تیمی را وارد کنید` });
+      if (members.some((m) => m.length < 2)) ctx.addIssue({ code: "custom", path: ["members"], message: "نام هر هم‌تیمی حداقل ۲ کاراکتر" });
+      const answers = t.questions.map((q, i) => {
+        const a = v.answers[i] ?? "";
+        if (q.required && !a) ctx.addIssue({ code: "custom", path: ["answers", i], message: `به «${q.label}» پاسخ دهید` });
+        return { q: q.label, a };
+      });
+      return { name: v.name, members, answers: answers.filter((x) => x.a) };
+    });
+}
+
+/** Reads the stored sign-up questions defensively (JSON column). */
+export function readSignupQuestions(json: unknown): { label: string; required: boolean }[] {
+  if (!Array.isArray(json)) return [];
+  return json
+    .filter((q): q is { label: string; required?: unknown } => !!q && typeof q === "object" && typeof (q as { label?: unknown }).label === "string")
+    .slice(0, MAX_SIGNUP_QUESTIONS)
+    .map((q) => ({ label: q.label.slice(0, 120), required: q.required === true }));
+}
+
+/** Reads stored answers ([{ q, a }]). */
+export function readAnswers(json: unknown): { q: string; a: string }[] {
+  if (!Array.isArray(json)) return [];
+  return json.filter((x): x is { q: string; a: string } => !!x && typeof x === "object" && typeof (x as { q?: unknown }).q === "string" && typeof (x as { a?: unknown }).a === "string");
+}
+
+/** A player's own result report (no forfeits: those stay with the organizer). */
+export const claimSchema = z
+  .object({ score1: optionalScore, score2: optionalScore, winnerSlot: z.union([z.literal(1), z.literal(2)]).optional(), note: z.string().trim().max(200).default(""), setScores: z.string().trim().max(120).default("") })
+  .transform((v, ctx) => {
+    if (v.setScores) {
+      const sets = parseSetScores(v.setScores);
+      if (sets === "invalid" || sets === null) {
+        ctx.addIssue({ code: "custom", path: ["setScores"], message: "نتیجهٔ دست‌ها را مثل «3-1, 2-3» بنویسید" });
+        return z.NEVER;
+      }
+      return { score1: sets.won1, score2: sets.won2, winnerSlot: v.winnerSlot, note: v.note, setScores: sets.text };
+    }
+    if (v.score1 === undefined || v.score2 === undefined) {
+      ctx.addIssue({ code: "custom", path: ["score1"], message: "امتیاز هر دو طرف را وارد کنید" });
+      return z.NEVER;
+    }
+    return { score1: v.score1, score2: v.score2, winnerSlot: v.winnerSlot, note: v.note, setScores: null };
+  });

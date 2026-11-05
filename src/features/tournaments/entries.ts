@@ -58,7 +58,7 @@ export async function applyEntryPayment(paymentId: string, result: Result): Prom
     if (t.maxParticipants && count >= t.maxParticipants) return refund("ظرفیت تکمیل شده بود");
     const clash = await tx.tournamentParticipant.findFirst({ where: { tournamentId: e.tournamentId, OR: [{ userId: e.userId }, { name: e.name }] }, select: { userId: true } });
     if (clash) return refund(clash.userId === e.userId ? "کاربر از قبل در تورنومنت بود" : "نام انتخابی تکراری شده بود");
-    const p = await tx.tournamentParticipant.create({ data: { tournamentId: e.tournamentId, userId: e.userId, name: e.name, seed: count + 1 }, select: { id: true } });
+    const p = await tx.tournamentParticipant.create({ data: { tournamentId: e.tournamentId, userId: e.userId, name: e.name, seed: count + 1, members: e.members, answers: e.answers ?? undefined }, select: { id: true } });
     await tx.tournamentEntry.update({ where: { id: e.id }, data: { status: "PAID", paidAt: new Date(), participantId: p.id, note: null } });
     return "paid" as const;
   });

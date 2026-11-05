@@ -14,7 +14,7 @@ import { slugify } from "@/lib/text";
 import { BULK_MAX_LINES, parseBulkNames, participantKey } from "./bulk";
 import { checkInOpen, RESERVED_SLUGS } from "./constants";
 import { canCreateTournament, manageableTournament } from "./permissions";
-import { matchDetailsSchema, participantNameSchema, scoreSchema, tournamentSchema } from "./schemas";
+import { matchDetailsSchema, participantNameSchema, readSignupQuestions, scoreSchema, signupSchema, tournamentSchema } from "./schemas";
 import * as service from "./service";
 import { getPaymentProvider } from "@/features/payments";
 import { openGatewayPayment, paymentBlockedForTestMode, TEST_MODE_ERROR } from "@/features/payments/targets";
@@ -64,6 +64,11 @@ function toData(v: ReturnType<typeof tournamentSchema.parse>) {
     doubleRoundRobin: v.doubleRoundRobin,
     groupCount: v.format === "GROUPS_KNOCKOUT" ? (v.groupCount ?? null) : null,
     advancePerGroup: v.format === "GROUPS_KNOCKOUT" ? (v.advancePerGroup ?? null) : null,
+    teamSize: v.teamSize ?? null,
+    signupQuestions: v.signupQuestions,
+    allowPlayerReports: v.allowPlayerReports,
+    allowPredictions: v.allowPredictions,
+    waitlistEnabled: v.waitlistEnabled,
     grandFinal: v.grandFinal,
     tiebreak: v.tiebreak,
     swissRounds: v.format === "SWISS" ? (v.swissRounds ?? null) : null,
@@ -89,7 +94,7 @@ export async function createTournament(input: unknown): Promise<ActionResult<{ i
 
 export async function updateTournament(id: string, input: unknown): Promise<ActionResult<undefined>> {
   const user = await actor();
-  const t = await manageableTournament(user, id);
+  const t = await manageableTournament(user, id, "owner");
   if (!user || !t) return fail(DENIED);
   const parsed = tournamentSchema.safeParse(input);
   if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
@@ -102,19 +107,24 @@ export async function updateTournament(id: string, input: unknown): Promise<Acti
   }
   // Leaderboard rounds can grow while it runs (organizer adds columns); never shrink below that.
   if (started && t.format === "LEADERBOARD") data.leaderboardRounds = Math.max(data.leaderboardRounds ?? 1, t.leaderboardRounds ?? 1);
-  await db.tournament.update({ where: { id }, data });
+  await db.$transaction(async (tx) => {
+    await tx.tournament.update({ where: { id }, data });
+    // More places (or a free tournament) may let waiting players in.
+    await service.promoteWaitlist(tx, id);
+  });
   changed(user.id, "updated", id);
   return ok(undefined, "تغییرات ذخیره شد.");
 }
 
 export async function setTournamentStatus(id: string, status: unknown): Promise<ActionResult<undefined>> {
   const user = await actor();
-  const t = await manageableTournament(user, id);
+  const t = await manageableTournament(user, id, "owner");
   if (!user || !t) return fail(DENIED);
   if (status !== "DRAFT" && status !== "REGISTRATION" && status !== "CANCELLED") return fail("وضعیت نامعتبر است.");
   if ((t.status === "IN_PROGRESS" || t.status === "COMPLETED") && status !== "CANCELLED") return fail("تورنومنت شروع شده است؛ ابتدا جدول را بازنشانی کنید.");
   await db.$transaction(async (tx) => {
     await tx.tournament.update({ where: { id }, data: { status } });
+    if (status === "REGISTRATION") await service.promoteWaitlist(tx, id);
     if (status === "CANCELLED") await tx.tournamentEntry.updateMany({ where: { tournamentId: id, status: "PAID" }, data: { status: "REFUND_NEEDED", note: "تورنومنت لغو شد" } });
   });
   changed(user.id, `status_${status.toLowerCase()}`, id);
@@ -123,7 +133,7 @@ export async function setTournamentStatus(id: string, status: unknown): Promise<
 
 export async function deleteTournament(id: string): Promise<ActionResult<undefined>> {
   const user = await actor();
-  const t = await manageableTournament(user, id);
+  const t = await manageableTournament(user, id, "owner");
   if (!user || !t) return fail(DENIED);
   await db.$transaction(async (tx) => {
     // Paid entries stay as payment records (tournament name is kept on them); unfinished ones need a refund.
@@ -275,6 +285,7 @@ export async function removeParticipant(participantId: string): Promise<ActionRe
   });
   const rest = await db.tournamentParticipant.findMany({ where: { tournamentId: p.tournamentId }, orderBy: { seed: "asc" }, select: { id: true } });
   await renumber(p.tournamentId, rest.map((x) => x.id));
+  await db.$transaction((tx) => service.promoteWaitlist(tx, p.tournamentId));
   changed(user.id, "participant_removed", p.tournamentId, { name: p.name });
   return ok(undefined, "شرکت‌کننده حذف شد.");
 }
@@ -344,41 +355,56 @@ export async function clearMatch(matchId: string): Promise<ActionResult<undefine
 
 // ───────────── Players: self registration ─────────────
 
-export async function registerForTournament(tournamentId: string, displayName: unknown): Promise<ActionResult<{ redirectTo?: string }>> {
+type Signup = { name: string; members: string[]; answers: { q: string; a: string }[] };
+
+export async function registerForTournament(tournamentId: string, input: unknown): Promise<ActionResult<{ redirectTo?: string }>> {
   const user = await actor();
   if (!user) return fail("برای ثبت‌نام ابتدا وارد حساب کاربری شوید.");
   if (typeof tournamentId !== "string") return fail("درخواست نامعتبر است.");
   if (!(await rateLimit(`tournament-register:${user.id}`, 20, 60 * 60)).allowed) return fail(RATE_LIMIT_ERROR);
-  const name = participantNameSchema.safeParse(displayName);
-  if (!name.success) return fail(name.error.issues[0]?.message ?? "نام نامعتبر است.", { name: name.error.issues[0]?.message ?? "" });
-  const fee = await db.tournament.findUnique({ where: { id: tournamentId }, select: { entryFee: true } });
-  if (fee && fee.entryFee > BigInt(0)) return registerPaid(user, tournamentId, name.data);
+  const info = await db.tournament.findUnique({ where: { id: tournamentId }, select: { entryFee: true, teamSize: true, signupQuestions: true } });
+  if (!info) return fail("ثبت‌نام این تورنومنت باز نیست.");
+  const parsed = signupSchema({ teamSize: info.teamSize, questions: readSignupQuestions(info.signupQuestions) }).safeParse(typeof input === "string" ? { name: input } : input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.", zodFieldErrors(parsed.error.issues));
+  const signup: Signup = parsed.data;
+  if (info.entryFee > BigInt(0)) return registerPaid(user, tournamentId, signup);
+  let waitlisted = false;
   try {
     await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
       const t = await tx.tournament.findUnique({ where: { id: tournamentId } });
       if (!t || t.status !== "REGISTRATION" || !t.allowSelfRegistration) throw new service.TournamentError("ثبت‌نام این تورنومنت باز نیست.");
       const count = await tx.tournamentParticipant.count({ where: { tournamentId } });
-      if (t.maxParticipants && count >= t.maxParticipants) throw new service.TournamentError("ظرفیت تورنومنت تکمیل است.");
-      await tx.tournamentParticipant.create({ data: { tournamentId, userId: user.id, name: name.data, seed: count + 1 } });
+      if (t.maxParticipants && count >= t.maxParticipants) {
+        if (!t.waitlistEnabled) throw new service.TournamentError("ظرفیت تورنومنت تکمیل است.");
+        if (await tx.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } })) throw new service.TournamentError("شما قبلاً در این تورنومنت ثبت‌نام کرده‌اید.");
+        await tx.tournamentWaitlist.create({ data: { tournamentId, userId: user.id, name: signup.name, members: signup.members, answers: signup.answers } });
+        waitlisted = true;
+        return;
+      }
+      await tx.tournamentWaitlist.deleteMany({ where: { tournamentId, userId: user.id } });
+      await tx.tournamentParticipant.create({ data: { tournamentId, userId: user.id, name: signup.name, seed: count + 1, members: signup.members, answers: signup.answers } });
     });
   } catch (e) {
     if (e instanceof service.TournamentError) return fail(e.message);
     if (isUniqueViolation(e)) {
       const mine = await db.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } });
+      const waiting = !mine && (await db.tournamentWaitlist.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } }));
+      if (waiting) return fail("شما در لیست انتظار این تورنومنت هستید.");
       return fail(mine ? "شما قبلاً در این تورنومنت ثبت‌نام کرده‌اید." : "این نام قبلاً ثبت شده است؛ نام دیگری انتخاب کنید.", mine ? undefined : { name: "این نام قبلاً ثبت شده است." });
     }
     throw e;
   }
-  changed(user.id, "registered", tournamentId);
-  return ok({}, "ثبت‌نام شما انجام شد.");
+  changed(user.id, waitlisted ? "waitlisted" : "registered", tournamentId);
+  return ok({}, waitlisted ? "ظرفیت پر است؛ شما در لیست انتظار قرار گرفتید. اگر جایی خالی شود خودکار اضافه می‌شوید." : "ثبت‌نام شما انجام شد.");
 }
 
 /**
  * Registration with an online fee: holds a place for ENTRY_PAYMENT_MINUTES and sends the player to the
  * gateway. The participant is added only when the payment is confirmed (see entries.ts).
  */
-async function registerPaid(user: { id: string; role: string; phone: string | null }, tournamentId: string, name: string): Promise<ActionResult<{ redirectTo?: string }>> {
+async function registerPaid(user: { id: string; role: string; phone: string | null }, tournamentId: string, signup: Signup): Promise<ActionResult<{ redirectTo?: string }>> {
+  const name = signup.name;
   const provider = getPaymentProvider();
   if (!provider) return fail("پرداخت آنلاین در حال حاضر فعال نیست؛ برای ثبت‌نام با برگزارکننده تماس بگیرید.");
   if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
@@ -404,6 +430,8 @@ async function registerPaid(user: { id: string; role: string; phone: string | nu
           tournamentName: t.name,
           userId: user.id,
           name,
+          members: signup.members,
+          answers: signup.answers,
           amount: t.entryFee,
           paymentId: payment.id,
           isTest: provider.testMode === true,
@@ -444,6 +472,7 @@ export async function withdrawFromTournament(tournamentId: string): Promise<Acti
   await db.tournamentParticipant.delete({ where: { id: p.id } });
   const rest = await db.tournamentParticipant.findMany({ where: { tournamentId }, orderBy: { seed: "asc" }, select: { id: true } });
   await renumber(tournamentId, rest.map((x) => x.id));
+  await db.$transaction((tx) => service.promoteWaitlist(tx, tournamentId));
   changed(user.id, "withdrawn", tournamentId);
   return ok(undefined, "انصراف شما ثبت شد.");
 }

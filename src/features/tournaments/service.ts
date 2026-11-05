@@ -124,6 +124,8 @@ export async function startTournament(id: string) {
       }
     }
     await tx.tournamentMatch.deleteMany({ where: { tournamentId: id } });
+    // The waiting list ends when the tournament starts.
+    await tx.tournamentWaitlist.deleteMany({ where: { tournamentId: id } });
     await persistSpecs(tx, id, specs, 1);
     await tx.tournament.update({ where: { id }, data: { status: "IN_PROGRESS", startedAt: new Date(), knockoutStarted: false, completedAt: null } });
     await refreshCompletion(tx, id);
@@ -292,6 +294,8 @@ function liveFrom(m: { id: string; player1Id: string | null; player2Id: string |
 
 type ScoreData = { score1: number | null; score2: number | null; note: string | null; setScores: string | null; forfeit: boolean };
 const NO_SCORE: ScoreData = { score1: null, score2: null, note: null, setScores: null, forfeit: false };
+/** Any change to a match drops a pending player report (it was about the old state). */
+const NO_CLAIM = { claimBySlot: null, claimScore1: null, claimScore2: null, claimWinnerSlot: null, claimSetScores: null, claimNote: null, claimAt: null };
 
 async function writeLive(tx: Tx, live: Map<string, LiveMatch>, changed: string[], reportedId: string | null, scores: ScoreData | null) {
   for (const id of changed) {
@@ -309,6 +313,7 @@ async function writeLive(tx: Tx, live: Map<string, LiveMatch>, changed: string[]
         winnerId,
         completedAt: l.status === "COMPLETED" ? new Date() : null,
         ...(l.status === "COMPLETED" ? { underwayAt: null } : {}),
+        ...NO_CLAIM,
         // Clear stale scores when a match goes back to pending or loses a player.
         ...(id === reportedId && scores ? scores : l.status === "PENDING" ? NO_SCORE : {}),
       },
@@ -350,7 +355,7 @@ async function applyReport(tx: Tx, t: { knockoutStarted: boolean }, all: MatchRo
     const winnerSlot = forfeit ? input.winnerSlot! : input.score1 > input.score2 ? 1 : input.score1 < input.score2 ? 2 : null;
     await tx.tournamentMatch.update({
       where: { id: m.id },
-      data: { ...scores, status: "COMPLETED", underwayAt: null, winnerSlot, winnerId: winnerSlot === 1 ? m.player1Id : winnerSlot === 2 ? m.player2Id : null, completedAt: new Date() },
+      data: { ...scores, ...NO_CLAIM, status: "COMPLETED", underwayAt: null, winnerSlot, winnerId: winnerSlot === 1 ? m.player1Id : winnerSlot === 2 ? m.player2Id : null, completedAt: new Date() },
     });
     return;
   }
@@ -454,7 +459,7 @@ export async function clearMatch(matchId: string) {
     const m = all.find((x) => x.id === matchId)!;
     if (!isEliminationStage(m.stage)) {
       if (m.stage === "GROUP" && t.knockoutStarted) throw new TournamentError("مرحلهٔ حذفی شروع شده و نتایج گروهی قفل است.");
-      await tx.tournamentMatch.update({ where: { id: m.id }, data: { ...NO_SCORE, status: "PENDING", winnerSlot: null, winnerId: null, completedAt: null } });
+      await tx.tournamentMatch.update({ where: { id: m.id }, data: { ...NO_SCORE, ...NO_CLAIM, status: "PENDING", winnerSlot: null, winnerId: null, completedAt: null } });
     } else {
       const live = new Map(all.map((x) => [x.id, liveFrom(x)]));
       const stage = new Map(all.map((x) => [x.id, x.stage as Stage]));
@@ -573,4 +578,127 @@ function computeRanks(
     for (const x of remaining) ranks.set(x.id, base + 1 + remaining.filter((y) => y.pos < x.pos).length);
   }
   return ranks;
+}
+
+// ───────────── Player reports (phase 3) ─────────────
+
+type ClaimInput = { score1: number; score2: number; winnerSlot?: 1 | 2; setScores?: string | null; note: string };
+
+async function reportInTx(tx: Tx, matchId: string, input: ReportInput) {
+  const match = await tx.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } });
+  if (!match) throw new TournamentError("بازی پیدا نشد.");
+  const t = await lockTournament(tx, match.tournamentId);
+  const all = await tx.tournamentMatch.findMany({ where: { tournamentId: t.id } });
+  const m = all.find((x) => x.id === matchId)!;
+  await applyReport(tx, t, all, m, input);
+  await autoForfeit(tx, t.id);
+  await refreshCompletion(tx, t.id);
+}
+
+/** Which slot of the match the user plays in (1/2), or null. */
+async function userSlot(tx: Tx, m: { player1Id: string | null; player2Id: string | null }, userId: string): Promise<1 | 2 | null> {
+  const ps = await tx.tournamentParticipant.findMany({ where: { id: { in: [m.player1Id, m.player2Id].filter((x): x is string => !!x) }, userId }, select: { id: true } });
+  if (ps.some((p) => p.id === m.player1Id)) return 1;
+  if (ps.some((p) => p.id === m.player2Id)) return 2;
+  return null;
+}
+
+const sameClaim = (m: { claimScore1: number | null; claimScore2: number | null; claimWinnerSlot: number | null; claimSetScores: string | null }, c: ClaimInput) =>
+  m.claimScore1 === c.score1 && m.claimScore2 === c.score2 && (m.claimSetScores ?? null) === (c.setScores ?? null) && (m.claimWinnerSlot ?? null) === (c.winnerSlot ?? null);
+
+/**
+ * A player reports the result of their own match. If the opponent already reported exactly the same
+ * result, it is applied at once; otherwise it waits for the opponent's confirmation or an organizer.
+ */
+export async function claimResult(matchId: string, userId: string, c: ClaimInput): Promise<"applied" | "pending"> {
+  return db.$transaction(async (tx) => {
+    const match = await tx.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } });
+    if (!match) throw new TournamentError("بازی پیدا نشد.");
+    const t = await lockTournament(tx, match.tournamentId);
+    if (!t.allowPlayerReports) throw new TournamentError("در این تورنومنت نتیجه را فقط برگزارکننده ثبت می‌کند.");
+    if (t.status !== "IN_PROGRESS") throw new TournamentError("تورنومنت در حال برگزاری نیست.");
+    const m = await tx.tournamentMatch.findUniqueOrThrow({ where: { id: matchId } });
+    if (m.status !== "PENDING" || !m.player1Id || !m.player2Id || m.player1Bye || m.player2Bye) throw new TournamentError("این بازی آمادهٔ ثبت نتیجه نیست.");
+    const slot = await userSlot(tx, m, userId);
+    if (!slot) throw new TournamentError("شما بازیکن این بازی نیستید.");
+    if (isEliminationStage(m.stage) && c.score1 === c.score2 && !c.winnerSlot) throw new TournamentError("در بازی حذفی مساوی، برنده را مشخص کنید.");
+    if (m.claimBySlot && m.claimBySlot !== slot && sameClaim(m, c)) {
+      await reportInTx(tx, matchId, { score1: c.score1, score2: c.score2, winnerSlot: c.winnerSlot, setScores: c.setScores ?? null, note: m.claimNote ?? c.note });
+      return "applied" as const;
+    }
+    await tx.tournamentMatch.update({
+      where: { id: matchId },
+      data: { claimBySlot: slot, claimScore1: c.score1, claimScore2: c.score2, claimWinnerSlot: c.winnerSlot ?? null, claimSetScores: c.setScores ?? null, claimNote: c.note || null, claimAt: new Date() },
+    });
+    return "pending" as const;
+  });
+}
+
+/** Opponent (userId) or an organizer (userId null) accepts the pending report. */
+export async function confirmClaim(matchId: string, userId: string | null) {
+  return db.$transaction(async (tx) => {
+    const match = await tx.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } });
+    if (!match) throw new TournamentError("بازی پیدا نشد.");
+    await lockTournament(tx, match.tournamentId);
+    const m = await tx.tournamentMatch.findUniqueOrThrow({ where: { id: matchId } });
+    if (!m.claimBySlot || m.claimScore1 === null || m.claimScore2 === null || m.status !== "PENDING") throw new TournamentError("گزارشی برای تأیید وجود ندارد.");
+    if (userId) {
+      const slot = await userSlot(tx, m, userId);
+      if (!slot || slot === m.claimBySlot) throw new TournamentError("فقط حریف یا برگزارکننده می‌تواند این نتیجه را تأیید کند.");
+    }
+    await reportInTx(tx, matchId, {
+      score1: m.claimScore1,
+      score2: m.claimScore2,
+      winnerSlot: m.claimWinnerSlot === 1 || m.claimWinnerSlot === 2 ? m.claimWinnerSlot : undefined,
+      setScores: m.claimSetScores,
+      note: m.claimNote ?? "",
+    });
+  });
+}
+
+/** Organizer rejects a pending report. */
+export async function rejectClaim(matchId: string) {
+  await db.tournamentMatch.update({ where: { id: matchId }, data: NO_CLAIM });
+}
+
+// ───────────── Waiting list ─────────────
+
+/** Moves people from the waiting list into free places (free tournaments with open registration). */
+export async function promoteWaitlist(tx: Tx, tournamentId: string): Promise<number> {
+  const t = await tx.tournament.findUnique({ where: { id: tournamentId }, select: { status: true, entryFee: true, maxParticipants: true, waitlistEnabled: true } });
+  if (!t || t.status !== "REGISTRATION" || t.entryFee > BigInt(0)) return 0;
+  let added = 0;
+  for (;;) {
+    const count = await tx.tournamentParticipant.count({ where: { tournamentId } });
+    if (t.maxParticipants && count >= t.maxParticipants) break;
+    const next = await tx.tournamentWaitlist.findFirst({ where: { tournamentId }, orderBy: { createdAt: "asc" } });
+    if (!next) break;
+    await tx.tournamentWaitlist.delete({ where: { id: next.id } });
+    if (await tx.tournamentParticipant.findFirst({ where: { tournamentId, userId: next.userId }, select: { id: true } })) continue;
+    let name = next.name;
+    for (let k = 2; await tx.tournamentParticipant.findFirst({ where: { tournamentId, name }, select: { id: true } }); k++) name = `${next.name.slice(0, 55)} (${k})`;
+    await tx.tournamentParticipant.create({
+      data: { tournamentId, userId: next.userId, name, seed: count + 1, members: next.members, answers: next.answers ?? undefined },
+    });
+    added++;
+  }
+  return added;
+}
+
+// ───────────── Predictions ─────────────
+
+export async function predict(matchId: string, userId: string, participantId: string) {
+  return db.$transaction(async (tx) => {
+    const m = await tx.tournamentMatch.findUnique({ where: { id: matchId }, include: { tournament: { select: { allowPredictions: true, status: true } } } });
+    if (!m || !m.tournament.allowPredictions) throw new TournamentError("پیش‌بینی برای این تورنومنت فعال نیست.");
+    if (m.tournament.status !== "IN_PROGRESS") throw new TournamentError("پیش‌بینی این تورنومنت بسته است.");
+    if (m.status !== "PENDING" || m.underwayAt || !m.player1Id || !m.player2Id) throw new TournamentError("پیش‌بینی این بازی بسته است.");
+    if (participantId !== m.player1Id && participantId !== m.player2Id) throw new TournamentError("بازیکن نامعتبر است.");
+    if (await userSlot(tx, m, userId)) throw new TournamentError("بازی خودتان را نمی‌توانید پیش‌بینی کنید.");
+    await tx.tournamentPrediction.upsert({
+      where: { matchId_userId: { matchId, userId } },
+      create: { tournamentId: m.tournamentId, matchId, userId, participantId },
+      update: { participantId, createdAt: new Date() },
+    });
+  });
 }

@@ -41,30 +41,33 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  sessions             Session[]
-  oauthAccounts        OAuthAccount[]
-  addresses            Address[]
-  verificationCodes    VerificationCode[]
-  cart                 Cart?
-  orders               Order[]
-  newsPosts            NewsPost[]
-  partnerProfile       PartnerProfile?         @relation("PartnerOwner")
-  reviewedPartners     PartnerProfile[]        @relation("PartnerReviewer")
-  auditLogs            AuditLog[]
-  uploadedMedia        Media[]
-  inventoryMovements   InventoryMovement[]
-  statusChanges        OrderStatusHistory[]
-  catalogImports       CatalogImportRun[]
-  pagesUpdated         Page[]
-  organizedTournaments Tournament[]            @relation("TournamentOrganizer")
-  tournamentEntries    TournamentParticipant[]
-  tournamentPayments   TournamentEntry[]
-  supportConversation  SupportConversation?
-  supportMessages      SupportMessage[]
-  gamePoints           GamePointsEntry[]
-  gameAchievements     GameAchievementUnlock[]
-  rewardRedemptions    RewardRedemption[]      @relation("RewardOwner")
-  rewardsChecked       RewardRedemption[]      @relation("RewardStaff")
+  sessions               Session[]
+  oauthAccounts          OAuthAccount[]
+  addresses              Address[]
+  verificationCodes      VerificationCode[]
+  cart                   Cart?
+  orders                 Order[]
+  newsPosts              NewsPost[]
+  partnerProfile         PartnerProfile?         @relation("PartnerOwner")
+  reviewedPartners       PartnerProfile[]        @relation("PartnerReviewer")
+  auditLogs              AuditLog[]
+  uploadedMedia          Media[]
+  inventoryMovements     InventoryMovement[]
+  statusChanges          OrderStatusHistory[]
+  catalogImports         CatalogImportRun[]
+  pagesUpdated           Page[]
+  organizedTournaments   Tournament[]            @relation("TournamentOrganizer")
+  coOrganizedTournaments TournamentCoOrganizer[]
+  tournamentWaitlist     TournamentWaitlist[]
+  tournamentPredictions  TournamentPrediction[]
+  tournamentEntries      TournamentParticipant[]
+  tournamentPayments     TournamentEntry[]
+  supportConversation    SupportConversation?
+  supportMessages        SupportMessage[]
+  gamePoints             GamePointsEntry[]
+  gameAchievements       GameAchievementUnlock[]
+  rewardRedemptions      RewardRedemption[]      @relation("RewardOwner")
+  rewardsChecked         RewardRedemption[]      @relation("RewardStaff")
 
   @@index([role])
   @@map("users")
@@ -801,6 +804,16 @@ model Tournament {
   leaderboardRounds     Int?
   /// Check-in opens this many minutes before startsAt (null = no check-in). Not checked in at start → removed.
   checkInMinutes        Int?
+  /// Team tournaments: players per team incl. the captain (null = individual).
+  teamSize              Int?
+  /// Extra sign-up questions: [{ label, required }] (max 5).
+  signupQuestions       Json?
+  /// Players may report their own match results; the opponent or an organizer confirms them.
+  allowPlayerReports    Boolean          @default(false)
+  /// Logged-in visitors may predict match winners.
+  allowPredictions      Boolean          @default(false)
+  /// When full, free tournaments keep a waiting list; withdrawals promote the first in line.
+  waitlistEnabled       Boolean          @default(true)
   /// Online registration fee in Rials (0 = free). Paid through the site's payment gateway.
   entryFee              BigInt           @default(0)
   startsAt              DateTime?
@@ -828,6 +841,9 @@ model Tournament {
   matches      TournamentMatch[]
   entries      TournamentEntry[]
   points       TournamentPoints[]
+  coOrganizers TournamentCoOrganizer[]
+  waitlist     TournamentWaitlist[]
+  predictions  TournamentPrediction[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -846,6 +862,10 @@ model TournamentParticipant {
   checkedInAt    DateTime?
   /// Removed during the tournament: remaining matches are forfeited to the opponents.
   disqualifiedAt DateTime?
+  /// Team members (team tournaments; the participant name is the team name).
+  members        String[]  @default([])
+  /// Answers to the sign-up questions: [{ q, a }] (visible to organizers only).
+  answers        Json?
   createdAt      DateTime  @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
@@ -888,6 +908,9 @@ model TournamentEntry {
   /// Placed while the gateway used test credentials (no money moved).
   isTest          Boolean               @default(false)
   note            String?               @db.VarChar(300)
+  /// Copied to the participant after payment.
+  members         String[]              @default([])
+  answers         Json?
   paidAt          DateTime?
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
@@ -921,47 +944,56 @@ model TournamentPoints {
 }
 
 model TournamentMatch {
-  id           String      @id @default(cuid())
-  tournamentId String
-  stage        MatchStage
-  round        Int
-  position     Int
-  groupIndex   Int?
+  id              String      @id @default(cuid())
+  tournamentId    String
+  stage           MatchStage
+  round           Int
+  position        Int
+  groupIndex      Int?
   /// Display/order number inside the tournament (1..n).
-  number       Int
-  player1Id    String?
-  player2Id    String?
+  number          Int
+  player1Id       String?
+  player2Id       String?
   /// A slot that will never receive a player (bracket bye).
-  player1Bye   Boolean     @default(false)
-  player2Bye   Boolean     @default(false)
-  score1       Int?
-  score2       Int?
-  winnerId     String?
+  player1Bye      Boolean     @default(false)
+  player2Bye      Boolean     @default(false)
+  score1          Int?
+  score2          Int?
+  winnerId        String?
   /// 1 or 2 — which slot won (also for byes, where there is no winner participant row change).
-  winnerSlot   Int?
-  status       MatchStatus @default(PENDING)
-  nextMatchId  String?
-  nextSlot     Int?
-  loserMatchId String?
-  loserSlot    Int?
-  note         String?     @db.VarChar(200)
+  winnerSlot      Int?
+  status          MatchStatus @default(PENDING)
+  nextMatchId     String?
+  nextSlot        Int?
+  loserMatchId    String?
+  loserSlot       Int?
+  note            String?     @db.VarChar(200)
   /// Game/set scores, e.g. "3-1,2-3" (score1/score2 then hold sets won).
-  setScores    String?     @db.VarChar(120)
+  setScores       String?     @db.VarChar(120)
   /// Won without playing (opponent absent or disqualified).
-  forfeit      Boolean     @default(false)
+  forfeit         Boolean     @default(false)
   /// Marked «در حال بازی» by the organizer.
-  underwayAt   DateTime?
+  underwayAt      DateTime?
   /// Console / table / station, e.g. "PS5 شماره ۳".
-  station      String?     @db.VarChar(40)
-  scheduledAt  DateTime?
-  completedAt  DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  station         String?     @db.VarChar(40)
+  scheduledAt     DateTime?
+  /// A result reported by one of the players, waiting for the opponent or an organizer.
+  claimBySlot     Int?
+  claimScore1     Int?
+  claimScore2     Int?
+  claimWinnerSlot Int?
+  claimSetScores  String?     @db.VarChar(120)
+  claimNote       String?     @db.VarChar(200)
+  claimAt         DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  tournament Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  player1    TournamentParticipant? @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
-  player2    TournamentParticipant? @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
-  winner     TournamentParticipant? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  predictions TournamentPrediction[]
+  tournament  Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1     TournamentParticipant? @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2     TournamentParticipant? @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner      TournamentParticipant? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
 
   @@unique([tournamentId, number])
   @@index([tournamentId, stage, round, position])
@@ -1196,4 +1228,54 @@ model OAuthAccount {
   @@unique([provider, subject])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+/// Extra organizers of a tournament (results, participants, check-in, start/reset; not settings or delete).
+model TournamentCoOrganizer {
+  tournamentId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tournamentId, userId])
+  @@index([userId])
+  @@map("tournament_co_organizers")
+}
+
+/// Waiting list of a full (free) tournament, in arrival order.
+model TournamentWaitlist {
+  id           String   @id @default(cuid())
+  tournamentId String
+  userId       String
+  name         String   @db.VarChar(60)
+  members      String[] @default([])
+  answers      Json?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, createdAt])
+  @@map("tournament_waitlist")
+}
+
+/// A visitor's predicted winner of a match (a participant id; stale if the bracket changes the players).
+model TournamentPrediction {
+  id            String   @id @default(cuid())
+  tournamentId  String
+  matchId       String
+  userId        String
+  participantId String
+  createdAt     DateTime @default(now())
+
+  tournament Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  match      TournamentMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, userId])
+  @@index([tournamentId, userId])
+  @@map("tournament_predictions")
 }

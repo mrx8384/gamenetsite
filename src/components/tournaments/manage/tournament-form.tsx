@@ -10,7 +10,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { createTournament, updateTournament } from "@/features/tournaments/actions";
-import { FORMAT_HINTS, FORMAT_LABELS, GRAND_FINAL_LABELS, GRAND_FINAL_MODES, TIEBREAK_LABELS, TIEBREAKS, TOURNAMENT_FORMATS, type TournamentFormatKey } from "@/features/tournaments/constants";
+import { Plus, X } from "lucide-react";
+import { FORMAT_HINTS, FORMAT_LABELS, GRAND_FINAL_LABELS, GRAND_FINAL_MODES, MAX_SIGNUP_QUESTIONS, TIEBREAK_LABELS, TIEBREAKS, TOURNAMENT_FORMATS, type TournamentFormatKey } from "@/features/tournaments/constants";
 import { tehranInputToIso } from "@/features/tournaments/time";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,12 @@ export interface TournamentFormValues {
   swissRounds: string;
   /** Leaderboard rounds at the start. */
   leaderboardRounds: string;
+  /** Players per team (empty = individual). */
+  teamSize: string;
+  signupQuestions: { label: string; required: boolean }[];
+  allowPlayerReports: boolean;
+  allowPredictions: boolean;
+  waitlistEnabled: boolean;
 }
 
 export const emptyTournament: TournamentFormValues = {
@@ -70,6 +77,11 @@ export const emptyTournament: TournamentFormValues = {
   tiebreak: "goal_difference",
   swissRounds: "",
   leaderboardRounds: "1",
+  teamSize: "",
+  signupQuestions: [],
+  allowPlayerReports: false,
+  allowPredictions: false,
+  waitlistEnabled: true,
 };
 
 export function TournamentForm({ id, initial, basePath, structureLocked = false }: { id?: string; initial: TournamentFormValues; basePath: string; structureLocked?: boolean }) {
@@ -216,7 +228,19 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
           </div>
         </fieldset>
 
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.allowSelfRegistration} onChange={(e) => set("allowSelfRegistration", e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" /> ثبت‌نام آنلاین کاربران در سایت</label>
+        <fieldset className="grid gap-3 rounded-xl border p-3">
+          <legend className="px-1 text-sm font-medium">ثبت‌نام و بازیکنان</legend>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.allowSelfRegistration} onChange={(e) => set("allowSelfRegistration", e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" /> ثبت‌نام آنلاین کاربران در سایت</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.waitlistEnabled} onChange={(e) => set("waitlistEnabled", e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" /> لیست انتظار وقتی ظرفیت پر شد (فقط تورنومنت رایگان)</label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={v.allowPlayerReports} onChange={(e) => set("allowPlayerReports", e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" /> <span>بازیکنان نتیجهٔ بازی خودشان را گزارش کنند <span className="block text-xs text-muted-foreground">نتیجه وقتی ثبت می‌شود که حریف یا شما تأیید کنید (یا هر دو یک نتیجه را بفرستند).</span></span></label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={v.allowPredictions} onChange={(e) => set("allowPredictions", e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" /> <span>پیش‌بینی نتایج توسط بازدیدکنندگان <span className="block text-xs text-muted-foreground">کاربران وارد شده برندهٔ هر بازی را قبل از شروعش پیش‌بینی می‌کنند و جدول بهترین پیش‌بینی‌کننده‌ها نمایش داده می‌شود.</span></span></label>
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <Label htmlFor="t-team">تیمی — تعداد نفرات هر تیم (خالی = انفرادی)</Label>
+            <Input id="t-team" inputMode="numeric" dir="ltr" className="text-start" value={v.teamSize} onChange={text("teamSize")} placeholder="مثلاً 2" aria-invalid={!!errors.teamSize} />
+            {err("teamSize")}
+          </div>
+          <SignupQuestions value={v.signupQuestions} onChange={(q) => set("signupQuestions", q)} error={Object.entries(errors).find(([k]) => k.startsWith("signupQuestions"))?.[1]} />
+        </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -245,5 +269,26 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
         <Button type="submit" size="lg" loading={pending} className="justify-self-start">{id ? "ذخیرهٔ تغییرات" : "ساخت تورنومنت"}</Button>
       </fieldset>
     </form>
+  );
+}
+
+function SignupQuestions({ value, onChange, error }: { value: { label: string; required: boolean }[]; onChange: (q: { label: string; required: boolean }[]) => void; error?: string }) {
+  const update = (i: number, patch: Partial<{ label: string; required: boolean }>) => onChange(value.map((q, j) => (j === i ? { ...q, ...patch } : q)));
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">سؤال‌های فرم ثبت‌نام (اختیاری)</p>
+      <p className="text-xs text-muted-foreground">مثلاً «آیدی PSN»، «شمارهٔ تماس» یا «شهر». پاسخ‌ها فقط برای برگزارکنندگان نمایش داده می‌شود.</p>
+      {value.map((q, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <Input aria-label={`سؤال ${(i + 1).toLocaleString("fa-IR")}`} className="min-w-0 flex-1" value={q.label} maxLength={120} onChange={(e) => update(i, { label: e.target.value })} />
+          <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={q.required} onChange={(e) => update(i, { required: e.target.checked })} className="size-4 accent-[var(--brand-green-dark)]" /> اجباری</label>
+          <Button type="button" variant="ghost" size="icon-sm" className="text-destructive" aria-label="حذف سؤال" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
+        </div>
+      ))}
+      {value.length < MAX_SIGNUP_QUESTIONS ? (
+        <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => onChange([...value, { label: "", required: false }])}><Plus /> افزودن سؤال</Button>
+      ) : null}
+      {error ? <p role="alert" className="text-xs font-medium text-destructive">{error}</p> : null}
+    </div>
   );
 }

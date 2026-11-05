@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-11-05 (60) — Tournaments: Challonge-style phase 3 (community features)
+
+- **Co-organizers** (`TournamentCoOrganizer`): the owner (admin / organizing partner) adds any active account by email or mobile (max 10). `permissions.ts` now has roles: `owner` (everything) and `co` (results, participants, check-in, disqualify, start/reset, Swiss/leaderboard, exports). Settings, publish/draft/cancel, delete, payments card and the co-organizer list need `manageableTournament(user, id, "owner")`. Co-organizers work from **«حساب کاربری ← تورنومنت‌های من»** (`/account/tournaments`, `/account/tournaments/[id]`), which also lists the user's own registrations and waiting-list places.
+- **Teams** (`Tournament.teamSize`, `TournamentParticipant.members`): the captain registers a team name plus the other members; members are shown under the name on the public list; organizers can rename / edit members (pencil button, `updateParticipant`).
+- **Custom sign-up questions** (`signupQuestions`, max 5, optional/required): answers stored as `[{q, a}]` on the participant (copied from `TournamentEntry` after a paid registration), shown only to organizers (`getTournamentPrivate`, never in the cached public view) and in the CSV export.
+- **Waiting list** (`TournamentWaitlist`, `waitlistEnabled`, free tournaments only): when full, sign-ups join the list; `promoteWaitlist` fills free places in arrival order after a withdrawal / removal, a bigger capacity, or reopening registration (name clash → «نام (۲)»). Cleared when the tournament starts. Players see their position and can leave.
+- **Player result reports** (`allowPlayerReports`; claim fields on `TournamentMatch`): a player reports their own match; the result is applied only when the opponent confirms, both send the same result, or an organizer approves (organizer dialog shows the report with approve / reject). Forfeits stay organizer-only. Any change to a match clears its pending report.
+- **Predictions** (`allowPredictions`, `TournamentPrediction` with the predicted participant): logged-in visitors pick winners of open matches (not underway, not their own), see the split in %, and a top-10 predictors table (first name only; forfeits not scored; stale picks after bracket corrections ignored — `predictions.ts`). Loaded per visitor via `getPredictionBoard` (not cached).
+- **CSV export** for Excel (`/api/tournaments/[id]/export?kind=participants|matches|standings`, organizers only, UTF-8 BOM, formula-injection safe — `src/lib/csv.ts`).
+- **Embed** `/embed/tournaments/[slug]`: bracket only, live refresh, link back; the only path other sites may frame (`frame-ancestors *`, no `X-Frame-Options`; everything else stays `DENY`). The organizer page shows the `<iframe>` code.
+- Fix: scores inside Persian text (set scores, player reports) are now rendered in their own LTR element — the invisible isolate marks used in phase 1 were ignored by Chromium and showed «1-3» for 3-1.
+- Migration `tournament_phase3`.
+
+Verified: typecheck, lint, 498 unit tests (new `tournament-phase3.test.ts`), build; DB scenario (roles owner/co/none, waitlist promotion with name clash and answers, prediction rules, report → mismatch → matching report applied, organizer approval, reset clears predictions); browser: team sign-up with required question, waitlist, organizer sees answers/members/waitlist, add co-organizer, CSV (organizer 200 / anonymous 404), co-organizer page without settings/delete starts the tournament, fan prediction + ranking, player report → opponent confirms, embed headers, mobile width. Test data removed.
+
 ## 2026-11-05 (59) — Tournaments: Challonge-style phase 2 (Swiss, leaderboard, grand-final and tie-break options)
 
 - **Swiss format** (`SWISS`): rounds = `swissRounds` or automatic ⌈log2 n⌉ (`swissRoundCount`). Round 1 pairs top half vs bottom half; later rounds pair neighbours in the table with no rematches (`swissPairings`, bounded backtracking, rematch only if nothing else is possible). Odd count → bye (auto win) for the lowest-ranked player without one, stored as a match with `player2Bye`. Table `swissStandings`: points, **Buchholz**, goal difference, goals, seed. Organizer presses «جفت کردن دور بعد» (`nextSwissRound`) once every match of the round is decided; the tournament completes after the last planned round. Disqualified players are skipped in pairings.
@@ -11,7 +26,7 @@
 
 Verified: typecheck, lint, 489 unit tests (new `tournament-phase2.test.ts`: Swiss no-rematch/bye playouts for 2–33 players, Buchholz, grand-final modes play out, tie-break orders, leaderboard ranks, schema), build; DB scenario: Swiss 5 players → 3 rounds, 3 byes to different players, no rematch, completed with ranks, extra round refused; DE none/single complete with ranks; RR head-to-head; leaderboard points/clear/add round/finish/reopen/reset. Browser (desktop + mobile): Swiss table and rounds, draw allowed, «جفت کردن دور» disabled until the round is done then pairs round 2; leaderboard grid save, add round, finish → podium and ranked public table; form options. Test data removed.
 
-Next: phase 3 — player self-reporting with organizer approval, teams, custom sign-up questions, co-organizers, waitlist, CSV export, embed widget, predictions.
+Phase 3 done — PROGRESS 60.
 
 ## 2026-11-05 (58) — Tournaments: Challonge-style phase 1 (owner request: «تمامی کارهایی که داخل challonge.com می‌شود»)
 

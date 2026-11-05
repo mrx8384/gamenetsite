@@ -14,6 +14,7 @@ import { addLeaderboardRound, clearMatch, finishLeaderboard, nextSwissRound, rep
 import { bracketLayout } from "@/features/tournaments/bracket-layout";
 import { isoToTehranInput, tehranInputToIso } from "@/features/tournaments/time";
 import { groupName, isEliminationStage, STAGE_LABELS } from "@/features/tournaments/constants";
+import { claimMatchResult, confirmMatchClaim, rejectMatchClaim } from "@/features/tournaments/community-actions";
 import { eliminationRoundName, leaderboardTable, type ResultRow, standings, swissRoundCount, swissStandings } from "@/features/tournaments/engine";
 import type { TournamentView } from "@/features/tournaments/queries";
 import { cn } from "@/lib/utils";
@@ -26,12 +27,14 @@ interface BoardProps {
   manage?: boolean;
   /** Public page: «نمایش تلویزیون» (full screen) and print buttons. */
   tools?: boolean;
+  /** Public page: the visitor's own participant id (player result reports). */
+  viewerParticipantId?: string | null;
 }
 
 const timeFmt = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit", weekday: "short" });
 
 /** Bracket / tables / matches for every format. `manage` adds result entry for the organizer. */
-export function TournamentBoard({ t, manage = false, tools = false }: BoardProps) {
+export function TournamentBoard({ t, manage = false, tools = false, viewerParticipantId = null }: BoardProps) {
   const box = React.useRef<HTMLDivElement>(null);
   const [tv, setTv] = React.useState(false);
   React.useEffect(() => {
@@ -41,9 +44,12 @@ export function TournamentBoard({ t, manage = false, tools = false }: BoardProps
   }, []);
   const names = React.useMemo(() => new Map(t.participants.map((p) => [p.id, p.name])), [t.participants]);
   const [editing, setEditing] = React.useState<Match | null>(null);
+  const [reporting, setReporting] = React.useState<Match | null>(null);
   const canEdit = manage && (t.status === "IN_PROGRESS" || t.status === "COMPLETED");
-  const onPick = canEdit ? (m: Match) => setEditing(m) : undefined;
-  const ctx = { names, onPick };
+  const playerReports = !manage && t.allowPlayerReports && t.status === "IN_PROGRESS" && !!viewerParticipantId;
+  const onPick = canEdit ? (m: Match) => setEditing(m) : playerReports ? (m: Match) => setReporting(m) : undefined;
+  const pickable = playerReports ? (m: Match) => m.status === "PENDING" && (m.player1Id === viewerParticipantId || m.player2Id === viewerParticipantId) : undefined;
+  const ctx = { names, onPick, pickable, pickLabel: playerReports ? "گزارش نتیجه" : "ثبت نتیجه" };
 
   const started = t.status === "IN_PROGRESS" || t.status === "COMPLETED";
   if (t.format === "LEADERBOARD" ? !started : t.matches.length === 0) {
@@ -129,6 +135,7 @@ export function TournamentBoard({ t, manage = false, tools = false }: BoardProps
       ) : null}
 
       {editing ? <ReportDialog key={editing.id} m={editing} names={names} onClose={() => setEditing(null)} /> : null}
+      {reporting ? <PlayerReportDialog key={reporting.id} m={reporting} names={names} mySlot={reporting.player1Id === viewerParticipantId ? 1 : 2} onClose={() => setReporting(null)} /> : null}
     </div>
   );
 }
@@ -155,11 +162,14 @@ function Podium({ t }: { t: TournamentView }) {
 interface Ctx {
   names: Map<string, string>;
   onPick?: (m: Match) => void;
+  /** Limits which matches onPick applies to (players: only their own). */
+  pickable?: (m: Match) => boolean;
+  pickLabel?: string;
 }
 
 const BOX = { w: 208, h: 84, gapX: 44, gapY: 14 };
 
-function EliminationSection({ title, matches, third, roundLabel, names, onPick }: Ctx & { title: string; matches: Match[]; third?: Match; roundLabel?: (r: number) => string }) {
+function EliminationSection({ title, matches, third, roundLabel, names, onPick, pickable, pickLabel }: Ctx & { title: string; matches: Match[]; third?: Match; roundLabel?: (r: number) => string }) {
   if (matches.length === 0) return null;
   const layout = bracketLayout(matches, BOX);
   const total = layout.rounds.length;
@@ -183,7 +193,7 @@ function EliminationSection({ title, matches, third, roundLabel, names, onPick }
             </svg>
             {[...layout.boxes.values()].map((b) => (
               <div key={b.id} className="absolute" style={{ left: b.x, top: b.y + 28, width: BOX.w, height: BOX.h }}>
-                <MatchCard m={byId.get(b.id)!} names={names} onPick={onPick} fixed />
+                <MatchCard m={byId.get(b.id)!} names={names} onPick={onPick} pickable={pickable} pickLabel={pickLabel} fixed />
               </div>
             ))}
           </div>
@@ -191,7 +201,7 @@ function EliminationSection({ title, matches, third, roundLabel, names, onPick }
         {third ? (
           <div className="mt-4 space-y-1 border-t pt-4">
             <p className="text-xs font-bold text-muted-foreground">{STAGE_LABELS.THIRD_PLACE}</p>
-            <MatchCard m={third} names={names} onPick={onPick} />
+            <MatchCard m={third} names={names} onPick={onPick} pickable={pickable} pickLabel={pickLabel} />
           </div>
         ) : null}
       </CardContent>
@@ -207,9 +217,10 @@ function slotLabel(m: Match, slot: 1 | 2, names: Map<string, string>) {
   return { text: names.get(id) ?? "—", muted: false };
 }
 
-function MatchCard({ m, names, onPick, fixed = false }: { m: Match; fixed?: boolean } & Ctx) {
+function MatchCard({ m, names, onPick, pickable, pickLabel = "ثبت نتیجه", fixed = false }: { m: Match; fixed?: boolean } & Ctx) {
   const isBye = m.player1Bye || m.player2Bye;
-  const playable = !!onPick && !isBye && !!m.player1Id && !!m.player2Id && m.status !== "SKIPPED";
+  const playable = !!onPick && (!pickable || pickable(m)) && !isBye && !!m.player1Id && !!m.player2Id && m.status !== "SKIPPED";
+  const claim = m.status === "PENDING" && m.claimBySlot ? { label: "گزارش بازیکن:", ltr: `${m.claimScore1 ?? ""}-${m.claimScore2 ?? ""}`, after: "(در انتظار تأیید)" } : null;
   const underway = !!m.underwayAt && m.status === "PENDING";
   const sets = m.setScores ? m.setScores.split(",") : [];
   const row = (slot: 1 | 2) => {
@@ -224,29 +235,42 @@ function MatchCard({ m, names, onPick, fixed = false }: { m: Match; fixed?: bool
       </div>
     );
   };
+  // Scores ("3-1", "3-1 2-3") are rendered in their own left-to-right element: inside Persian text
+  // the bidi algorithm would otherwise show them reversed ("1-3").
+  type Info = { label?: string; ltr?: string; after?: string };
   const info = [
-    m.forfeit ? "برد فنی" : null,
-    // Left-to-right isolate: "3-1, 2-3" must not be reordered inside Persian text.
-    sets.length ? `دست‌ها: \u2066${sets.join("  ")}\u2069` : null,
-    m.station,
-    m.scheduledAt && m.status === "PENDING" ? timeFmt.format(new Date(m.scheduledAt)) : null,
-    m.note,
-  ].filter(Boolean) as string[];
+    claim,
+    m.forfeit ? { label: "برد فنی" } : null,
+    sets.length ? { label: "دست‌ها:", ltr: sets.join("  ") } : null,
+    m.station ? { label: m.station } : null,
+    m.scheduledAt && m.status === "PENDING" ? { label: timeFmt.format(new Date(m.scheduledAt)) } : null,
+    m.note ? { label: m.note } : null,
+  ].filter(Boolean) as Info[];
+  const infoText = (sep: string) => info.map((x) => [x.label, x.ltr, x.after].filter(Boolean).join(" ")).join(sep);
   const body = (
     <>
       <div className={cn("flex h-5 items-center gap-2 border-b px-3 text-[10px] text-muted-foreground", underway && "bg-success-soft")}>
         <span>#{fa(m.number)}</span>
         {underway ? <span className="flex items-center gap-1 font-bold text-success"><span className="size-1.5 animate-pulse rounded-full bg-brand-green" aria-hidden />در حال بازی</span> : null}
-        <span className="min-w-0 flex-1 truncate" dir="auto">{info.join(" · ")}</span>
-        {playable && m.status === "PENDING" && !underway ? <span className="shrink-0 font-bold text-link">ثبت نتیجه</span> : null}
+        <span className="min-w-0 flex-1 truncate">
+          {info.map((x, i) => (
+            <React.Fragment key={i}>
+              {i > 0 ? " · " : null}
+              {x.label}
+              {x.ltr ? <> <span dir="ltr" className="inline-block">{x.ltr}</span></> : null}
+              {x.after ? ` ${x.after}` : null}
+            </React.Fragment>
+          ))}
+        </span>
+        {playable && m.status === "PENDING" && !underway ? <span className="shrink-0 font-bold text-link">{claim && !pickable ? "تأیید" : pickLabel}</span> : null}
       </div>
       {row(1)}
       <div className="border-t" />
       {row(2)}
     </>
   );
-  const cls = cn("overflow-hidden rounded-lg border bg-surface text-start shadow-sm", fixed ? "h-[84px] w-full" : "w-52", isBye && "opacity-60", underway && "border-brand-green ring-2 ring-brand-green/30");
-  const title = info.length ? info.join(" — ") : undefined;
+  const cls = cn("overflow-hidden rounded-lg border bg-surface text-start shadow-sm", fixed ? "h-[84px] w-full" : "w-52", isBye && "opacity-60", underway && "border-brand-green ring-2 ring-brand-green/30", claim && "border-warning");
+  const title = info.length ? infoText(" — ") : undefined;
   return playable ? (
     <button type="button" title={title} onClick={() => onPick!(m)} className={cn(cls, "cursor-pointer transition-shadow hover:border-brand-green hover:shadow-md")} aria-label={`بازی ${fa(m.number)}`}>
       {body}
@@ -303,7 +327,7 @@ function StandingsCard({ title, ids, matches, t, names, qualify = 0 }: { title: 
   );
 }
 
-function RoundsCard({ matches, names, onPick, compact = false, roundWord = "هفتهٔ" }: Ctx & { matches: Match[]; compact?: boolean; roundWord?: string }) {
+function RoundsCard({ matches, names, onPick, pickable, pickLabel, compact = false, roundWord = "هفتهٔ" }: Ctx & { matches: Match[]; compact?: boolean; roundWord?: string }) {
   const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b);
   return (
     <Card>
@@ -313,7 +337,7 @@ function RoundsCard({ matches, names, onPick, compact = false, roundWord = "هف
           <div key={r} className="space-y-2">
             <p className="text-xs font-bold text-muted-foreground">{roundWord} {fa(r)}</p>
             <div className="flex flex-wrap gap-2">
-              {matches.filter((m) => m.round === r).map((m) => <MatchCard key={m.id} m={m} names={names} onPick={onPick} />)}
+              {matches.filter((m) => m.round === r).map((m) => <MatchCard key={m.id} m={m} names={names} onPick={onPick} pickable={pickable} pickLabel={pickLabel} />)}
             </div>
           </div>
         ))}
@@ -335,7 +359,7 @@ function useRun() {
   return { pending, run };
 }
 
-function SwissSection({ t, manage, names, onPick }: Ctx & { t: TournamentView; manage: boolean }) {
+function SwissSection({ t, manage, names, onPick, pickable, pickLabel }: Ctx & { t: TournamentView; manage: boolean }) {
   const { pending, run } = useRun();
   const sw = t.matches.filter((m) => m.stage === "SWISS");
   const planned = t.swissRounds ?? swissRoundCount(t.participants.length);
@@ -388,7 +412,7 @@ function SwissSection({ t, manage, names, onPick }: Ctx & { t: TournamentView; m
           <p className="mt-2 text-xs text-muted-foreground">در هر دور بازیکنان هم‌امتیاز با هم بازی می‌کنند و کسی دو بار با یک نفر بازی نمی‌کند. در امتیاز مساوی، بوخهولتز (قدرت حریفان) تعیین‌کننده است.</p>
         </CardContent>
       </Card>
-      <RoundsCard matches={sw} names={names} onPick={onPick} roundWord="دور" />
+      <RoundsCard matches={sw} names={names} onPick={onPick} pickable={pickable} pickLabel={pickLabel} roundWord="دور" />
     </>
   );
 }
@@ -531,6 +555,19 @@ function ReportDialog({ m, names, onClose }: { m: Match; names: Map<string, stri
           <DialogDescription>{STAGE_LABELS[m.stage]}</DialogDescription>
         </DialogHeader>
 
+        {m.status === "PENDING" && m.claimBySlot ? (
+          <div className="grid gap-2 rounded-xl border border-warning/50 bg-warning-soft/50 p-3 text-sm">
+            <p className="font-bold">گزارش {m.claimBySlot === 1 ? p1 : p2}: <span className="ltr inline-block">{m.claimScore1 ?? "?"} - {m.claimScore2 ?? "?"}</span></p>
+            {m.claimSetScores ? <p className="text-xs">دست‌ها: <span className="ltr inline-block">{m.claimSetScores.replaceAll(",", "  ")}</span></p> : null}
+            {m.claimWinnerSlot ? <p className="text-xs">برنده: {m.claimWinnerSlot === 1 ? p1 : p2}</p> : null}
+            {m.claimNote ? <p className="text-xs text-muted-foreground">{m.claimNote}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" disabled={pending} onClick={() => run(() => confirmMatchClaim(m.id))}>تأیید و ثبت همین نتیجه</Button>
+              <Button type="button" size="sm" variant="outline" className="text-destructive" disabled={pending} onClick={() => run(() => rejectMatchClaim(m.id), false)}>رد گزارش</Button>
+            </div>
+          </div>
+        ) : null}
+
         {m.status === "PENDING" ? (
           <div className="grid gap-3 rounded-xl border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -620,6 +657,80 @@ function ReportDialog({ m, names, onClose }: { m: Match; names: Map<string, stri
           </DialogFooter>
         </form>
         {m.status === "COMPLETED" ? <Badge variant="success" className="w-fit">نتیجه ثبت شده؛ با ثبت دوباره اصلاح می‌شود.</Badge> : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A player reports their own match (or confirms the opponent's report). */
+function PlayerReportDialog({ m, names, mySlot, onClose }: { m: Match; names: Map<string, string>; mySlot: 1 | 2; onClose: () => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = React.useTransition();
+  const [s1, setS1] = React.useState("");
+  const [s2, setS2] = React.useState("");
+  const [winner, setWinner] = React.useState<1 | 2 | null>(null);
+  const [note, setNote] = React.useState("");
+  const p1 = names.get(m.player1Id ?? "") ?? "—";
+  const p2 = names.get(m.player2Id ?? "") ?? "—";
+  const theirs = m.claimBySlot && m.claimBySlot !== mySlot;
+  const mine = m.claimBySlot === mySlot;
+  const tie = s1 !== "" && s1 === s2 && isEliminationStage(m.stage);
+  const run = (fn: () => Promise<{ ok: boolean; error?: string; message?: string }>) =>
+    startTransition(async () => {
+      const res = await fn();
+      if (!res.ok) return void toast.error(res.error);
+      toast.success(res.message);
+      onClose();
+      router.refresh();
+    });
+  return (
+    <Dialog open onOpenChange={(o) => !o && !pending && onClose()}>
+      <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>گزارش نتیجه: {p1} — {p2}</DialogTitle>
+          <DialogDescription>نتیجه وقتی ثبت می‌شود که حریف یا برگزارکننده تأیید کند. اگر هر دو یک نتیجه را بفرستید، خودکار ثبت می‌شود.</DialogDescription>
+        </DialogHeader>
+        {theirs ? (
+          <div className="grid gap-2 rounded-xl border border-warning/50 bg-warning-soft/50 p-3 text-sm">
+            <p className="font-bold">حریف این نتیجه را گزارش کرده: <span className="ltr inline-block">{m.claimScore1} - {m.claimScore2}</span> ({p1} – {p2})</p>
+            <Button type="button" size="sm" className="justify-self-start" loading={pending} onClick={() => run(() => confirmMatchClaim(m.id))}>درست است، تأیید می‌کنم</Button>
+            <p className="text-xs text-muted-foreground">اگر درست نیست، نتیجهٔ خودتان را پایین بفرستید تا برگزارکننده بررسی کند.</p>
+          </div>
+        ) : mine ? (
+          <p className="rounded-xl bg-info-soft p-3 text-sm text-info">گزارش شما (<span className="ltr inline-block">{m.claimScore1} - {m.claimScore2}</span>) منتظر تأیید است. می‌توانید آن را با نتیجهٔ جدید جایگزین کنید.</p>
+        ) : null}
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run(() => claimMatchResult(m.id, { score1: s1, score2: s2, winnerSlot: tie ? (winner ?? undefined) : undefined, note }));
+          }}
+        >
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="c1" className="truncate">{p1}</Label>
+              <Input id="c1" inputMode="numeric" dir="ltr" className="text-center text-lg" value={s1} onChange={(e) => setS1(e.target.value)} required />
+            </div>
+            <span className="pb-3 text-muted-foreground">–</span>
+            <div className="grid gap-1.5">
+              <Label htmlFor="c2" className="truncate">{p2}</Label>
+              <Input id="c2" inputMode="numeric" dir="ltr" className="text-center text-lg" value={s2} onChange={(e) => setS2(e.target.value)} required />
+            </div>
+          </div>
+          {tie ? (
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-medium">برنده (مساوی در بازی حذفی)</legend>
+              {([1, 2] as const).map((slot) => (
+                <label key={slot} className="flex items-center gap-2 text-sm"><input type="radio" name="cwinner" checked={winner === slot} onChange={() => setWinner(slot)} className="size-4 accent-[var(--brand-green-dark)]" /> {slot === 1 ? p1 : p2}</label>
+              ))}
+            </fieldset>
+          ) : null}
+          <div className="grid gap-1.5">
+            <Label htmlFor="cnote">توضیح (اختیاری)</Label>
+            <Input id="cnote" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          <DialogFooter><Button type="submit" loading={pending}>ارسال نتیجه</Button></DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

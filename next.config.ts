@@ -11,7 +11,7 @@ const isHttps = (process.env.APP_URL ?? "").startsWith("https://");
  * scripts, styles, fonts, frames or connections; the site cannot be framed; forms post only here.
  * User-generated HTML is sanitized on the server before it is stored (src/lib/rich-text).
  */
-const buildCsp = ({ world = false, map = false, toolsHost = false, tool = false } = {}) => [
+const buildCsp = ({ world = false, map = false, toolsHost = false, tool = false, embed = false } = {}) => [
   "default-src 'self'",
   // 3D world only (`world`): 'wasm-unsafe-eval' lets its self-hosted model decoders (/atom-world/decoders)
   // compile WebAssembly — it does not allow JavaScript eval.
@@ -27,8 +27,8 @@ const buildCsp = ({ world = false, map = false, toolsHost = false, tool = false 
   // Embed URLs are always rebuilt on www.google.com by src/lib/map-location.ts.
   // Gamepad tester pages (`toolsHost`) embed the PlayStation calibration tool from this site (/gamepad-tools).
   `frame-src ${map ? "https://www.google.com" : toolsHost ? "'self'" : "'none'"}`,
-  // The tool itself (`tool`) may be framed by this site only.
-  `frame-ancestors ${tool ? "'self'" : "'none'"}`,
+  // The tool itself (`tool`) may be framed by this site only; tournament embeds (`embed`) by any site.
+  `frame-ancestors ${embed ? "*" : tool ? "'self'" : "'none'"}`,
   "base-uri 'self'",
   "form-action 'self'",
   "manifest-src 'self'",
@@ -43,12 +43,13 @@ const contactCsp = buildCsp({ map: true });
 /** Gamepad tester pages and the calibration tool they embed (vendor/dualshock-tools via /gamepad-tools). */
 const toolsHostCsp = buildCsp({ toolsHost: true });
 const toolCsp = buildCsp({ tool: true });
+/** /embed/tournaments/… — read-only bracket that other websites may show in an <iframe>. */
+const embedCsp = buildCsp({ embed: true });
 
 const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "X-Frame-Options", value: "DENY" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
   ...(isProd && isHttps ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
 ];
@@ -86,6 +87,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // Nothing may be framed by other sites, except the tournament embeds.
+      { source: "/((?!embed/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
       // Uploaded files (/media/...) send their own stricter policy ("default-src 'none'; sandbox").
       { source: "/((?!media/).*)", headers: [{ key: "Content-Security-Policy", value: csp }] },
       { source: "/contact", headers: [{ key: "Content-Security-Policy", value: contactCsp }] },
@@ -99,6 +102,7 @@ const nextConfig: NextConfig = {
       // Gamepad tester: the pages frame /gamepad-tools/… (same origin, WebHID allowed by `allow="hid"`).
       { source: "/partner/gamepad-tester", headers: [{ key: "Content-Security-Policy", value: toolsHostCsp }] },
       { source: "/gamepad-tools/:path*", headers: [{ key: "Content-Security-Policy", value: toolCsp }, { key: "X-Frame-Options", value: "SAMEORIGIN" }] },
+      { source: "/embed/:path*", headers: [{ key: "Content-Security-Policy", value: embedCsp }] },
     ];
   },
 };
