@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { isEliminationStage } from "./constants";
+import { markEntryForRefund } from "./entries";
 import {
   applyResult,
   BracketError,
@@ -73,6 +74,13 @@ export async function startTournament(id: string) {
   return db.$transaction(async (tx) => {
     const t = await lockTournament(tx, id);
     if (t.status !== "DRAFT" && t.status !== "REGISTRATION") throw new TournamentError("این تورنومنت قبلاً شروع شده است.");
+    let removed = 0;
+    if (t.checkInMinutes !== null) {
+      // Check-in: players who did not confirm attendance are removed (paid ones get a refund record).
+      const absent = await tx.tournamentParticipant.findMany({ where: { tournamentId: id, checkedInAt: null }, select: { id: true } });
+      for (const a of absent) await markEntryForRefund(tx, a.id, "حضور تأیید نشد (چک‌این)");
+      removed = (await tx.tournamentParticipant.deleteMany({ where: { id: { in: absent.map((a) => a.id) } } })).count;
+    }
     const participants = await tx.tournamentParticipant.findMany({ where: { tournamentId: id }, orderBy: [{ seed: "asc" }, { createdAt: "asc" }], select: { id: true } });
     const ids = participants.map((p) => p.id);
     if (ids.length < 2) throw new TournamentError("برای شروع حداقل ۲ شرکت‌کننده لازم است.");
@@ -103,6 +111,7 @@ export async function startTournament(id: string) {
     await persistSpecs(tx, id, specs, 1);
     await tx.tournament.update({ where: { id }, data: { status: "IN_PROGRESS", startedAt: new Date(), knockoutStarted: false, completedAt: null } });
     await refreshCompletion(tx, id);
+    return { removed };
   });
 }
 
@@ -111,12 +120,21 @@ export async function resetTournament(id: string) {
   await db.$transaction(async (tx) => {
     await lockTournament(tx, id);
     await tx.tournamentMatch.deleteMany({ where: { tournamentId: id } });
-    await tx.tournamentParticipant.updateMany({ where: { tournamentId: id }, data: { groupIndex: null, finalRank: null } });
+    await tx.tournamentParticipant.updateMany({ where: { tournamentId: id }, data: { groupIndex: null, finalRank: null, disqualifiedAt: null } });
     await tx.tournament.update({ where: { id }, data: { status: "REGISTRATION", startedAt: null, completedAt: null, knockoutStarted: false } });
   });
 }
 
-function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: number }, participants: { id: string; seed: number; groupIndex: number | null }[], matches: { stage: string; groupIndex: number | null; status: string; player1Id: string | null; player2Id: string | null; score1: number | null; score2: number | null }[]) {
+type ScoredMatch = { status: string; player1Id: string | null; player2Id: string | null; score1: number | null; score2: number | null; forfeit?: boolean; winnerSlot?: number | null };
+
+/** Completed matches as standings rows; a forfeit counts as a win/loss without goals. */
+function resultRows(matches: ScoredMatch[]) {
+  return matches
+    .filter((m) => m.status === "COMPLETED" && m.player1Id && m.player2Id && ((m.score1 !== null && m.score2 !== null) || (m.forfeit && m.winnerSlot)))
+    .map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1 ?? 0, score2: m.score2 ?? 0, winner: m.forfeit && (m.winnerSlot === 1 || m.winnerSlot === 2) ? (m.winnerSlot as 1 | 2) : undefined }));
+}
+
+function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: number }, participants: { id: string; seed: number; groupIndex: number | null }[], matches: (ScoredMatch & { stage: string; groupIndex: number | null })[]) {
   const groups = new Map<number, string[]>();
   for (const p of [...participants].sort((a, b) => a.seed - b.seed)) {
     if (p.groupIndex === null) continue;
@@ -126,9 +144,7 @@ function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: num
     groupIndex: gi,
     table: standings(
       members,
-      matches
-        .filter((m) => m.stage === "GROUP" && m.groupIndex === gi && m.status === "COMPLETED" && m.player1Id && m.player2Id && m.score1 !== null && m.score2 !== null)
-        .map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1!, score2: m.score2! })),
+      resultRows(matches.filter((m) => m.stage === "GROUP" && m.groupIndex === gi)),
       { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss },
     ),
   }));
@@ -169,7 +185,10 @@ function liveFrom(m: { id: string; player1Id: string | null; player2Id: string |
   };
 }
 
-async function writeLive(tx: Tx, live: Map<string, LiveMatch>, changed: string[], reportedId: string | null, scores: { score1: number | null; score2: number | null; note: string | null } | null) {
+type ScoreData = { score1: number | null; score2: number | null; note: string | null; setScores: string | null; forfeit: boolean };
+const NO_SCORE: ScoreData = { score1: null, score2: null, note: null, setScores: null, forfeit: false };
+
+async function writeLive(tx: Tx, live: Map<string, LiveMatch>, changed: string[], reportedId: string | null, scores: ScoreData | null) {
   for (const id of changed) {
     const l = live.get(id)!;
     const winnerId = l.status === "COMPLETED" && l.winnerSlot ? (l.winnerSlot === 1 ? l.player1 : l.player2) : null;
@@ -184,8 +203,9 @@ async function writeLive(tx: Tx, live: Map<string, LiveMatch>, changed: string[]
         winnerSlot: l.status === "PENDING" ? null : l.winnerSlot,
         winnerId,
         completedAt: l.status === "COMPLETED" ? new Date() : null,
+        ...(l.status === "COMPLETED" ? { underwayAt: null } : {}),
         // Clear stale scores when a match goes back to pending or loses a player.
-        ...(id === reportedId && scores ? scores : l.status === "PENDING" ? { score1: null, score2: null, note: null } : {}),
+        ...(id === reportedId && scores ? scores : l.status === "PENDING" ? NO_SCORE : {}),
       },
     });
   }
@@ -198,7 +218,71 @@ const BRACKET_MESSAGES: Record<BracketError["code"], string> = {
   bye: "این بازی استراحت (بای) است و نتیجه ندارد.",
 };
 
-export async function reportMatch(matchId: string, input: { score1: number; score2: number; winnerSlot?: 1 | 2; note: string }) {
+export interface ReportInput {
+  score1: number;
+  score2: number;
+  winnerSlot?: 1 | 2;
+  note: string;
+  /** Game/set scores, already validated ("3-1,2-3"); score1/score2 are then the sets won. */
+  setScores?: string | null;
+  /** Win without playing; winnerSlot is required and no score is stored. */
+  forfeit?: boolean;
+}
+
+type MatchRow = Awaited<ReturnType<Tx["tournamentMatch"]["findMany"]>>[number];
+
+/** Applies one result inside a locked transaction (elimination results move players on). */
+async function applyReport(tx: Tx, t: { knockoutStarted: boolean }, all: MatchRow[], m: MatchRow, input: ReportInput) {
+  const note = input.note || null;
+  const forfeit = !!input.forfeit;
+  const scores: ScoreData = forfeit
+    ? { score1: null, score2: null, note, setScores: null, forfeit: true }
+    : { score1: input.score1, score2: input.score2, note, setScores: input.setScores ?? null, forfeit: false };
+  if (forfeit && !input.winnerSlot) throw new TournamentError("برای برد فنی، برنده را انتخاب کنید.");
+  if (!isEliminationStage(m.stage)) {
+    if (m.stage === "GROUP" && t.knockoutStarted) throw new TournamentError("مرحلهٔ حذفی شروع شده و نتایج گروهی قفل است.");
+    if (!m.player1Id || !m.player2Id) throw new TournamentError(BRACKET_MESSAGES.not_ready);
+    const winnerSlot = forfeit ? input.winnerSlot! : input.score1 > input.score2 ? 1 : input.score1 < input.score2 ? 2 : null;
+    await tx.tournamentMatch.update({
+      where: { id: m.id },
+      data: { ...scores, status: "COMPLETED", underwayAt: null, winnerSlot, winnerId: winnerSlot === 1 ? m.player1Id : winnerSlot === 2 ? m.player2Id : null, completedAt: new Date() },
+    });
+    return;
+  }
+  const winnerSlot: 1 | 2 | undefined = forfeit ? input.winnerSlot : input.score1 > input.score2 ? 1 : input.score1 < input.score2 ? 2 : input.winnerSlot;
+  if (!winnerSlot) throw new TournamentError("در بازی حذفی مساوی، برنده را (مثلاً با پنالتی) مشخص کنید.");
+  const live = new Map(all.map((x) => [x.id, liveFrom(x)]));
+  const stage = new Map(all.map((x) => [x.id, x.stage as Stage]));
+  let changed: string[];
+  try {
+    changed = applyResult(live, m.id, winnerSlot, (k) => stage.get(k)!);
+  } catch (e) {
+    if (e instanceof BracketError) throw new TournamentError(BRACKET_MESSAGES[e.code]);
+    throw e;
+  }
+  await writeLive(tx, live, changed, m.id, scores);
+}
+
+/**
+ * Disqualified players lose every match they reach without playing (Challonge: "remove participant"
+ * during the tournament). Runs until no ready match involves a disqualified player.
+ */
+async function autoForfeit(tx: Tx, tournamentId: string) {
+  const dq = new Set((await tx.tournamentParticipant.findMany({ where: { tournamentId, disqualifiedAt: { not: null } }, select: { id: true } })).map((p) => p.id));
+  if (dq.size === 0) return;
+  const t = await tx.tournament.findUniqueOrThrow({ where: { id: tournamentId }, select: { knockoutStarted: true } });
+  for (let guard = 0; guard < 2000; guard++) {
+    const all = await tx.tournamentMatch.findMany({ where: { tournamentId } });
+    const m = all.find(
+      (x) => x.status === "PENDING" && x.player1Id && x.player2Id && !(x.stage === "GROUP" && t.knockoutStarted) && (dq.has(x.player1Id) || dq.has(x.player2Id)),
+    );
+    if (!m) return;
+    const winnerSlot: 1 | 2 = dq.has(m.player1Id!) && !dq.has(m.player2Id!) ? 2 : 1;
+    await applyReport(tx, t, all, m, { score1: 0, score2: 0, winnerSlot, note: "حذف بازیکن", forfeit: true });
+  }
+}
+
+export async function reportMatch(matchId: string, input: ReportInput) {
   return db.$transaction(async (tx) => {
     const match = await tx.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } });
     if (!match) throw new TournamentError("بازی پیدا نشد.");
@@ -206,33 +290,54 @@ export async function reportMatch(matchId: string, input: { score1: number; scor
     if (t.status !== "IN_PROGRESS" && t.status !== "COMPLETED") throw new TournamentError("تورنومنت در حال برگزاری نیست.");
     const all = await tx.tournamentMatch.findMany({ where: { tournamentId: t.id } });
     const m = all.find((x) => x.id === matchId)!;
-    const note = input.note || null;
-
-    if (!isEliminationStage(m.stage)) {
-      if (m.stage === "GROUP" && t.knockoutStarted) throw new TournamentError("مرحلهٔ حذفی شروع شده و نتایج گروهی قفل است.");
-      if (!m.player1Id || !m.player2Id) throw new TournamentError(BRACKET_MESSAGES.not_ready);
-      const winnerSlot = input.score1 > input.score2 ? 1 : input.score1 < input.score2 ? 2 : null;
-      await tx.tournamentMatch.update({
-        where: { id: m.id },
-        data: { score1: input.score1, score2: input.score2, note, status: "COMPLETED", winnerSlot, winnerId: winnerSlot === 1 ? m.player1Id : winnerSlot === 2 ? m.player2Id : null, completedAt: new Date() },
-      });
-    } else {
-      const winnerSlot: 1 | 2 | undefined = input.score1 > input.score2 ? 1 : input.score1 < input.score2 ? 2 : input.winnerSlot;
-      if (!winnerSlot) throw new TournamentError("در بازی حذفی مساوی، برنده را (مثلاً با پنالتی) مشخص کنید.");
-      const live = new Map(all.map((x) => [x.id, liveFrom(x)]));
-      const stage = new Map(all.map((x) => [x.id, x.stage as Stage]));
-      let changed: string[];
-      try {
-        changed = applyResult(live, m.id, winnerSlot, (k) => stage.get(k)!);
-      } catch (e) {
-        if (e instanceof BracketError) throw new TournamentError(BRACKET_MESSAGES[e.code]);
-        throw e;
-      }
-      await writeLive(tx, live, changed, m.id, { score1: input.score1, score2: input.score2, note });
-    }
+    await applyReport(tx, t, all, m, input);
+    await autoForfeit(tx, t.id);
     await refreshCompletion(tx, t.id);
     return t;
   });
+}
+
+/** «در حال بازی» on/off for a match whose two players are known. */
+export async function setMatchUnderway(matchId: string, on: boolean) {
+  return db.$transaction(async (tx) => {
+    const m = await tx.tournamentMatch.findUnique({ where: { id: matchId } });
+    if (!m) throw new TournamentError("بازی پیدا نشد.");
+    await lockTournament(tx, m.tournamentId);
+    if (m.status !== "PENDING" || !m.player1Id || !m.player2Id) throw new TournamentError("فقط بازی آمادهٔ انجام را می‌شود «در حال بازی» کرد.");
+    await tx.tournamentMatch.update({ where: { id: m.id }, data: { underwayAt: on ? new Date() : null } });
+    return m.tournamentId;
+  });
+}
+
+/** Station (console/table) and planned time of a match. */
+export async function setMatchDetails(matchId: string, details: { station: string | null; scheduledAt: Date | null }) {
+  const m = await db.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } });
+  if (!m) throw new TournamentError("بازی پیدا نشد.");
+  await db.tournamentMatch.update({ where: { id: matchId }, data: details });
+  return m.tournamentId;
+}
+
+/** Removes a player during the tournament: their pending matches are forfeited to the opponents. */
+export async function disqualifyParticipant(participantId: string) {
+  return db.$transaction(async (tx) => {
+    const p = await tx.tournamentParticipant.findUnique({ where: { id: participantId } });
+    if (!p) throw new TournamentError("شرکت‌کننده پیدا نشد.");
+    const t = await lockTournament(tx, p.tournamentId);
+    if (t.status !== "IN_PROGRESS") throw new TournamentError("حذف بازیکن وسط مسابقات فقط وقتی تورنومنت در حال برگزاری است ممکن است.");
+    if (p.disqualifiedAt) throw new TournamentError("این بازیکن قبلاً حذف شده است.");
+    await tx.tournamentParticipant.update({ where: { id: p.id }, data: { disqualifiedAt: new Date() } });
+    await autoForfeit(tx, t.id);
+    await refreshCompletion(tx, t.id);
+    return t;
+  });
+}
+
+/** Undoes a disqualification (results already forfeited stay; clear them by hand if needed). */
+export async function reinstateParticipant(participantId: string) {
+  const p = await db.tournamentParticipant.findUnique({ where: { id: participantId }, select: { tournamentId: true } });
+  if (!p) throw new TournamentError("شرکت‌کننده پیدا نشد.");
+  await db.tournamentParticipant.update({ where: { id: participantId }, data: { disqualifiedAt: null } });
+  return p.tournamentId;
 }
 
 export async function clearMatch(matchId: string) {
@@ -244,13 +349,13 @@ export async function clearMatch(matchId: string) {
     const m = all.find((x) => x.id === matchId)!;
     if (!isEliminationStage(m.stage)) {
       if (m.stage === "GROUP" && t.knockoutStarted) throw new TournamentError("مرحلهٔ حذفی شروع شده و نتایج گروهی قفل است.");
-      await tx.tournamentMatch.update({ where: { id: m.id }, data: { score1: null, score2: null, note: null, status: "PENDING", winnerSlot: null, winnerId: null, completedAt: null } });
+      await tx.tournamentMatch.update({ where: { id: m.id }, data: { ...NO_SCORE, status: "PENDING", winnerSlot: null, winnerId: null, completedAt: null } });
     } else {
       const live = new Map(all.map((x) => [x.id, liveFrom(x)]));
       const stage = new Map(all.map((x) => [x.id, x.stage as Stage]));
       try {
         const changed = clearResult(live, m.id, (k) => stage.get(k)!);
-        await writeLive(tx, live, changed, m.id, { score1: null, score2: null, note: null });
+        await writeLive(tx, live, changed, m.id, NO_SCORE);
       } catch (e) {
         if (e instanceof BracketError) throw new TournamentError(BRACKET_MESSAGES[e.code]);
         throw e;
@@ -282,7 +387,7 @@ async function refreshCompletion(tx: Tx, id: string) {
   if (t.status !== "COMPLETED") await tx.tournament.update({ where: { id }, data: { status: "COMPLETED", completedAt: new Date() } });
 }
 
-type RankMatch = { stage: string; round: number; status: string; player1Id: string | null; player2Id: string | null; winnerSlot: number | null; groupIndex: number | null; score1: number | null; score2: number | null };
+type RankMatch = { stage: string; round: number; status: string; player1Id: string | null; player2Id: string | null; winnerSlot: number | null; groupIndex: number | null; score1: number | null; score2: number | null; forfeit?: boolean };
 
 function computeRanks(
   t: { format: string; pointsWin: number; pointsDraw: number; pointsLoss: number },
@@ -295,7 +400,7 @@ function computeRanks(
 
   if (t.format === "ROUND_ROBIN") {
     const ids = [...participants].sort((a, b) => a.seed - b.seed).map((p) => p.id);
-    const table = standings(ids, matches.filter((m) => m.status === "COMPLETED" && m.player1Id && m.player2Id && m.score1 !== null && m.score2 !== null).map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1!, score2: m.score2! })), { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss });
+    const table = standings(ids, resultRows(matches), { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss });
     table.forEach((s, i) => ranks.set(s.id, i + 1));
     return ranks;
   }

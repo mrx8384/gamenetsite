@@ -26,6 +26,8 @@ export interface TournamentFormValues {
   startsAtLocal: string; // yyyy-MM-ddTHH:mm in Tehran time
   format: TournamentFormatKey;
   maxParticipants: string;
+  /** Minutes before the start (empty = no check-in). */
+  checkInMinutes: string;
   allowSelfRegistration: boolean;
   thirdPlaceMatch: boolean;
   doubleRoundRobin: boolean;
@@ -48,6 +50,7 @@ export const emptyTournament: TournamentFormValues = {
   startsAtLocal: "",
   format: "SINGLE_ELIMINATION",
   maxParticipants: "16",
+  checkInMinutes: "",
   allowSelfRegistration: true,
   thirdPlaceMatch: true,
   doubleRoundRobin: false,
@@ -112,6 +115,12 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
             <Label htmlFor="t-max">ظرفیت (اختیاری)</Label>
             <Input id="t-max" inputMode="numeric" dir="ltr" className="text-start" value={v.maxParticipants} onChange={text("maxParticipants")} aria-invalid={!!errors.maxParticipants} />
             {err("maxParticipants")}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="t-checkin">چک‌این — دقیقه قبل از شروع (اختیاری)</Label>
+            <Input id="t-checkin" inputMode="numeric" dir="ltr" className="text-start" value={v.checkInMinutes} onChange={text("checkInMinutes")} placeholder="مثلاً 30" aria-invalid={!!errors.checkInMinutes} aria-describedby="t-checkin-help" />
+            <p id="t-checkin-help" className="text-xs leading-5 text-muted-foreground">اگر بگذارید، بازیکنان باید در این بازه حضورشان را تأیید کنند؛ موقع شروع، کسانی که تأیید نکرده‌اند حذف می‌شوند. شما هم می‌توانید برای هر نفر دستی تأیید کنید.</p>
+            {err("checkInMinutes")}
           </div>
         </div>
 

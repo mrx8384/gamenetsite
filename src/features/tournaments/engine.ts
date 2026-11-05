@@ -289,7 +289,12 @@ export interface ResultRow {
   player2: string;
   score1: number;
   score2: number;
+  /** Set for forfeits (no real score): decides the result instead of the scores. */
+  winner?: 1 | 2;
 }
+
+/** 1 / 2 / 0 (draw) for a result row. */
+const outcome = (r: ResultRow): 0 | 1 | 2 => r.winner ?? (r.score1 > r.score2 ? 1 : r.score1 < r.score2 ? 2 : 0);
 
 export interface Standing {
   id: string;
@@ -316,12 +321,13 @@ export function standings(players: string[], results: ResultRow[], pts: { win: n
     a.goalsAgainst += r.score2;
     b.goalsFor += r.score2;
     b.goalsAgainst += r.score1;
-    if (r.score1 > r.score2) {
+    const o = outcome(r);
+    if (o === 1) {
       a.won++;
       b.lost++;
       a.points += pts.win;
       b.points += pts.loss;
-    } else if (r.score1 < r.score2) {
+    } else if (o === 2) {
       b.won++;
       a.lost++;
       b.points += pts.win;
@@ -341,10 +347,11 @@ export function standings(players: string[], results: ResultRow[], pts: { win: n
     for (const r of results) {
       const pair = (r.player1 === x && r.player2 === y) || (r.player1 === y && r.player2 === x);
       if (!pair) continue;
-      const sx = r.player1 === x ? r.score1 : r.score2;
-      const sy = r.player1 === x ? r.score2 : r.score1;
-      if (sx > sy) px += pts.win;
-      else if (sx < sy) py += pts.win;
+      const o = outcome(r);
+      const xWon = o === (r.player1 === x ? 1 : 2);
+      const yWon = o === (r.player1 === x ? 2 : 1);
+      if (xWon) px += pts.win;
+      else if (yWon) py += pts.win;
       else {
         px += pts.draw;
         py += pts.draw;
@@ -355,6 +362,33 @@ export function standings(players: string[], results: ResultRow[], pts: { win: n
   return [...table.values()].sort(
     (a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || h2h(a.id, b.id) || seedIndex.get(a.id)! - seedIndex.get(b.id)!,
   );
+}
+
+// ───────────── Set scores ─────────────
+
+/**
+ * Parses game/set scores typed by the organizer: "3-1, 2-3, 5-4" (Persian digits and separators allowed).
+ * Returns null for an empty input and "invalid" for anything malformed.
+ */
+export function parseSetScores(input: string): { sets: [number, number][]; won1: number; won2: number; text: string } | null | "invalid" {
+  const norm = input
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[،;|]/g, ",")
+    .replace(/[–—:]/g, "-")
+    .trim();
+  if (!norm) return null;
+  const parts = norm.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0 || parts.length > 15) return "invalid";
+  const sets: [number, number][] = [];
+  for (const p of parts) {
+    const m = /^(\d{1,3})\s*-\s*(\d{1,3})$/.exec(p);
+    if (!m) return "invalid";
+    sets.push([Number(m[1]), Number(m[2])]);
+  }
+  const won1 = sets.filter(([a, b]) => a > b).length;
+  const won2 = sets.filter(([a, b]) => b > a).length;
+  return { sets, won1, won2, text: sets.map(([a, b]) => `${a}-${b}`).join(",") };
 }
 
 // ───────────── Labels ─────────────

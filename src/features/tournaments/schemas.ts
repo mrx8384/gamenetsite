@@ -2,6 +2,7 @@ import { z } from "zod";
 import { toEnglishDigits } from "@/lib/format";
 import { parseTomanToRial } from "@/lib/text";
 import { MAX_PARTICIPANTS, TOURNAMENT_FORMATS } from "./constants";
+import { parseSetScores } from "./engine";
 
 const optionalText = (max: number) => z.string().trim().max(max, `حداکثر ${max.toLocaleString("fa-IR")} کاراکتر`).default("");
 const intField = (min: number, max: number, msg: string) =>
@@ -32,6 +33,8 @@ export const tournamentSchema = z
     format: z.enum(TOURNAMENT_FORMATS, "نوع تورنومنت را انتخاب کنید"),
     maxParticipants: optionalInt(2, MAX_PARTICIPANTS, `ظرفیت باید بین ۲ و ${MAX_PARTICIPANTS.toLocaleString("fa-IR")} باشد`),
     allowSelfRegistration: z.boolean().default(true),
+    /** Check-in opens this many minutes before the start (empty = no check-in). */
+    checkInMinutes: optionalInt(5, 1440, "زمان چک‌این باید بین ۵ تا ۱۴۴۰ دقیقه باشد"),
     thirdPlaceMatch: z.boolean().default(false),
     doubleRoundRobin: z.boolean().default(false),
     groupCount: optionalInt(1, 16, "تعداد گروه‌ها باید بین ۱ و ۱۶ باشد"),
@@ -47,6 +50,7 @@ export const tournamentSchema = z
       if (v.groupCount && v.advancePerGroup && v.groupCount * v.advancePerGroup < 2) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "حداقل ۲ نفر باید به مرحلهٔ حذفی صعود کنند" });
     }
     if (v.entryFeeToman > BigInt(0) && !v.allowSelfRegistration) ctx.addIssue({ code: "custom", path: ["entryFeeToman"], message: "هزینهٔ آنلاین فقط وقتی معنا دارد که ثبت‌نام آنلاین باز باشد" });
+    if (v.checkInMinutes && !v.startsAt) ctx.addIssue({ code: "custom", path: ["checkInMinutes"], message: "برای چک‌این، زمان شروع را مشخص کنید" });
     if (v.pointsWin < v.pointsDraw) ctx.addIssue({ code: "custom", path: ["pointsWin"], message: "امتیاز برد باید از امتیاز مساوی کمتر نباشد" });
   });
 
@@ -54,9 +58,41 @@ export type TournamentInput = z.input<typeof tournamentSchema>;
 
 export const participantNameSchema = z.string().trim().min(2, "نام حداقل ۲ کاراکتر").max(60, "حداکثر ۶۰ کاراکتر");
 
-export const scoreSchema = z.object({
-  score1: intField(0, 99, "امتیاز معتبر نیست"),
-  score2: intField(0, 99, "امتیاز معتبر نیست"),
-  winnerSlot: z.union([z.literal(1), z.literal(2)]).optional(),
-  note: z.string().trim().max(200).default(""),
+const optionalScore = z.preprocess((v) => (v === "" || v === null || v === undefined ? undefined : typeof v === "string" ? toEnglishDigits(v).trim() : v), z.coerce.number("امتیاز معتبر نیست").int("امتیاز معتبر نیست").min(0, "امتیاز معتبر نیست").max(999, "امتیاز معتبر نیست").optional());
+
+/**
+ * Result of a match. Either a score, game/set scores ("3-1, 2-3" → sets won become the score), or a
+ * forfeit win (no score, winner chosen).
+ */
+export const scoreSchema = z
+  .object({
+    score1: optionalScore,
+    score2: optionalScore,
+    winnerSlot: z.union([z.literal(1), z.literal(2)]).optional(),
+    note: z.string().trim().max(200).default(""),
+    setScores: z.string().trim().max(120).default(""),
+    forfeit: z.boolean().default(false),
+  })
+  .transform((v, ctx) => {
+    if (v.forfeit) {
+      if (!v.winnerSlot) ctx.addIssue({ code: "custom", path: ["winnerSlot"], message: "برای برد فنی، برنده را انتخاب کنید" });
+      return { score1: 0, score2: 0, winnerSlot: v.winnerSlot, note: v.note, setScores: null, forfeit: true };
+    }
+    if (v.setScores) {
+      const sets = parseSetScores(v.setScores);
+      if (sets === "invalid" || sets === null) {
+        ctx.addIssue({ code: "custom", path: ["setScores"], message: "نتیجهٔ دست‌ها را مثل «3-1, 2-3» بنویسید" });
+        return z.NEVER;
+      }
+      return { score1: sets.won1, score2: sets.won2, winnerSlot: v.winnerSlot, note: v.note, setScores: sets.text, forfeit: false };
+    }
+    if (v.score1 === undefined) ctx.addIssue({ code: "custom", path: ["score1"], message: "امتیاز را وارد کنید" });
+    if (v.score2 === undefined) ctx.addIssue({ code: "custom", path: ["score2"], message: "امتیاز را وارد کنید" });
+    return { score1: v.score1 ?? 0, score2: v.score2 ?? 0, winnerSlot: v.winnerSlot, note: v.note, setScores: null, forfeit: false };
+  });
+
+export const matchDetailsSchema = z.object({
+  station: z.string().trim().max(40, "حداکثر ۴۰ کاراکتر").default(""),
+  /** ISO string (the browser converts Tehran local time) or empty. */
+  scheduledAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "زمان معتبر نیست"),
 });

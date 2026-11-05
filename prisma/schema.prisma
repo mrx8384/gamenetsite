@@ -787,6 +787,8 @@ model Tournament {
   rules                 String?          @db.VarChar(5000)
   prize                 String?          @db.VarChar(500)
   entryFeeNote          String?          @db.VarChar(200)
+  /// Check-in opens this many minutes before startsAt (null = no check-in). Not checked in at start → removed.
+  checkInMinutes        Int?
   /// Online registration fee in Rials (0 = free). Paid through the site's payment gateway.
   entryFee              BigInt           @default(0)
   startsAt              DateTime?
@@ -820,14 +822,18 @@ model Tournament {
 }
 
 model TournamentParticipant {
-  id           String   @id @default(cuid())
-  tournamentId String
-  userId       String?
-  name         String   @db.VarChar(60)
-  seed         Int
-  groupIndex   Int?
-  finalRank    Int?
-  createdAt    DateTime @default(now())
+  id             String    @id @default(cuid())
+  tournamentId   String
+  userId         String?
+  name           String    @db.VarChar(60)
+  seed           Int
+  groupIndex     Int?
+  finalRank      Int?
+  /// Confirmed attendance during the check-in window (or by the organizer).
+  checkedInAt    DateTime?
+  /// Removed during the tournament: remaining matches are forfeited to the opponents.
+  disqualifiedAt DateTime?
+  createdAt      DateTime  @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -908,6 +914,15 @@ model TournamentMatch {
   loserMatchId String?
   loserSlot    Int?
   note         String?     @db.VarChar(200)
+  /// Game/set scores, e.g. "3-1,2-3" (score1/score2 then hold sets won).
+  setScores    String?     @db.VarChar(120)
+  /// Won without playing (opponent absent or disqualified).
+  forfeit      Boolean     @default(false)
+  /// Marked «در حال بازی» by the organizer.
+  underwayAt   DateTime?
+  /// Console / table / station, e.g. "PS5 شماره ۳".
+  station      String?     @db.VarChar(40)
+  scheduledAt  DateTime?
   completedAt  DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

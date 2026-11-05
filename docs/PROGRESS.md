@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-11-05 (58) — Tournaments: Challonge-style phase 1 (owner request: «تمامی کارهایی که داخل challonge.com می‌شود»)
+
+Gap list vs Challonge, split in phases. **Phase 1 (this entry):**
+- **Match management:** «در حال بازی» (`underwayAt`, highlighted card + live strip on the public page), station/console (`station`) and planned time (`scheduledAt`) per match; results as score, **game/set scores** (`setScores` "3-1,2-3"; sets won become the score; `parseSetScores`, Persian digits ok) or **forfeit win** (`forfeit`, no score; counts as win/loss in standings via `ResultRow.winner`). Result dialog with three modes + details box.
+- **Disqualify during the tournament** (`disqualifiedAt`; `disqualifyParticipant` / `reinstateParticipant`): `autoForfeit` gives every ready match of a disqualified player to the opponent, now and whenever the bracket brings them a new match (works for elimination, double elimination incl. losers bracket, round robin, groups). Reset clears it. Public list strikes the name.
+- **Check-in:** `Tournament.checkInMinutes`; window = N minutes before `startsAt` (`checkInOpen`); players confirm on the tournament page, organizers can confirm per player; starting removes those not checked in (paid entries → REFUND_NEEDED), start dialog warns with the count.
+- **Bracket view:** `bracket-layout.ts` (pure, tested) — columns right-to-left, each match midway between its feeders, SVG connector lines (green when decided), fixed-size cards; «نمایش تلویزیون» (full screen) and «چاپ جدول» (header/footer/support widget hidden in print).
+- Migration `tournament_match_details`.
+
+Next phases: (2) Swiss, free-for-all/leaderboard, double-elimination grand-final options, round-robin tie-break options; (3) player self-reporting with organizer approval, teams, custom sign-up questions, co-organizers, waitlist, CSV export, embed widget, predictions.
+
+Verified: typecheck, lint, 462 unit tests (new `tournament-phase1.test.ts`), build; DB scenario: double elimination with a player disqualified at the start → both of his matches forfeited, tournament completed; round robin DQ mid-way → remaining matches forfeited, ranks computed; check-in removed the 3 unconfirmed players; underway/station saved and cleared by the result. Browser: bracket lines, set scores and forfeit labels, result dialog modes, disqualify, public check-in and organizer count, print hides site chrome. Test data removed.
+
 ## 2026-11-05 (57) — Gamepad tester moved from Tournaments to the partner area (owner request)
 
 - `/tournaments/gamepad-tester` page removed; the tester lives only at `/partner/gamepad-tester` (partner area, partner's own look while subscribed; access unchanged: partners with the entitlement + admins). Old links get a permanent redirect (`redirects()` in `next.config.ts`); the tester CSP rule now targets `/partner/gamepad-tester` only.

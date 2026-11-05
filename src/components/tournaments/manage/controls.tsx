@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Ban, ExternalLink, ListPlus, Megaphone, Play, RotateCcw, Shuffle, Trash2, Undo2, UserPlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Ban, Check, ExternalLink, ListPlus, Megaphone, Play, RotateCcw, Shuffle, Trash2, Undo2, UserPlus, UserX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -14,7 +14,10 @@ import {
   addParticipantsBulk,
   type BulkAddResult,
   deleteTournament,
+  disqualifyParticipant,
   moveParticipant,
+  reinstateParticipant,
+  setParticipantCheckIn,
   removeParticipant,
   resetTournament,
   setTournamentStatus,
@@ -41,7 +44,7 @@ function useAction() {
 
 type Confirm = { title: string; description: string; label: string; destructive?: boolean; fn: () => Promise<ActionResult<unknown>>; after?: () => void };
 
-export function StatusControls({ id, slug, status, participantCount, basePath }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string }) {
+export function StatusControls({ id, slug, status, participantCount, basePath, notCheckedIn = null }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string; notCheckedIn?: number | null }) {
   const { pending, run, router } = useAction();
   const [confirm, setConfirm] = React.useState<Confirm | null>(null);
   const started = status === "IN_PROGRESS" || status === "COMPLETED";
@@ -54,7 +57,14 @@ export function StatusControls({ id, slug, status, participantCount, basePath }:
         <Button
           variant={status === "REGISTRATION" ? "default" : "outline"}
           disabled={participantCount < 2}
-          onClick={() => setConfirm({ title: "شروع تورنومنت؟", description: "ثبت‌نام بسته و جدول بازی‌ها بر اساس ترتیب فعلی شرکت‌کنندگان ساخته می‌شود. فهرست شرکت‌کنندگان بعد از شروع قفل است.", label: "شروع و ساخت جدول", fn: () => startTournament(id) })}
+          onClick={() =>
+            setConfirm({
+              title: "شروع تورنومنت؟",
+              description: `ثبت‌نام بسته و جدول بازی‌ها بر اساس ترتیب فعلی شرکت‌کنندگان ساخته می‌شود. فهرست شرکت‌کنندگان بعد از شروع قفل است.${notCheckedIn ? ` ${notCheckedIn.toLocaleString("fa-IR")} نفر حضورشان را تأیید نکرده‌اند و حذف می‌شوند.` : ""}`,
+              label: "شروع و ساخت جدول",
+              fn: () => startTournament(id),
+            })
+          }
         >
           <Play /> شروع تورنومنت
         </Button>
@@ -98,8 +108,27 @@ export function StatusControls({ id, slug, status, participantCount, basePath }:
   );
 }
 
-export function ParticipantsManager({ tournamentId, participants, editable, max }: { tournamentId: string; participants: { id: string; name: string; seed: number; userId: string | null; finalRank: number | null }[]; editable: boolean; max: number | null }) {
-  const { pending, run } = useAction();
+type ManagedParticipant = { id: string; name: string; seed: number; userId: string | null; finalRank: number | null; checkedInAt: Date | null; disqualifiedAt: Date | null };
+
+export function ParticipantsManager({
+  tournamentId,
+  participants,
+  editable,
+  max,
+  checkIn = false,
+  inProgress = false,
+}: {
+  tournamentId: string;
+  participants: ManagedParticipant[];
+  editable: boolean;
+  max: number | null;
+  /** The tournament uses check-in (organizer can confirm for each player). */
+  checkIn?: boolean;
+  /** Running: players can be disqualified (their remaining matches go to the opponents). */
+  inProgress?: boolean;
+}) {
+  const { pending, run, router } = useAction();
+  const [dq, setDq] = React.useState<ManagedParticipant | null>(null);
   const [name, setName] = React.useState("");
   const fa = (n: number) => n.toLocaleString("fa-IR");
   return (
@@ -119,8 +148,11 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
         <BulkAdd tournamentId={tournamentId} free={max ? Math.max(0, max - participants.length) : null} />
         </>
       ) : (
-        <p className="text-xs text-muted-foreground">بعد از شروع تورنومنت، فهرست شرکت‌کنندگان قفل است.</p>
+        <p className="text-xs text-muted-foreground">بعد از شروع تورنومنت، فهرست شرکت‌کنندگان قفل است.{inProgress ? " برای کنار گذاشتن بازیکنی که نمی‌آید، «حذف از مسابقات» را بزنید." : ""}</p>
       )}
+      {editable && checkIn ? (
+        <p className="rounded-lg bg-info-soft p-2 text-xs text-info">چک‌این فعال است: {fa(participants.filter((p) => p.checkedInAt).length)} از {fa(participants.length)} نفر حضورشان را تأیید کرده‌اند.</p>
+      ) : null}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{fa(participants.length)}{max ? ` از ${fa(max)}` : ""} نفر — ترتیب فهرست همان سیدبندی است.</span>
         {editable && participants.length > 1 ? <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => shuffleParticipants(tournamentId))}><Shuffle /> ترتیب تصادفی</Button> : null}
@@ -135,6 +167,26 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
               <span className="flex-1 truncate font-medium">{p.name}</span>
               {p.userId ? <span className="text-xs text-success">ثبت‌نام آنلاین</span> : <span className="text-xs text-muted-foreground">دستی</span>}
               {p.finalRank ? <span className="text-xs font-bold">رتبهٔ {fa(p.finalRank)}</span> : null}
+              {editable && checkIn ? (
+                <Button
+                  variant={p.checkedInAt ? "secondary" : "outline"}
+                  size="sm"
+                  className={p.checkedInAt ? "text-success" : ""}
+                  disabled={pending}
+                  onClick={() => run(() => setParticipantCheckIn(p.id, !p.checkedInAt))}
+                  aria-label={p.checkedInAt ? `برداشتن تأیید حضور ${p.name}` : `تأیید حضور ${p.name}`}
+                >
+                  {p.checkedInAt ? <><Check /> حاضر</> : "تأیید حضور"}
+                </Button>
+              ) : null}
+              {p.disqualifiedAt ? (
+                <>
+                  <span className="text-xs font-bold text-destructive">حذف‌شده</span>
+                  {inProgress ? <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => reinstateParticipant(p.id))}>برگرداندن</Button> : null}
+                </>
+              ) : inProgress ? (
+                <Button variant="ghost" size="sm" className="text-destructive" disabled={pending} onClick={() => setDq(p)}><UserX /> حذف از مسابقات</Button>
+              ) : null}
               {editable ? (
                 <span className="flex">
                   <Button variant="ghost" size="icon-sm" aria-label={`بالا بردن ${p.name}`} disabled={pending || i === 0} onClick={() => run(() => moveParticipant(p.id, "up"))}><ArrowUp /></Button>
@@ -146,6 +198,22 @@ export function ParticipantsManager({ tournamentId, participants, editable, max 
           ))}
         </ol>
       )}
+      <ConfirmDialog
+        open={dq !== null}
+        onOpenChange={(o) => !o && setDq(null)}
+        destructive
+        title={dq ? `حذف «${dq.name}» از مسابقات؟` : ""}
+        description="همهٔ بازی‌های باقی‌ماندهٔ این بازیکن (از جمله بازی‌هایی که بعداً به آن‌ها می‌رسد) با برد فنی به حریفش داده می‌شود. نتیجه‌های قبلی او می‌مانند."
+        confirmLabel="حذف از مسابقات"
+        onConfirm={async () => {
+          if (!dq) return;
+          const res = await disqualifyParticipant(dq.id);
+          if (!res.ok) return void toast.error(res.error);
+          toast.success(res.message);
+          setDq(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

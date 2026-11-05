@@ -51,3 +51,8 @@ export const MAX_PARTICIPANTS = 256;
 export const RESERVED_SLUGS = new Set(["gamepad-tester", "new"]);
 
 export const groupName = (i: number) => `گروه ${"ABCDEFGHIJKLMNOP"[i] ?? i + 1}`;
+
+/** The check-in window: from `minutes` before the start until the organizer starts the tournament. Pure. */
+export function checkInOpen(startsAt: Date, minutes: number, now = new Date()): boolean {
+  return now.getTime() >= startsAt.getTime() - minutes * 60_000;
+}

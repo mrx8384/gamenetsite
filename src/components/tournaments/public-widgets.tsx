@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerForTournament, withdrawFromTournament } from "@/features/tournaments/actions";
+import { checkInToTournament, registerForTournament, withdrawFromTournament } from "@/features/tournaments/actions";
 
 /** Re-renders the page every 30 s while a tournament is running (new results appear without reload). */
 export function LiveRefresh({ active }: { active: boolean }) {
@@ -30,6 +30,7 @@ export function RegistrationBox({
   slug,
   feeLabel,
   paid = false,
+  checkIn,
 }: {
   tournamentId: string;
   state: "guest" | "open" | "registered" | "full";
@@ -40,6 +41,8 @@ export function RegistrationBox({
   feeLabel?: string;
   /** The player paid online (withdrawing goes through support). */
   paid?: boolean;
+  /** Check-in state when the tournament uses check-in. */
+  checkIn?: { open: boolean; done: boolean; opensAt: string };
 }) {
   const router = useRouter();
   const [name, setName] = React.useState(defaultName);
@@ -59,6 +62,31 @@ export function RegistrationBox({
     return (
       <div className="space-y-2 text-sm">
         <p className="font-bold text-success">شما با نام «{entryName}» ثبت‌نام کرده‌اید.{paid ? " هزینهٔ ثبت‌نام پرداخت شده است." : ""}</p>
+        {checkIn ? (
+          checkIn.done ? (
+            <p className="font-semibold text-success">✓ حضور شما تأیید شده است.</p>
+          ) : checkIn.open ? (
+            <div className="space-y-1 rounded-lg border border-warning/40 bg-warning-soft p-3">
+              <p className="font-semibold">چک‌این باز است: حضورتان را تأیید کنید، وگرنه موقع شروع از فهرست حذف می‌شوید.</p>
+              <Button
+                size="sm"
+                loading={pending}
+                onClick={() =>
+                  startTransition(async () => {
+                    const res = await checkInToTournament(tournamentId);
+                    if (!res.ok) return void toast.error(res.error);
+                    toast.success(res.message);
+                    router.refresh();
+                  })
+                }
+              >
+                تأیید حضور (چک‌این)
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">چک‌این از {new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "Asia/Tehran", dateStyle: "medium", timeStyle: "short" }).format(new Date(checkIn.opensAt))} باز می‌شود؛ آن موقع حضورتان را تأیید کنید.</p>
+          )
+        ) : null}
         {paid ? (
           <p className="text-muted-foreground">برای انصراف و بازگشت هزینه با پشتیبانی اتم تماس بگیرید.</p>
         ) : (

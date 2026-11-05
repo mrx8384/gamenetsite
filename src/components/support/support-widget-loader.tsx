@@ -14,7 +14,9 @@ async function Loader() {
 export function SupportWidgetLoader() {
   return (
     <Suspense fallback={null}>
-      <Loader />
+      <div className="print:hidden">
+        <Loader />
+      </div>
     </Suspense>
   );
 }

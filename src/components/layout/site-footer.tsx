@@ -29,7 +29,7 @@ export async function SiteFooter() {
   const [general, contact, visibility] = await Promise.all([getSiteSettings("general"), getSiteSettings("contact"), getSectionVisibility()]);
   const hasContact = contact.phone || contact.mobile || contact.email || contact.address || contact.hours;
   return (
-    <footer className="mt-auto bg-brand-black text-brand-cream">
+    <footer className="mt-auto print:hidden bg-brand-black text-brand-cream">
       <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
         <div className="space-y-4">
           <div className="flex items-center gap-3">

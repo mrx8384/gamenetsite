@@ -7,10 +7,10 @@ import type { TournamentFormatKey, TournamentStatusKey } from "./constants";
 
 const include = {
   organizer: { select: { role: true, name: true, partnerProfile: { select: { businessName: true } } } },
-  participants: { orderBy: [{ seed: "asc" }, { createdAt: "asc" }], select: { id: true, name: true, seed: true, groupIndex: true, finalRank: true, userId: true } },
+  participants: { orderBy: [{ seed: "asc" }, { createdAt: "asc" }], select: { id: true, name: true, seed: true, groupIndex: true, finalRank: true, userId: true, checkedInAt: true, disqualifiedAt: true } },
   matches: {
     orderBy: { number: "asc" },
-    select: { id: true, stage: true, round: true, position: true, groupIndex: true, number: true, player1Id: true, player2Id: true, player1Bye: true, player2Bye: true, score1: true, score2: true, winnerSlot: true, status: true, note: true },
+    select: { id: true, stage: true, round: true, position: true, groupIndex: true, number: true, player1Id: true, player2Id: true, player1Bye: true, player2Bye: true, score1: true, score2: true, winnerSlot: true, status: true, note: true, setScores: true, forfeit: true, underwayAt: true, station: true, scheduledAt: true, nextMatchId: true, nextSlot: true },
   },
 } satisfies Prisma.TournamentInclude;
 
@@ -41,6 +41,8 @@ export interface TournamentView {
   pointsDraw: number;
   pointsLoss: number;
   knockoutStarted: boolean;
+  /** Check-in opens this many minutes before the start (null = no check-in). */
+  checkInMinutes: number | null;
   organizerId: string | null;
   organizerName: string;
   participants: Row["participants"];
@@ -73,6 +75,7 @@ function toView(t: Row): TournamentView {
     pointsDraw: t.pointsDraw,
     pointsLoss: t.pointsLoss,
     knockoutStarted: t.knockoutStarted,
+    checkInMinutes: t.checkInMinutes,
     organizerId: t.organizerId,
     organizerName,
     participants: t.participants,

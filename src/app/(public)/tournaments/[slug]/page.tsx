@@ -12,7 +12,7 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
+import { checkInOpen, FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
 import { getPublicTournament, type TournamentView } from "@/features/tournaments/queries";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { formatDateTime, formatNumber, formatToman } from "@/lib/format";
@@ -71,7 +71,7 @@ async function TournamentContent({ params, searchParams }: { params: Promise<{ s
       </header>
 
       {t.status === "REGISTRATION" && t.allowSelfRegistration ? (
-        <Card className="border-brand-green/40">
+        <Card className="border-brand-green/40 print:hidden">
           <CardHeader><CardTitle className="text-base">ثبت‌نام</CardTitle></CardHeader>
           <CardContent>
             <Suspense fallback={<Skeleton className="h-10 w-64" />}>
@@ -83,7 +83,7 @@ async function TournamentContent({ params, searchParams }: { params: Promise<{ s
 
       {t.status === "CANCELLED" ? <p className="rounded-xl bg-destructive-soft p-4 text-sm font-medium text-destructive">این تورنومنت لغو شده است.</p> : null}
 
-      <TournamentBoard t={t} />
+      <TournamentBoard t={t} tools />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Participants t={t} />
@@ -107,10 +107,14 @@ async function Registration({ t }: { t: TournamentView }) {
   if (!user) return <RegistrationBox tournamentId={t.id} slug={t.slug} state="guest" defaultName="" />;
   // Read live (the tournament view is cached): a payment may have just added this player.
   const [mine, refund] = await Promise.all([
-    db.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: user.id }, select: { name: true, paidEntry: { select: { status: true } } } }),
+    db.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: user.id }, select: { name: true, checkedInAt: true, paidEntry: { select: { status: true } } } }),
     db.tournamentEntry.findFirst({ where: { tournamentId: t.id, userId: user.id, status: "REFUND_NEEDED" }, select: { id: true } }),
   ]);
-  if (mine) return <RegistrationBox tournamentId={t.id} slug={t.slug} state="registered" defaultName="" entryName={mine.name} paid={mine.paidEntry?.status === "PAID"} />;
+  const checkIn =
+    t.checkInMinutes !== null && t.startsAt
+      ? { open: checkInOpen(new Date(t.startsAt), t.checkInMinutes), done: !!mine?.checkedInAt, opensAt: new Date(new Date(t.startsAt).getTime() - t.checkInMinutes * 60_000).toISOString() }
+      : undefined;
+  if (mine) return <RegistrationBox tournamentId={t.id} slug={t.slug} state="registered" defaultName="" entryName={mine.name} paid={mine.paidEntry?.status === "PAID"} checkIn={checkIn} />;
   const full = t.maxParticipants !== null && t.participants.length >= t.maxParticipants;
   return (
     <div className="space-y-3">
@@ -133,7 +137,8 @@ function Participants({ t }: { t: TournamentView }) {
             {list.map((p) => (
               <li key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 odd:bg-secondary/50">
                 <span className="w-8 text-muted-foreground">{t.status === "COMPLETED" && p.finalRank ? `#${formatNumber(p.finalRank)}` : formatNumber(p.seed)}</span>
-                <span className="truncate font-medium">{p.name}</span>
+                <span className={p.disqualifiedAt ? "truncate font-medium text-muted-foreground line-through" : "truncate font-medium"}>{p.name}</span>
+                {p.disqualifiedAt ? <span className="text-xs text-destructive">حذف‌شده</span> : null}
                 {p.groupIndex !== null && t.format === "GROUPS_KNOCKOUT" ? <span className="ms-auto text-xs text-muted-foreground">{groupName(p.groupIndex)}</span> : null}
               </li>
             ))}

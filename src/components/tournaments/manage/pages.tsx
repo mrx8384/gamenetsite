@@ -79,6 +79,7 @@ function formValues(t: TournamentView): TournamentFormValues {
     startsAtLocal: isoToTehranInput(t.startsAt),
     format: t.format,
     maxParticipants: t.maxParticipants?.toString() ?? "",
+    checkInMinutes: t.checkInMinutes?.toString() ?? "",
     allowSelfRegistration: t.allowSelfRegistration,
     thirdPlaceMatch: t.thirdPlaceMatch,
     doubleRoundRobin: t.doubleRoundRobin,
@@ -103,7 +104,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
           <Badge variant={STATUS_BADGE[t.status]}>{STATUS_LABELS[t.status]}</Badge>
           <span className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format]} · {t.game}</span>
         </div>
-        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} />
+        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} notCheckedIn={t.checkInMinutes !== null ? t.participants.filter((p) => !p.checkedInAt).length : null} />
         {t.status === "DRAFT" ? <p className="text-sm text-muted-foreground">پیش‌نویس در سایت نمایش داده نمی‌شود. با «انتشار» ثبت‌نام باز و تورنومنت در صفحهٔ تورنومنت‌ها دیده می‌شود.</p> : null}
       </div>
       {started ? (
@@ -117,7 +118,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader><CardTitle className="text-base">شرکت‌کنندگان</CardTitle></CardHeader>
-          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} /></CardContent>
+          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} checkIn={t.checkInMinutes !== null} inProgress={t.status === "IN_PROGRESS"} /></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">تنظیمات</CardTitle></CardHeader>

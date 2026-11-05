@@ -52,6 +52,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - White-label partner area + partner logo approval + automatic product codes (owner request 2026-11-04): **done** — route group `src/app/(partner)` (`partner-shell.tsx`, `getPartnerBranding`): subscribed partners see their own logo/name and no Atom logo in `/partner/**`; logo sent by the partner, used after admin approval (`logo-actions.ts`); SKU empty → `ATM-00001…`. PROGRESS 52.
 - Partner prices (owner request 2026-11-04): **done** — `Product.partnerPrice`, `PartnerProfile.showPartnerPrices` (asked at approval, switch on the partner page; not tied to subscriptions); shown per request only (`src/features/partners/pricing.ts`, never in cached output) and charged in cart/checkout via `effectiveUnitPrice`. PROGRESS 53.
 - Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54–56; moved to the partner area — PROGRESS 57.
+- Tournaments Challonge parity (owner request 2026-11-05): **phase 1 done** (match underway/station/time, set scores, forfeits, disqualification with auto-forfeit, check-in, bracket with connector lines, TV/print) — PROGRESS 58; phases 2–3 listed there.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)
