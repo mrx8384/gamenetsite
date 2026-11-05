@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Crown, Maximize2, Medal, MonitorPlay, Printer, Swords } from "lucide-react";
+import { CheckCircle2, Clock, Crown, Maximize2, Medal, MonitorPlay, Plus, Printer, RotateCcw, Shuffle, Swords } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { clearMatch, reportMatch, setMatchDetails, setMatchUnderway, startKnockout } from "@/features/tournaments/actions";
+import { addLeaderboardRound, clearMatch, finishLeaderboard, nextSwissRound, reportMatch, setLeaderboardPoints, setMatchDetails, setMatchUnderway, startKnockout } from "@/features/tournaments/actions";
 import { bracketLayout } from "@/features/tournaments/bracket-layout";
 import { isoToTehranInput, tehranInputToIso } from "@/features/tournaments/time";
 import { groupName, isEliminationStage, STAGE_LABELS } from "@/features/tournaments/constants";
-import { eliminationRoundName, standings } from "@/features/tournaments/engine";
+import { eliminationRoundName, leaderboardTable, type ResultRow, standings, swissRoundCount, swissStandings } from "@/features/tournaments/engine";
 import type { TournamentView } from "@/features/tournaments/queries";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,8 @@ export function TournamentBoard({ t, manage = false, tools = false }: BoardProps
   const onPick = canEdit ? (m: Match) => setEditing(m) : undefined;
   const ctx = { names, onPick };
 
-  if (t.matches.length === 0) {
+  const started = t.status === "IN_PROGRESS" || t.status === "COMPLETED";
+  if (t.format === "LEADERBOARD" ? !started : t.matches.length === 0) {
     return <p className="rounded-xl border border-dashed bg-surface/60 p-8 text-center text-sm text-muted-foreground">جدول بازی‌ها پس از شروع تورنومنت ساخته می‌شود.</p>;
   }
 
@@ -73,23 +74,27 @@ export function TournamentBoard({ t, manage = false, tools = false }: BoardProps
         </div>
       ) : null}
       <Podium t={t} />
+      {t.format === "LEADERBOARD" ? <LeaderboardSection t={t} manage={manage} /> : null}
+      {t.format === "SWISS" ? <SwissSection t={t} manage={manage} {...ctx} /> : null}
       {t.format === "SINGLE_ELIMINATION" ? <EliminationSection title="جدول حذفی" matches={t.matches.filter((m) => m.stage === "WINNERS")} third={t.matches.find((m) => m.stage === "THIRD_PLACE")} {...ctx} /> : null}
 
       {t.format === "DOUBLE_ELIMINATION" ? (
         <>
           <EliminationSection title={STAGE_LABELS.WINNERS} matches={t.matches.filter((m) => m.stage === "WINNERS")} roundLabel={(r) => `دور ${fa(r)}`} {...ctx} />
           <EliminationSection title={STAGE_LABELS.LOSERS} matches={t.matches.filter((m) => m.stage === "LOSERS")} roundLabel={(r) => `دور ${fa(r)}`} {...ctx} />
-          <Card>
-            <CardHeader><CardTitle className="text-base">فینال بزرگ</CardTitle></CardHeader>
-            <CardContent className="flex flex-wrap gap-4">
-              {t.matches.filter((m) => m.stage === "GRAND_FINAL" || (m.stage === "GRAND_FINAL_RESET" && m.status !== "SKIPPED")).map((m) => (
-                <div key={m.id} className="space-y-1">
-                  <p className="text-xs text-muted-foreground">{STAGE_LABELS[m.stage]}</p>
-                  <MatchCard m={m} {...ctx} />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {t.matches.some((m) => m.stage === "GRAND_FINAL") ? (
+            <Card>
+              <CardHeader><CardTitle className="text-base">فینال بزرگ</CardTitle></CardHeader>
+              <CardContent className="flex flex-wrap gap-4">
+                {t.matches.filter((m) => m.stage === "GRAND_FINAL" || (m.stage === "GRAND_FINAL_RESET" && m.status !== "SKIPPED")).map((m) => (
+                  <div key={m.id} className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{STAGE_LABELS[m.stage]}</p>
+                    <MatchCard m={m} {...ctx} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       ) : null}
 
@@ -251,14 +256,15 @@ function MatchCard({ m, names, onPick, fixed = false }: { m: Match; fixed?: bool
   );
 }
 
+/** Completed two-player matches as engine result rows (forfeits carry the chosen winner). */
+function resultRows(matches: Match[]): ResultRow[] {
+  return matches
+    .filter((m) => m.status === "COMPLETED" && m.player1Id && m.player2Id && ((m.score1 !== null && m.score2 !== null) || (m.forfeit && m.winnerSlot)))
+    .map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1 ?? 0, score2: m.score2 ?? 0, winner: m.forfeit && (m.winnerSlot === 1 || m.winnerSlot === 2) ? (m.winnerSlot as 1 | 2) : undefined }));
+}
+
 function StandingsCard({ title, ids, matches, t, names, qualify = 0 }: { title: string; ids: string[]; matches: Match[]; t: TournamentView; names: Map<string, string>; qualify?: number }) {
-  const table = standings(
-    ids,
-    matches
-      .filter((m) => m.status === "COMPLETED" && m.player1Id && m.player2Id && ((m.score1 !== null && m.score2 !== null) || (m.forfeit && m.winnerSlot)))
-      .map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1 ?? 0, score2: m.score2 ?? 0, winner: m.forfeit && (m.winnerSlot === 1 || m.winnerSlot === 2) ? (m.winnerSlot as 1 | 2) : undefined })),
-    { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss },
-  );
+  const table = standings(ids, resultRows(matches), { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss }, t.tiebreak);
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
@@ -297,7 +303,7 @@ function StandingsCard({ title, ids, matches, t, names, qualify = 0 }: { title: 
   );
 }
 
-function RoundsCard({ matches, names, onPick, compact = false }: Ctx & { matches: Match[]; compact?: boolean }) {
+function RoundsCard({ matches, names, onPick, compact = false, roundWord = "هفتهٔ" }: Ctx & { matches: Match[]; compact?: boolean; roundWord?: string }) {
   const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b);
   return (
     <Card>
@@ -305,7 +311,7 @@ function RoundsCard({ matches, names, onPick, compact = false }: Ctx & { matches
       <CardContent className={cn("space-y-4", compact && "max-h-[28rem] overflow-y-auto")}>
         {rounds.map((r) => (
           <div key={r} className="space-y-2">
-            <p className="text-xs font-bold text-muted-foreground">هفتهٔ {fa(r)}</p>
+            <p className="text-xs font-bold text-muted-foreground">{roundWord} {fa(r)}</p>
             <div className="flex flex-wrap gap-2">
               {matches.filter((m) => m.round === r).map((m) => <MatchCard key={m.id} m={m} names={names} onPick={onPick} />)}
             </div>
@@ -313,6 +319,152 @@ function RoundsCard({ matches, names, onPick, compact = false }: Ctx & { matches
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function useRun() {
+  const router = useRouter();
+  const [pending, startTransition] = React.useTransition();
+  const run = (fn: () => Promise<{ ok: boolean; error?: string; message?: string }>, quiet = false) =>
+    startTransition(async () => {
+      const res = await fn();
+      if (!res.ok) return void toast.error(res.error);
+      if (!quiet) toast.success(res.message);
+      router.refresh();
+    });
+  return { pending, run };
+}
+
+function SwissSection({ t, manage, names, onPick }: Ctx & { t: TournamentView; manage: boolean }) {
+  const { pending, run } = useRun();
+  const sw = t.matches.filter((m) => m.stage === "SWISS");
+  const planned = t.swissRounds ?? swissRoundCount(t.participants.length);
+  const current = Math.max(0, ...sw.map((m) => m.round));
+  const left = sw.filter((m) => m.round === current && m.status === "PENDING").length;
+  const out = new Set(t.participants.filter((p) => p.disqualifiedAt).map((p) => p.id));
+  const byes = sw.filter((m) => m.player2Bye && m.player1Id).map((m) => m.player1Id!);
+  const table = swissStandings(t.participants.map((p) => p.id), resultRows(sw), byes, { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss });
+  return (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base">جدول سوئیسی — دور {fa(current)} از {fa(planned)}</CardTitle>
+          {manage && t.status === "IN_PROGRESS" && current < planned ? (
+            <Button size="sm" disabled={left > 0} loading={pending} onClick={() => run(() => nextSwissRound(t.id))} title={left > 0 ? "ابتدا نتیجهٔ همهٔ بازی‌های این دور را ثبت کنید" : undefined}>
+              <Shuffle /> جفت کردن دور {fa(current + 1)}
+            </Button>
+          ) : null}
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {manage && t.status === "IN_PROGRESS" && left > 0 ? <p className="mb-2 text-xs text-muted-foreground">{fa(left)} بازی از این دور مانده است؛ بعد از ثبت همه، دور بعد را جفت کنید.</p> : null}
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground">
+              <tr className="border-b">
+                <th className="py-2 text-start">#</th>
+                <th className="py-2 text-start">بازیکن</th>
+                <th className="py-2" title="برد">بر</th>
+                <th className="py-2" title="مساوی">م</th>
+                <th className="py-2" title="باخت">با</th>
+                <th className="py-2" title="استراحت (برد خودکار)">است</th>
+                <th className="py-2" title="مجموع امتیاز حریفان (بوخهولتز) — معیار رتبه در امتیاز مساوی">بوخهولتز</th>
+                <th className="py-2">امتیاز</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table.map((s, i) => (
+                <tr key={s.id} className={cn("border-b last:border-0", out.has(s.id) && "text-muted-foreground")}>
+                  <td className="py-2">{fa(i + 1)}</td>
+                  <td className="py-2 font-medium">{names.get(s.id)}{out.has(s.id) ? <span className="ms-1 text-xs">(حذف‌شده)</span> : null}</td>
+                  <td className="py-2 text-center">{fa(s.won)}</td>
+                  <td className="py-2 text-center">{fa(s.drawn)}</td>
+                  <td className="py-2 text-center">{fa(s.lost)}</td>
+                  <td className="py-2 text-center">{fa(s.byes)}</td>
+                  <td className="py-2 text-center">{fa(s.buchholz)}</td>
+                  <td className="py-2 text-center font-black">{fa(s.points)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-muted-foreground">در هر دور بازیکنان هم‌امتیاز با هم بازی می‌کنند و کسی دو بار با یک نفر بازی نمی‌کند. در امتیاز مساوی، بوخهولتز (قدرت حریفان) تعیین‌کننده است.</p>
+        </CardContent>
+      </Card>
+      <RoundsCard matches={sw} names={names} onPick={onPick} roundWord="دور" />
+    </>
+  );
+}
+
+function LeaderboardSection({ t, manage }: { t: TournamentView; manage: boolean }) {
+  const { pending, run } = useRun();
+  const names = new Map(t.participants.map((p) => [p.id, p.name]));
+  const rounds = Array.from({ length: t.leaderboardRounds ?? 1 }, (_, i) => i + 1);
+  const table = leaderboardTable(t.participants.map((p) => p.id), t.points);
+  const editable = manage && t.status === "IN_PROGRESS";
+  // While editing keep the entry order so rows don't jump under the cursor.
+  const rows = editable ? t.participants.map((p) => table.find((r) => r.id === p.id)!) : table;
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+        <CardTitle className="text-base">جدول امتیاز</CardTitle>
+        {manage ? (
+          <div className="flex flex-wrap gap-2 print:hidden">
+            {editable ? <Button size="sm" variant="outline" loading={pending} onClick={() => run(() => addLeaderboardRound(t.id))}><Plus /> افزودن دور</Button> : null}
+            {t.status === "IN_PROGRESS" ? <Button size="sm" loading={pending} onClick={() => run(() => finishLeaderboard(t.id, true))}><CheckCircle2 /> پایان و ثبت رتبه‌ها</Button> : null}
+            {t.status === "COMPLETED" ? <Button size="sm" variant="outline" loading={pending} onClick={() => run(() => finishLeaderboard(t.id, false))}><RotateCcw /> بازگشایی برای اصلاح</Button> : null}
+          </div>
+        ) : null}
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        {editable ? <p className="mb-2 text-xs text-muted-foreground">امتیاز هر نفر در هر دور را بنویسید؛ با خروج از خانه ذخیره می‌شود. خالی = بدون امتیاز.</p> : null}
+        <table className="w-full text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr className="border-b">
+              <th className="py-2 text-start">رتبه</th>
+              <th className="py-2 text-start">بازیکن</th>
+              {rounds.map((r) => <th key={r} className="px-1 py-2 whitespace-nowrap">دور {fa(r)}</th>)}
+              <th className="py-2">جمع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} className={cn("border-b last:border-0", !editable && row.rank === 1 && row.total > 0 && "bg-warning-soft/50")}>
+                <td className="py-2">{fa(row.rank)}</td>
+                <td className="py-2 font-medium whitespace-nowrap">{names.get(row.id)}</td>
+                {rounds.map((r) => {
+                  const v = row.byRound.get(r);
+                  return (
+                    <td key={r} className="px-1 py-1 text-center">
+                      {editable ? <PointsCell key={`${row.id}-${r}-${v ?? ""}`} tournamentId={t.id} participantId={row.id} round={r} value={v} label={`${names.get(row.id)} — دور ${fa(r)}`} /> : v === undefined ? <span className="text-muted-foreground">—</span> : fa(v)}
+                    </td>
+                  );
+                })}
+                <td className="py-2 text-center font-black">{fa(row.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PointsCell({ tournamentId, participantId, round, value, label }: { tournamentId: string; participantId: string; round: number; value: number | undefined; label: string }) {
+  const { pending, run } = useRun();
+  const initial = value === undefined ? "" : String(value);
+  return (
+    <Input
+      aria-label={label}
+      defaultValue={initial}
+      inputMode="numeric"
+      dir="ltr"
+      disabled={pending}
+      className="mx-auto h-8 w-16 px-1 text-center"
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      onBlur={(e) => {
+        const next = e.currentTarget.value.trim();
+        if (next === initial) return;
+        run(() => setLeaderboardPoints(tournamentId, { participantId, round, points: next }), true);
+      }}
+    />
   );
 }
 

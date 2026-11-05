@@ -1,6 +1,8 @@
 "use server";
 
 import { updateTag } from "next/cache";
+import { z } from "zod";
+import { toEnglishDigits } from "@/lib/format";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { assertUser, AuthorizationError } from "@/lib/auth/dal";
@@ -62,6 +64,10 @@ function toData(v: ReturnType<typeof tournamentSchema.parse>) {
     doubleRoundRobin: v.doubleRoundRobin,
     groupCount: v.format === "GROUPS_KNOCKOUT" ? (v.groupCount ?? null) : null,
     advancePerGroup: v.format === "GROUPS_KNOCKOUT" ? (v.advancePerGroup ?? null) : null,
+    grandFinal: v.grandFinal,
+    tiebreak: v.tiebreak,
+    swissRounds: v.format === "SWISS" ? (v.swissRounds ?? null) : null,
+    leaderboardRounds: v.format === "LEADERBOARD" ? (v.leaderboardRounds ?? 1) : null,
     pointsWin: v.pointsWin,
     pointsDraw: v.pointsDraw,
     pointsLoss: v.pointsLoss,
@@ -91,9 +97,11 @@ export async function updateTournament(id: string, input: unknown): Promise<Acti
   const started = t.status === "IN_PROGRESS" || t.status === "COMPLETED";
   if (started) {
     // Structure is locked once the bracket exists; only descriptive fields can change.
-    const locked = ["format", "thirdPlaceMatch", "doubleRoundRobin", "groupCount", "advancePerGroup", "pointsWin", "pointsDraw", "pointsLoss"] as const;
+    const locked = ["format", "thirdPlaceMatch", "doubleRoundRobin", "groupCount", "advancePerGroup", "pointsWin", "pointsDraw", "pointsLoss", "grandFinal", "tiebreak", "swissRounds"] as const;
     for (const k of locked) if (data[k] !== t[k]) return fail("بعد از شروع تورنومنت، نوع جدول و امتیازها قابل تغییر نیست. برای تغییر، جدول را بازنشانی کنید.");
   }
+  // Leaderboard rounds can grow while it runs (organizer adds columns); never shrink below that.
+  if (started && t.format === "LEADERBOARD") data.leaderboardRounds = Math.max(data.leaderboardRounds ?? 1, t.leaderboardRounds ?? 1);
   await db.tournament.update({ where: { id }, data });
   changed(user.id, "updated", id);
   return ok(undefined, "تغییرات ذخیره شد.");
@@ -545,4 +553,64 @@ export async function checkInToTournament(tournamentId: unknown): Promise<Action
   if (!count) return fail("شما در این تورنومنت ثبت‌نام نکرده‌اید یا قبلاً حضورتان را تأیید کرده‌اید.");
   changed(user.id, "checked_in", tournamentId);
   return ok(undefined, "حضور شما تأیید شد.");
+}
+
+// ───────────── Swiss / leaderboard ─────────────
+
+async function runService(fn: () => Promise<unknown>): Promise<string | null> {
+  try {
+    await fn();
+    return null;
+  } catch (e) {
+    if (e instanceof service.TournamentError) return e.message;
+    throw e;
+  }
+}
+
+/** Swiss: pair the next round once the current one is complete. */
+export async function nextSwissRound(tournamentId: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof tournamentId !== "string" || !(await manageableTournament(user, tournamentId))) return fail(DENIED);
+  let round = 0;
+  const err = await runService(async () => (round = await service.nextSwissRound(tournamentId)));
+  if (err) return fail(err);
+  changed(user.id, "swiss_round", tournamentId, { round });
+  return ok(undefined, `دور ${round.toLocaleString("fa-IR")} جفت شد.`);
+}
+
+const pointsSchema = z.object({
+  participantId: z.string().min(1).max(40),
+  round: z.number().int().min(1).max(50),
+  points: z.preprocess((v) => (v === "" || v === null || v === undefined ? null : typeof v === "string" ? toEnglishDigits(v).trim() : v), z.coerce.number("امتیاز معتبر نیست").int("امتیاز باید عدد صحیح باشد").min(-9999, "امتیاز معتبر نیست").max(99999, "امتیاز معتبر نیست").nullable()),
+});
+
+/** Leaderboard: points of one participant in one round (empty clears it). */
+export async function setLeaderboardPoints(tournamentId: unknown, input: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof tournamentId !== "string" || !(await manageableTournament(user, tournamentId))) return fail(DENIED);
+  const parsed = pointsSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "امتیاز معتبر نیست");
+  const { participantId, round, points } = parsed.data;
+  const err = await runService(() => service.setLeaderboardPoints(tournamentId, participantId, round, points));
+  if (err) return fail(err);
+  updateTag(CACHE_TAGS.tournaments);
+  return ok(undefined, "ذخیره شد.");
+}
+
+export async function addLeaderboardRound(tournamentId: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof tournamentId !== "string" || !(await manageableTournament(user, tournamentId))) return fail(DENIED);
+  const err = await runService(() => service.addLeaderboardRound(tournamentId));
+  if (err) return fail(err);
+  changed(user.id, "leaderboard_round_added", tournamentId);
+  return ok(undefined, "یک دور اضافه شد.");
+}
+
+export async function finishLeaderboard(tournamentId: unknown, finish: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof tournamentId !== "string" || typeof finish !== "boolean" || !(await manageableTournament(user, tournamentId))) return fail(DENIED);
+  const err = await runService(() => service.finishLeaderboard(tournamentId, finish));
+  if (err) return fail(err);
+  changed(user.id, finish ? "leaderboard_finished" : "leaderboard_reopened", tournamentId);
+  return ok(undefined, finish ? "تورنومنت پایان یافت و رتبه‌ها بر اساس جمع امتیاز ثبت شد." : "تورنومنت دوباره باز شد.");
 }

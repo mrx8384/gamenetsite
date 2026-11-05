@@ -17,15 +17,22 @@ import {
   roundRobin,
   singleElimination,
   type Stage,
+  type GrandFinalMode,
+  pairKey,
   standings,
+  swissPairings,
+  swissRoundCount,
+  swissStandings,
+  type TiebreakOrder,
   toLive,
+  leaderboardTable,
 } from "./engine";
 
 type Tx = Prisma.TransactionClient;
 
 export class TournamentError extends Error {}
 
-const STAGE_ORDER: Record<Stage, number> = { GROUP: 0, ROUND_ROBIN: 0, WINNERS: 1, LOSERS: 2, THIRD_PLACE: 3, GRAND_FINAL: 4, GRAND_FINAL_RESET: 5 };
+const STAGE_ORDER: Record<Stage, number> = { GROUP: 0, ROUND_ROBIN: 0, SWISS: 0, WINNERS: 1, LOSERS: 2, THIRD_PLACE: 3, GRAND_FINAL: 4, GRAND_FINAL_RESET: 5 };
 
 /** Serializes all bracket changes of one tournament. */
 async function lockTournament(tx: Tx, id: string) {
@@ -91,7 +98,16 @@ export async function startTournament(id: string) {
         specs = singleElimination(ids, { thirdPlace: t.thirdPlaceMatch });
         break;
       case "DOUBLE_ELIMINATION":
-        specs = doubleElimination(ids);
+        specs = doubleElimination(ids, { grandFinal: t.grandFinal as GrandFinalMode });
+        break;
+      case "SWISS": {
+        const { pairs, bye } = swissPairings(ids, { round: 1, played: new Set(), hadBye: new Set() });
+        specs = swissSpecs(1, pairs, bye);
+        break;
+      }
+      case "LEADERBOARD":
+        // No matches: the organizer enters points per round.
+        specs = [];
         break;
       case "ROUND_ROBIN":
         specs = roundRobin(ids, { double: t.doubleRoundRobin });
@@ -115,11 +131,99 @@ export async function startTournament(id: string) {
   });
 }
 
+/** Matches of one Swiss round (a bye is a match won by its only player). */
+function swissSpecs(round: number, pairs: [string, string][], bye: string | null): MatchSpec[] {
+  const out: MatchSpec[] = pairs.map(([a, b], i) => ({ key: `S${round}-${i}`, stage: "SWISS", round, position: i, groupIndex: null, player1: a, player2: b, player1Bye: false, player2Bye: false, next: null, loser: null }));
+  if (bye) out.push({ key: `S${round}-bye`, stage: "SWISS", round, position: pairs.length, groupIndex: null, player1: bye, player2: null, player1Bye: false, player2Bye: true, next: null, loser: null });
+  return out;
+}
+
+/** Swiss table from stored matches (disqualified players included, so their opponents keep their points). */
+function swissTable(t: { pointsWin: number; pointsDraw: number; pointsLoss: number }, participants: { id: string; seed: number }[], matches: (ScoredMatch & { stage: string; player2Bye: boolean })[]) {
+  const ids = [...participants].sort((a, b) => a.seed - b.seed).map((p) => p.id);
+  const sw = matches.filter((m) => m.stage === "SWISS");
+  const byes = sw.filter((m) => m.player2Bye && m.player1Id).map((m) => m.player1Id!);
+  return swissStandings(ids, resultRows(sw), byes, { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss });
+}
+
+export function plannedSwissRounds(t: { swissRounds: number | null }, participantCount: number) {
+  return t.swissRounds ?? swissRoundCount(participantCount);
+}
+
+/** Pairs the next Swiss round once every match of the current round is decided. */
+export async function nextSwissRound(id: string) {
+  return db.$transaction(async (tx) => {
+    const t = await lockTournament(tx, id);
+    if (t.format !== "SWISS" || t.status !== "IN_PROGRESS") throw new TournamentError("این تورنومنت سوئیسی در حال برگزاری نیست.");
+    const matches = await tx.tournamentMatch.findMany({ where: { tournamentId: id } });
+    const participants = await tx.tournamentParticipant.findMany({ where: { tournamentId: id }, select: { id: true, seed: true, disqualifiedAt: true } });
+    const round = Math.max(0, ...matches.map((m) => m.round));
+    if (matches.some((m) => m.status === "PENDING")) throw new TournamentError("ابتدا نتیجهٔ همهٔ بازی‌های این دور را ثبت کنید.");
+    if (round >= plannedSwissRounds(t, participants.length)) throw new TournamentError("همهٔ دورهای سوئیسی برگزار شده است.");
+    const table = swissTable(t, participants, matches);
+    const active = new Set(participants.filter((p) => !p.disqualifiedAt).map((p) => p.id));
+    const ranked = table.map((s) => s.id).filter((pid) => active.has(pid));
+    if (ranked.length < 2) throw new TournamentError("برای دور بعد حداقل ۲ بازیکن لازم است.");
+    const played = new Set(matches.filter((m) => m.player1Id && m.player2Id).map((m) => pairKey(m.player1Id!, m.player2Id!)));
+    const hadBye = new Set(matches.filter((m) => m.player2Bye && m.player1Id).map((m) => m.player1Id!));
+    const { pairs, bye } = swissPairings(ranked, { round: round + 1, played, hadBye });
+    await persistSpecs(tx, id, swissSpecs(round + 1, pairs, bye), matches.length + 1);
+    await refreshCompletion(tx, id);
+    return round + 1;
+  });
+}
+
+/** Leaderboard: sets (or clears with null) the points of one participant in one round. */
+export async function setLeaderboardPoints(tournamentId: string, participantId: string, round: number, points: number | null) {
+  return db.$transaction(async (tx) => {
+    const t = await lockTournament(tx, tournamentId);
+    if (t.format !== "LEADERBOARD" || t.status !== "IN_PROGRESS") throw new TournamentError("امتیازها فقط در جدول امتیاز در حال برگزاری ثبت می‌شوند.");
+    if (round < 1 || round > (t.leaderboardRounds ?? 1)) throw new TournamentError("دور نامعتبر است.");
+    const p = await tx.tournamentParticipant.findFirst({ where: { id: participantId, tournamentId }, select: { id: true } });
+    if (!p) throw new TournamentError("شرکت‌کننده پیدا نشد.");
+    if (points === null) await tx.tournamentPoints.deleteMany({ where: { participantId, round } });
+    else await tx.tournamentPoints.upsert({ where: { participantId_round: { participantId, round } }, create: { tournamentId, participantId, round, points }, update: { points } });
+  });
+}
+
+/** Leaderboard: add a round/event column. */
+export async function addLeaderboardRound(tournamentId: string) {
+  const t = await db.tournament.findUnique({ where: { id: tournamentId }, select: { format: true, leaderboardRounds: true, status: true } });
+  if (!t || t.format !== "LEADERBOARD" || t.status !== "IN_PROGRESS") throw new TournamentError("فقط برای جدول امتیاز در حال برگزاری.");
+  if ((t.leaderboardRounds ?? 1) >= 50) throw new TournamentError("حداکثر ۵۰ دور.");
+  await db.tournament.update({ where: { id: tournamentId }, data: { leaderboardRounds: (t.leaderboardRounds ?? 1) + 1 } });
+}
+
+/** Leaderboard: ends the tournament (ranks by total points) or reopens it for corrections. */
+export async function finishLeaderboard(tournamentId: string, finish: boolean) {
+  return db.$transaction(async (tx) => {
+    const t = await lockTournament(tx, tournamentId);
+    if (t.format !== "LEADERBOARD") throw new TournamentError("فقط برای جدول امتیاز.");
+    if (finish) {
+      if (t.status !== "IN_PROGRESS") throw new TournamentError("تورنومنت در حال برگزاری نیست.");
+      const participants = await tx.tournamentParticipant.findMany({ where: { tournamentId }, select: { id: true, seed: true } });
+      const pts = await tx.tournamentPoints.findMany({ where: { tournamentId } });
+      for (const [pid, rank] of leaderboardRanks(participants, pts)) await tx.tournamentParticipant.update({ where: { id: pid }, data: { finalRank: rank } });
+      await tx.tournament.update({ where: { id: tournamentId }, data: { status: "COMPLETED", completedAt: new Date() } });
+    } else {
+      if (t.status !== "COMPLETED") throw new TournamentError("تورنومنت پایان نیافته است.");
+      await tx.tournamentParticipant.updateMany({ where: { tournamentId }, data: { finalRank: null } });
+      await tx.tournament.update({ where: { id: tournamentId }, data: { status: "IN_PROGRESS", completedAt: null } });
+    }
+  });
+}
+
+function leaderboardRanks(participants: { id: string; seed: number }[], pts: { participantId: string; round: number; points: number }[]) {
+  const ids = [...participants].sort((a, b) => a.seed - b.seed).map((p) => p.id);
+  return new Map(leaderboardTable(ids, pts).map((r) => [r.id, r.rank]));
+}
+
 /** Back to registration: removes all matches and results (participants are kept). */
 export async function resetTournament(id: string) {
   await db.$transaction(async (tx) => {
     await lockTournament(tx, id);
     await tx.tournamentMatch.deleteMany({ where: { tournamentId: id } });
+    await tx.tournamentPoints.deleteMany({ where: { tournamentId: id } });
     await tx.tournamentParticipant.updateMany({ where: { tournamentId: id }, data: { groupIndex: null, finalRank: null, disqualifiedAt: null } });
     await tx.tournament.update({ where: { id }, data: { status: "REGISTRATION", startedAt: null, completedAt: null, knockoutStarted: false } });
   });
@@ -134,7 +238,7 @@ function resultRows(matches: ScoredMatch[]) {
     .map((m) => ({ player1: m.player1Id!, player2: m.player2Id!, score1: m.score1 ?? 0, score2: m.score2 ?? 0, winner: m.forfeit && (m.winnerSlot === 1 || m.winnerSlot === 2) ? (m.winnerSlot as 1 | 2) : undefined }));
 }
 
-function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: number }, participants: { id: string; seed: number; groupIndex: number | null }[], matches: (ScoredMatch & { stage: string; groupIndex: number | null })[]) {
+function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: number; tiebreak: string }, participants: { id: string; seed: number; groupIndex: number | null }[], matches: (ScoredMatch & { stage: string; groupIndex: number | null })[]) {
   const groups = new Map<number, string[]>();
   for (const p of [...participants].sort((a, b) => a.seed - b.seed)) {
     if (p.groupIndex === null) continue;
@@ -146,6 +250,7 @@ function groupTables(t: { pointsWin: number; pointsDraw: number; pointsLoss: num
       members,
       resultRows(matches.filter((m) => m.stage === "GROUP" && m.groupIndex === gi)),
       { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss },
+      t.tiebreak as TiebreakOrder,
     ),
   }));
 }
@@ -374,7 +479,11 @@ async function refreshCompletion(tx: Tx, id: string) {
   const t = await tx.tournament.findUniqueOrThrow({ where: { id } });
   const matches = await tx.tournamentMatch.findMany({ where: { tournamentId: id } });
   const participants = await tx.tournamentParticipant.findMany({ where: { tournamentId: id }, select: { id: true, seed: true, groupIndex: true } });
-  const done = matches.length > 0 && matches.every((m) => m.status !== "PENDING") && (t.format !== "GROUPS_KNOCKOUT" || t.knockoutStarted);
+  const done =
+    matches.length > 0 &&
+    matches.every((m) => m.status !== "PENDING") &&
+    (t.format !== "GROUPS_KNOCKOUT" || t.knockoutStarted) &&
+    (t.format !== "SWISS" || Math.max(...matches.map((m) => m.round)) >= plannedSwissRounds(t, participants.length));
   if (!done) {
     if (t.status === "COMPLETED") {
       await tx.tournament.update({ where: { id }, data: { status: "IN_PROGRESS", completedAt: null } });
@@ -387,10 +496,10 @@ async function refreshCompletion(tx: Tx, id: string) {
   if (t.status !== "COMPLETED") await tx.tournament.update({ where: { id }, data: { status: "COMPLETED", completedAt: new Date() } });
 }
 
-type RankMatch = { stage: string; round: number; status: string; player1Id: string | null; player2Id: string | null; winnerSlot: number | null; groupIndex: number | null; score1: number | null; score2: number | null; forfeit?: boolean };
+type RankMatch = { player2Bye: boolean; stage: string; round: number; status: string; player1Id: string | null; player2Id: string | null; winnerSlot: number | null; groupIndex: number | null; score1: number | null; score2: number | null; forfeit?: boolean };
 
 function computeRanks(
-  t: { format: string; pointsWin: number; pointsDraw: number; pointsLoss: number },
+  t: { format: string; pointsWin: number; pointsDraw: number; pointsLoss: number; tiebreak: string },
   participants: { id: string; seed: number; groupIndex: number | null }[],
   matches: RankMatch[],
 ): Map<string, number> {
@@ -400,17 +509,25 @@ function computeRanks(
 
   if (t.format === "ROUND_ROBIN") {
     const ids = [...participants].sort((a, b) => a.seed - b.seed).map((p) => p.id);
-    const table = standings(ids, resultRows(matches), { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss });
+    const table = standings(ids, resultRows(matches), { win: t.pointsWin, draw: t.pointsDraw, loss: t.pointsLoss }, t.tiebreak as TiebreakOrder);
     table.forEach((s, i) => ranks.set(s.id, i + 1));
+    return ranks;
+  }
+
+  if (t.format === "SWISS") {
+    swissTable(t, participants, matches).forEach((s, i) => ranks.set(s.id, i + 1));
     return ranks;
   }
 
   if (t.format === "DOUBLE_ELIMINATION") {
     const reset = matches.find((m) => m.stage === "GRAND_FINAL_RESET");
-    const gf = matches.find((m) => m.stage === "GRAND_FINAL")!;
+    const gf = matches.find((m) => m.stage === "GRAND_FINAL");
+    // Without a grand final, the winners-bracket final winner and the losers-bracket final winner are 1st and 2nd.
+    const wbFinal = matches.filter((m) => m.stage === "WINNERS").sort((a, b) => b.round - a.round)[0];
+    const lbFinal = matches.filter((m) => m.stage === "LOSERS").sort((a, b) => b.round - a.round)[0];
     const decider = reset && reset.status === "COMPLETED" ? reset : gf;
-    const champion = winnerOf(decider);
-    const runnerUp = loserOf(decider);
+    const champion = decider ? winnerOf(decider) : winnerOf(wbFinal);
+    const runnerUp = decider ? loserOf(decider) : lbFinal ? winnerOf(lbFinal) : loserOf(wbFinal);
     if (champion) ranks.set(champion, 1);
     if (runnerUp) ranks.set(runnerUp, 2);
     // Others: eliminated in the losers bracket; later round = better rank.

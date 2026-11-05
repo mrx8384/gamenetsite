@@ -7,7 +7,10 @@
  * cascade into the losers bracket of a double-elimination tournament.
  */
 
-export type Stage = "WINNERS" | "LOSERS" | "GRAND_FINAL" | "GRAND_FINAL_RESET" | "THIRD_PLACE" | "ROUND_ROBIN" | "GROUP";
+export type Stage = "WINNERS" | "LOSERS" | "GRAND_FINAL" | "GRAND_FINAL_RESET" | "THIRD_PLACE" | "ROUND_ROBIN" | "GROUP" | "SWISS";
+
+/** Double elimination grand final: with a reset match if needed (Challonge default), one match only, or none. */
+export type GrandFinalMode = "reset" | "single" | "none";
 
 export interface MatchSpec {
   key: string;
@@ -99,7 +102,8 @@ export function singleElimination(players: string[], opts: { thirdPlace?: boolea
  * losers), even rounds bring in the losers of the next winners round. Dropped losers are placed in
  * reverse order to reduce early rematches.
  */
-export function doubleElimination(players: string[]): MatchSpec[] {
+export function doubleElimination(players: string[], opts: { grandFinal?: GrandFinalMode } = {}): MatchSpec[] {
+  const mode = opts.grandFinal ?? "reset";
   if (players.length < 2) throw new Error("At least 2 participants are required");
   const size = nextPowerOfTwo(players.length);
   const k = Math.log2(size);
@@ -109,10 +113,12 @@ export function doubleElimination(players: string[]): MatchSpec[] {
   if (size === 2) {
     // Two players: final, then a reset match if the "losers" side wins.
     const final = wb[0];
+    if (mode === "none") return [final];
     const gf = spec({ key: "GF", stage: "GRAND_FINAL", round: 1, position: 0 });
-    const reset = spec({ key: "GFR", stage: "GRAND_FINAL_RESET", round: 2, position: 0 });
     final.next = { key: gf.key, slot: 1 };
     final.loser = { key: gf.key, slot: 2 };
+    if (mode === "single") return [final, gf];
+    const reset = spec({ key: "GFR", stage: "GRAND_FINAL_RESET", round: 2, position: 0 });
     gf.next = { key: reset.key, slot: 1 };
     return [final, gf, reset];
   }
@@ -152,11 +158,14 @@ export function doubleElimination(players: string[]): MatchSpec[] {
       m.next = { key: lbAt(r + 1, Math.floor(m.position / 2)), slot: (m.position % 2) + 1 as 1 | 2 };
     }
   }
+  // No grand final: the losers-bracket final decides 2nd place; the winners-bracket champion wins.
+  if (mode === "none") return [...wb, ...lb];
   const gf = spec({ key: "GF", stage: "GRAND_FINAL", round: 1, position: 0 });
-  const reset = spec({ key: "GFR", stage: "GRAND_FINAL_RESET", round: 2, position: 0 });
   const wbFinal = byKey.get(`W${k}-0`)!;
   wbFinal.next = { key: gf.key, slot: 1 };
   lb.find((m) => m.round === lbRounds)!.next = { key: gf.key, slot: 2 };
+  if (mode === "single") return [...wb, ...lb, gf];
+  const reset = spec({ key: "GFR", stage: "GRAND_FINAL_RESET", round: 2, position: 0 });
   gf.next = { key: reset.key, slot: 1 };
   return [...wb, ...lb, gf, reset];
 }
@@ -308,8 +317,14 @@ export interface Standing {
   points: number;
 }
 
-/** League table: points, then goal difference, goals scored, head-to-head points, then seed order. */
-export function standings(players: string[], results: ResultRow[], pts: { win: number; draw: number; loss: number }): Standing[] {
+/** Order of tie-breakers after points (Challonge-style option). */
+export type TiebreakOrder = "goal_difference" | "head_to_head";
+
+/**
+ * League table: points, then (default) goal difference, goals scored, head-to-head points, seed order;
+ * with `head_to_head`, the head-to-head result between tied players comes right after points.
+ */
+export function standings(players: string[], results: ResultRow[], pts: { win: number; draw: number; loss: number }, tiebreak: TiebreakOrder = "goal_difference"): Standing[] {
   const table = new Map<string, Standing>(players.map((id) => [id, { id, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, points: 0 }]));
   for (const r of results) {
     const a = table.get(r.player1);
@@ -359,10 +374,84 @@ export function standings(players: string[], results: ResultRow[], pts: { win: n
     }
     return py - px;
   };
-  return [...table.values()].sort(
-    (a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || h2h(a.id, b.id) || seedIndex.get(a.id)! - seedIndex.get(b.id)!,
+  return [...table.values()].sort((a, b) =>
+    tiebreak === "head_to_head"
+      ? b.points - a.points || h2h(a.id, b.id) || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || seedIndex.get(a.id)! - seedIndex.get(b.id)!
+      : b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || h2h(a.id, b.id) || seedIndex.get(a.id)! - seedIndex.get(b.id)!,
   );
 }
+
+// ───────────── Swiss ─────────────
+
+export interface SwissStanding extends Standing {
+  byes: number;
+  /** Sum of the points of all opponents met (main Swiss tie-breaker). */
+  buchholz: number;
+}
+
+/** Swiss table: points (a bye counts as a win), Buchholz, goal difference, goals scored, seed. */
+export function swissStandings(players: string[], results: ResultRow[], byes: string[], pts: { win: number; draw: number; loss: number }): SwissStanding[] {
+  const base = new Map(standings(players, results, pts).map((s) => [s.id, { ...s, byes: 0, buchholz: 0 }]));
+  for (const b of byes) {
+    const s = base.get(b);
+    if (!s) continue;
+    s.byes++;
+    s.played++;
+    s.won++;
+    s.points += pts.win;
+  }
+  for (const r of results) {
+    const a = base.get(r.player1);
+    const b = base.get(r.player2);
+    if (!a || !b) continue;
+    a.buchholz += b.points;
+    b.buchholz += a.points;
+  }
+  const seedIndex = new Map(players.map((id, i) => [id, i]));
+  return [...base.values()].sort((a, b) => b.points - a.points || b.buchholz - a.buchholz || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || seedIndex.get(a.id)! - seedIndex.get(b.id)!);
+}
+
+/** Recommended number of Swiss rounds: ⌈log2 n⌉ (enough to find a single unbeaten winner). */
+export function swissRoundCount(n: number): number {
+  return Math.max(1, Math.ceil(Math.log2(Math.max(2, n))));
+}
+
+/**
+ * Pairs one Swiss round. `ranked` = active players in current standing order (round 1: seed order).
+ * Odd count → the lowest-ranked player who has not had a bye gets one. Round 1 pairs the top half
+ * against the bottom half; later rounds pair neighbours in the table, avoiding rematches (backtracking;
+ * a rematch is allowed only when no other pairing exists).
+ */
+export function swissPairings(ranked: string[], opts: { round: number; played: Set<string>; hadBye: Set<string> }): { pairs: [string, string][]; bye: string | null } {
+  const list = [...ranked];
+  let bye: string | null = null;
+  if (list.length % 2 === 1) {
+    const idx = [...list.keys()].reverse().find((i) => !opts.hadBye.has(list[i])) ?? list.length - 1;
+    bye = list.splice(idx, 1)[0];
+  }
+  if (opts.round === 1) {
+    const half = list.length / 2;
+    return { pairs: list.slice(0, half).map((p, i) => [p, list[half + i]] as [string, string]), bye };
+  }
+  const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+  // Backtracking is bounded: with no rematch-free pairing in reach we fall back to allowing rematches.
+  let budget = 200_000;
+  const solve = (rest: string[], allowRematch: boolean): [string, string][] | null => {
+    if (rest.length === 0) return [];
+    if (!allowRematch && --budget < 0) return null;
+    const [a, ...others] = rest;
+    for (let i = 0; i < others.length; i++) {
+      const b = others[i];
+      if (!allowRematch && opts.played.has(key(a, b))) continue;
+      const tail = solve([...others.slice(0, i), ...others.slice(i + 1)], allowRematch);
+      if (tail) return [[a, b], ...tail];
+    }
+    return null;
+  };
+  return { pairs: solve(list, false) ?? solve(list, true)!, bye };
+}
+
+export const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 // ───────────── Set scores ─────────────
 
@@ -534,4 +623,27 @@ export function toLive(specs: MatchSpec[]): Map<string, LiveMatch> {
       { key: s.key, player1: s.player1, player2: s.player2, player1Bye: s.player1Bye, player2Bye: s.player2Bye, status: "PENDING", winnerSlot: null, next: s.next, loser: s.loser },
     ]),
   );
+}
+
+export interface LeaderboardRow {
+  id: string;
+  total: number;
+  /** Equal totals share a rank (1, 2, 2, 4). */
+  rank: number;
+  byRound: Map<number, number>;
+}
+
+/** Leaderboard format: total points desc, ties share a rank, seed order (input order) inside a tie. */
+export function leaderboardTable(players: string[], pts: { participantId: string; round: number; points: number }[]): LeaderboardRow[] {
+  const rows = new Map(players.map((id) => [id, { id, total: 0, rank: 0, byRound: new Map<number, number>() }]));
+  for (const x of pts) {
+    const r = rows.get(x.participantId);
+    if (!r) continue;
+    r.total += x.points;
+    r.byRound.set(x.round, x.points);
+  }
+  const order = new Map(players.map((id, i) => [id, i]));
+  const sorted = [...rows.values()].sort((a, b) => b.total - a.total || order.get(a.id)! - order.get(b.id)!);
+  sorted.forEach((r, i) => (r.rank = i > 0 && sorted[i - 1].total === r.total ? sorted[i - 1].rank : i + 1));
+  return sorted;
 }

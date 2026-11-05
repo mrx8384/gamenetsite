@@ -7,7 +7,7 @@ import { createStore } from "../store";
  * Contract: docs/EVENTS.md. Nothing is invented — with no data the board says so.
  */
 export type TournamentStatus = "REGISTRATION" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
-export type TournamentFormat = "SINGLE_ELIMINATION" | "DOUBLE_ELIMINATION" | "ROUND_ROBIN" | "GROUPS_KNOCKOUT";
+export type TournamentFormat = "SINGLE_ELIMINATION" | "DOUBLE_ELIMINATION" | "ROUND_ROBIN" | "GROUPS_KNOCKOUT" | "SWISS" | "LEADERBOARD";
 
 export interface TournamentItem {
   slug: string;
@@ -42,6 +42,8 @@ export const FORMAT_LABEL: Record<TournamentFormat, string> = {
   DOUBLE_ELIMINATION: "حذفی دوباخت",
   ROUND_ROBIN: "لیگی (همه با همه)",
   GROUPS_KNOCKOUT: "گروهی + حذفی",
+  SWISS: "سوئیسی",
+  LEADERBOARD: "جدول امتیاز",
 };
 
 export interface EventsState {

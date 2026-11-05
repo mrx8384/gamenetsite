@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import type { TournamentFormatKey, TournamentStatusKey } from "./constants";
+import type { GRAND_FINAL_MODES, TIEBREAKS, TournamentFormatKey, TournamentStatusKey } from "./constants";
 
 const include = {
   organizer: { select: { role: true, name: true, partnerProfile: { select: { businessName: true } } } },
@@ -12,6 +12,7 @@ const include = {
     orderBy: { number: "asc" },
     select: { id: true, stage: true, round: true, position: true, groupIndex: true, number: true, player1Id: true, player2Id: true, player1Bye: true, player2Bye: true, score1: true, score2: true, winnerSlot: true, status: true, note: true, setScores: true, forfeit: true, underwayAt: true, station: true, scheduledAt: true, nextMatchId: true, nextSlot: true },
   },
+  points: { select: { participantId: true, round: true, points: true } },
 } satisfies Prisma.TournamentInclude;
 
 type Row = Prisma.TournamentGetPayload<{ include: typeof include }>;
@@ -41,6 +42,14 @@ export interface TournamentView {
   pointsDraw: number;
   pointsLoss: number;
   knockoutStarted: boolean;
+  grandFinal: (typeof GRAND_FINAL_MODES)[number];
+  tiebreak: (typeof TIEBREAKS)[number];
+  /** Swiss: planned rounds (null = automatic). */
+  swissRounds: number | null;
+  /** Leaderboard: number of round columns. */
+  leaderboardRounds: number | null;
+  /** Leaderboard points per participant and round. */
+  points: Row["points"];
   /** Check-in opens this many minutes before the start (null = no check-in). */
   checkInMinutes: number | null;
   organizerId: string | null;
@@ -75,6 +84,11 @@ function toView(t: Row): TournamentView {
     pointsDraw: t.pointsDraw,
     pointsLoss: t.pointsLoss,
     knockoutStarted: t.knockoutStarted,
+    grandFinal: (t.grandFinal === "single" || t.grandFinal === "none" ? t.grandFinal : "reset"),
+    tiebreak: t.tiebreak === "head_to_head" ? "head_to_head" : "goal_difference",
+    swissRounds: t.swissRounds,
+    leaderboardRounds: t.leaderboardRounds,
+    points: t.points,
     checkInMinutes: t.checkInMinutes,
     organizerId: t.organizerId,
     organizerName,

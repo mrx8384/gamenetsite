@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-11-05 (59) — Tournaments: Challonge-style phase 2 (Swiss, leaderboard, grand-final and tie-break options)
+
+- **Swiss format** (`SWISS`): rounds = `swissRounds` or automatic ⌈log2 n⌉ (`swissRoundCount`). Round 1 pairs top half vs bottom half; later rounds pair neighbours in the table with no rematches (`swissPairings`, bounded backtracking, rematch only if nothing else is possible). Odd count → bye (auto win) for the lowest-ranked player without one, stored as a match with `player2Bye`. Table `swissStandings`: points, **Buchholz**, goal difference, goals, seed. Organizer presses «جفت کردن دور بعد» (`nextSwissRound`) once every match of the round is decided; the tournament completes after the last planned round. Disqualified players are skipped in pairings.
+- **Leaderboard format** (`LEADERBOARD`, battle royale / racing): no matches; organizer enters points per player per round in an editable grid (saved on blur, `TournamentPoints`, `setLeaderboardPoints`), can add rounds (max 50), «پایان و ثبت رتبه‌ها» sets final ranks by total (equal totals share a rank, `leaderboardTable`), «بازگشایی برای اصلاح» reopens. Reset deletes the points.
+- **Double elimination grand final** (`grandFinal`): reset (standard), single game, or none (winners-bracket champion wins; losers final decides 2nd).
+- **Round robin / groups tie-break** (`tiebreak`): goal difference first, or head-to-head first.
+- Form shows the options per format; they are locked after start like the other structural fields. Migration `tournament_phase2`.
+- Also added the two formats to the 3D world events board labels (`src/atom-world/data/events.ts`, otherwise those tournaments were skipped) — copy the same change to `mrx8384/gameatom`.
+
+Verified: typecheck, lint, 489 unit tests (new `tournament-phase2.test.ts`: Swiss no-rematch/bye playouts for 2–33 players, Buchholz, grand-final modes play out, tie-break orders, leaderboard ranks, schema), build; DB scenario: Swiss 5 players → 3 rounds, 3 byes to different players, no rematch, completed with ranks, extra round refused; DE none/single complete with ranks; RR head-to-head; leaderboard points/clear/add round/finish/reopen/reset. Browser (desktop + mobile): Swiss table and rounds, draw allowed, «جفت کردن دور» disabled until the round is done then pairs round 2; leaderboard grid save, add round, finish → podium and ranked public table; form options. Test data removed.
+
+Next: phase 3 — player self-reporting with organizer approval, teams, custom sign-up questions, co-organizers, waitlist, CSV export, embed widget, predictions.
+
 ## 2026-11-05 (58) — Tournaments: Challonge-style phase 1 (owner request: «تمامی کارهایی که داخل challonge.com می‌شود»)
 
 Gap list vs Challonge, split in phases. **Phase 1 (this entry):**

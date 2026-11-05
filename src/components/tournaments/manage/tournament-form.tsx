@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { createTournament, updateTournament } from "@/features/tournaments/actions";
-import { FORMAT_HINTS, FORMAT_LABELS, TOURNAMENT_FORMATS, type TournamentFormatKey } from "@/features/tournaments/constants";
+import { FORMAT_HINTS, FORMAT_LABELS, GRAND_FINAL_LABELS, GRAND_FINAL_MODES, TIEBREAK_LABELS, TIEBREAKS, TOURNAMENT_FORMATS, type TournamentFormatKey } from "@/features/tournaments/constants";
 import { tehranInputToIso } from "@/features/tournaments/time";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,12 @@ export interface TournamentFormValues {
   pointsWin: string;
   pointsDraw: string;
   pointsLoss: string;
+  grandFinal: (typeof GRAND_FINAL_MODES)[number];
+  tiebreak: (typeof TIEBREAKS)[number];
+  /** Swiss rounds (empty = automatic). */
+  swissRounds: string;
+  /** Leaderboard rounds at the start. */
+  leaderboardRounds: string;
 }
 
 export const emptyTournament: TournamentFormValues = {
@@ -59,6 +66,10 @@ export const emptyTournament: TournamentFormValues = {
   pointsWin: "3",
   pointsDraw: "1",
   pointsLoss: "0",
+  grandFinal: "reset",
+  tiebreak: "goal_difference",
+  swissRounds: "",
+  leaderboardRounds: "1",
 };
 
 export function TournamentForm({ id, initial, basePath, structureLocked = false }: { id?: string; initial: TournamentFormValues; basePath: string; structureLocked?: boolean }) {
@@ -159,7 +170,31 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
                 </div>
               </>
             ) : null}
+            {v.format === "SWISS" ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-swiss">تعداد دورها (خالی = خودکار)</Label>
+                <Input id="t-swiss" inputMode="numeric" dir="ltr" className="text-start" value={v.swissRounds} onChange={text("swissRounds")} placeholder="auto" aria-invalid={!!errors.swissRounds} aria-describedby="t-swiss-help" />
+                <p id="t-swiss-help" className="text-xs leading-5 text-muted-foreground">خودکار: به اندازه‌ای که یک قهرمان مشخص شود (مثلاً ۱۶ نفر = ۴ دور). اگر تعداد فرد باشد، هر دور یک نفر استراحت (برد خودکار) می‌گیرد.</p>
+                {err("swissRounds")}
+              </div>
+            ) : null}
+            {v.format === "LEADERBOARD" ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-lb">تعداد دور/مسابقه در شروع</Label>
+                <Input id="t-lb" inputMode="numeric" dir="ltr" className="text-start" value={v.leaderboardRounds} onChange={text("leaderboardRounds")} aria-invalid={!!errors.leaderboardRounds} aria-describedby="t-lb-help" />
+                <p id="t-lb-help" className="text-xs leading-5 text-muted-foreground">بعداً هم می‌توانید دور اضافه کنید. در هر دور برای هر نفر امتیاز (مثلاً امتیاز رتبه + کیل) وارد می‌کنید.</p>
+                {err("leaderboardRounds")}
+              </div>
+            ) : null}
             {v.format === "ROUND_ROBIN" || v.format === "GROUPS_KNOCKOUT" ? (
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="t-tiebreak">قانون رتبه‌بندی در امتیاز مساوی</Label>
+                <NativeSelect id="t-tiebreak" value={v.tiebreak} onChange={(e) => set("tiebreak", e.target.value as TournamentFormValues["tiebreak"])}>
+                  {TIEBREAKS.map((k) => <option key={k} value={k}>{TIEBREAK_LABELS[k]}</option>)}
+                </NativeSelect>
+              </div>
+            ) : null}
+            {v.format === "ROUND_ROBIN" || v.format === "GROUPS_KNOCKOUT" || v.format === "SWISS" ? (
               <div className="grid grid-cols-3 gap-2 sm:col-span-2">
                 {(["pointsWin", "pointsDraw", "pointsLoss"] as const).map((k) => (
                   <div key={k} className="grid gap-1.5">
@@ -170,7 +205,14 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
                 ))}
               </div>
             ) : null}
-            {v.format === "DOUBLE_ELIMINATION" ? <p className="text-xs text-muted-foreground sm:col-span-2">اگر برندهٔ جدول بازندگان در فینال ببرد، بازی دوم فینال (ریست) برگزار می‌شود.</p> : null}
+            {v.format === "DOUBLE_ELIMINATION" ? (
+              <div className="grid gap-2 sm:col-span-2" role="radiogroup" aria-label="فینال بزرگ">
+                <p className="text-sm font-medium">فینال بزرگ</p>
+                {GRAND_FINAL_MODES.map((m) => (
+                  <label key={m} className="flex items-center gap-2 text-sm"><input type="radio" name="t-gf" checked={v.grandFinal === m} onChange={() => set("grandFinal", m)} className="size-4 accent-[var(--brand-green-dark)]" /> {GRAND_FINAL_LABELS[m]}</label>
+                ))}
+              </div>
+            ) : null}
           </div>
         </fieldset>
 

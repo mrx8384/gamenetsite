@@ -751,6 +751,9 @@ enum TournamentFormat {
   DOUBLE_ELIMINATION
   ROUND_ROBIN
   GROUPS_KNOCKOUT
+  SWISS
+  /// Points per round/event (battle royale, racing…), entered by the organizer.
+  LEADERBOARD
 }
 
 enum TournamentStatus {
@@ -769,6 +772,7 @@ enum MatchStage {
   THIRD_PLACE
   ROUND_ROBIN
   GROUP
+  SWISS
 }
 
 enum MatchStatus {
@@ -787,6 +791,14 @@ model Tournament {
   rules                 String?          @db.VarChar(5000)
   prize                 String?          @db.VarChar(500)
   entryFeeNote          String?          @db.VarChar(200)
+  /// Double elimination: "reset" (second final if the losers-bracket player wins), "single" or "none".
+  grandFinal            String           @default("reset") @db.VarChar(10)
+  /// Round robin / groups tie-break after points: "goal_difference" or "head_to_head".
+  tiebreak              String           @default("goal_difference") @db.VarChar(20)
+  /// Swiss: number of rounds (empty = ⌈log2 n⌉).
+  swissRounds           Int?
+  /// Leaderboard: number of rounds/events.
+  leaderboardRounds     Int?
   /// Check-in opens this many minutes before startsAt (null = no check-in). Not checked in at start → removed.
   checkInMinutes        Int?
   /// Online registration fee in Rials (0 = free). Paid through the site's payment gateway.
@@ -815,6 +827,7 @@ model Tournament {
   participants TournamentParticipant[]
   matches      TournamentMatch[]
   entries      TournamentEntry[]
+  points       TournamentPoints[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -838,10 +851,11 @@ model TournamentParticipant {
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  matchesAsPlayer1 TournamentMatch[] @relation("MatchPlayer1")
-  matchesAsPlayer2 TournamentMatch[] @relation("MatchPlayer2")
-  matchesWon       TournamentMatch[] @relation("MatchWinner")
+  matchesAsPlayer1 TournamentMatch[]  @relation("MatchPlayer1")
+  matchesAsPlayer2 TournamentMatch[]  @relation("MatchPlayer2")
+  matchesWon       TournamentMatch[]  @relation("MatchWinner")
   paidEntry        TournamentEntry?
+  points           TournamentPoints[]
 
   @@unique([tournamentId, userId])
   @@unique([tournamentId, name])
@@ -887,6 +901,23 @@ model TournamentEntry {
   @@index([userId])
   @@index([status, paymentDeadline])
   @@map("tournament_entries")
+}
+
+/// Leaderboard format: points of one participant in one round/event.
+model TournamentPoints {
+  id            String   @id @default(cuid())
+  tournamentId  String
+  participantId String
+  round         Int
+  points        Int
+  updatedAt     DateTime @updatedAt
+
+  tournament  Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participant TournamentParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, round])
+  @@index([tournamentId])
+  @@map("tournament_points")
 }
 
 model TournamentMatch {

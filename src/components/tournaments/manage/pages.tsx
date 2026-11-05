@@ -88,6 +88,10 @@ function formValues(t: TournamentView): TournamentFormValues {
     pointsWin: String(t.pointsWin),
     pointsDraw: String(t.pointsDraw),
     pointsLoss: String(t.pointsLoss),
+    grandFinal: t.grandFinal,
+    tiebreak: t.tiebreak,
+    swissRounds: t.swissRounds ? String(t.swissRounds) : "",
+    leaderboardRounds: String(t.leaderboardRounds ?? 1),
   };
 }
 
@@ -110,7 +114,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
       {started ? (
         <section className="space-y-3" aria-labelledby="board-title">
           <h2 id="board-title" className="text-lg font-bold">جدول و نتایج</h2>
-          <p className="text-sm text-muted-foreground">برای ثبت یا اصلاح نتیجه روی هر بازی کلیک کنید.</p>
+          <p className="text-sm text-muted-foreground">{t.format === "LEADERBOARD" ? "امتیاز هر نفر را در خانهٔ هر دور وارد کنید." : "برای ثبت یا اصلاح نتیجه روی هر بازی کلیک کنید."}</p>
           <TournamentBoard t={t} manage />
         </section>
       ) : null}

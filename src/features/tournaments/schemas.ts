@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { toEnglishDigits } from "@/lib/format";
 import { parseTomanToRial } from "@/lib/text";
-import { MAX_PARTICIPANTS, TOURNAMENT_FORMATS } from "./constants";
+import { GRAND_FINAL_MODES, MAX_PARTICIPANTS, TIEBREAKS, TOURNAMENT_FORMATS } from "./constants";
 import { parseSetScores } from "./engine";
 
 const optionalText = (max: number) => z.string().trim().max(max, `حداکثر ${max.toLocaleString("fa-IR")} کاراکتر`).default("");
@@ -39,6 +39,14 @@ export const tournamentSchema = z
     doubleRoundRobin: z.boolean().default(false),
     groupCount: optionalInt(1, 16, "تعداد گروه‌ها باید بین ۱ و ۱۶ باشد"),
     advancePerGroup: optionalInt(1, 8, "تعداد صعودکننده از هر گروه باید بین ۱ و ۸ باشد"),
+    /** Double elimination: grand final with reset, single game, or none. */
+    grandFinal: z.enum(GRAND_FINAL_MODES).default("reset"),
+    /** Round robin / groups: order of tiebreaks after points. */
+    tiebreak: z.enum(TIEBREAKS).default("goal_difference"),
+    /** Swiss: number of rounds (empty = automatic, log2 of players). */
+    swissRounds: optionalInt(1, 20, "تعداد دورها باید بین ۱ و ۲۰ باشد"),
+    /** Leaderboard: number of rounds/events at the start (more can be added later). */
+    leaderboardRounds: optionalInt(1, 50, "تعداد دورها باید بین ۱ و ۵۰ باشد"),
     pointsWin: intField(0, 10, "امتیاز برد معتبر نیست").default(3),
     pointsDraw: intField(0, 10, "امتیاز مساوی معتبر نیست").default(1),
     pointsLoss: intField(0, 10, "امتیاز باخت معتبر نیست").default(0),
