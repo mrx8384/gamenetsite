@@ -53,6 +53,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Partner prices (owner request 2026-11-04): **done** — `Product.partnerPrice`, `PartnerProfile.showPartnerPrices` (asked at approval, switch on the partner page; not tied to subscriptions); shown per request only (`src/features/partners/pricing.ts`, never in cached output) and charged in cart/checkout via `effectiveUnitPrice`. PROGRESS 53.
 - Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54–56; moved to the partner area — PROGRESS 57.
 - Tournaments Challonge parity (owner request 2026-11-05): **phase 1 done** (match underway/station/time, set scores, forfeits, disqualification with auto-forfeit, check-in, bracket with connector lines, TV/print) — PROGRESS 58; **phase 2 done** (Swiss with Buchholz, leaderboard/points-per-round format, grand-final reset/single/none, tie-break order) — PROGRESS 59; **phase 3 done** (co-organizers, teams, sign-up questions, waiting list, player reports with confirmation, predictions, CSV export, embed `/embed/tournaments/[slug]`) — PROGRESS 60.
+- Catalog sort (category / A–Z / newest) and Shamsi date-time picker for tournament times (owner request 2026-11-05): **done** — PROGRESS 61. Date/time inputs on the site use `JalaliDateTimeInput` (not `<input type="datetime-local">`).
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

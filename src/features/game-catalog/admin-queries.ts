@@ -17,6 +17,8 @@ export interface AdminCatalogGame {
   imageKey: string;
   needsRename: boolean;
   updatedAt: string;
+  /** Insertion order (higher = added later). */
+  position: number;
 }
 
 /** Admin view of one platform. Not cached: the admin always sees the current state. */
@@ -31,7 +33,7 @@ export async function getAdminCatalog(platform: Platform) {
     db.catalogGame.findMany({
       where: { platform },
       orderBy: [{ position: "desc" }, { id: "desc" }], // newest first in the admin list
-      select: { id: true, name: true, updatedAt: true, category: { select: { name: true } }, image: { select: { storageKey: true } } },
+      select: { id: true, name: true, position: true, updatedAt: true, category: { select: { name: true } }, image: { select: { storageKey: true } } },
     }),
     db.catalogGame.groupBy({ by: ["platform"], _count: true }),
     db.catalogImportRun.findFirst({ orderBy: { createdAt: "desc" }, select: { createdAt: true, sourceFileName: true, gamesImported: true } }),
@@ -46,6 +48,7 @@ export async function getAdminCatalog(platform: Platform) {
         imageKey: g.image.storageKey,
         needsRename: looksLikeFileName(g.name),
         updatedAt: g.updatedAt.toISOString(),
+        position: g.position,
       }),
     ),
     totals: { PS4: counts.find((c) => c.platform === "PS4")?._count ?? 0, PS5: counts.find((c) => c.platform === "PS5")?._count ?? 0 },

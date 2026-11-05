@@ -41,6 +41,8 @@ export interface CatalogGameView {
   name: string;
   categoryId: number;
   imageKey: string;
+  /** Insertion order (higher = added later). */
+  position: number;
   /** Cache-busting version (updatedAt seconds), like the original `v`. */
   v: number;
 }
@@ -60,12 +62,12 @@ export async function getCatalogPlatform(platform: CatalogPlatformKey): Promise<
     db.catalogGame.findMany({
       where: { platform },
       orderBy: [{ position: "asc" }, { id: "asc" }],
-      select: { id: true, name: true, categoryId: true, updatedAt: true, image: { select: { storageKey: true } } },
+      select: { id: true, name: true, categoryId: true, position: true, updatedAt: true, image: { select: { storageKey: true } } },
     }),
   ]);
   return {
     categories,
-    games: games.map((g) => ({ id: g.id, name: g.name, categoryId: g.categoryId, imageKey: g.image.storageKey, v: Math.floor(g.updatedAt.getTime() / 1000) })),
+    games: games.map((g) => ({ id: g.id, name: g.name, categoryId: g.categoryId, position: g.position, imageKey: g.image.storageKey, v: Math.floor(g.updatedAt.getTime() / 1000) })),
   };
 }
 

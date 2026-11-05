@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { JalaliDateTimeInput } from "@/components/ui/jalali-datetime-input";
 import { Label } from "@/components/ui/label";
 import { addLeaderboardRound, clearMatch, finishLeaderboard, nextSwissRound, reportMatch, setLeaderboardPoints, setMatchDetails, setMatchUnderway, startKnockout } from "@/features/tournaments/actions";
 import { bracketLayout } from "@/features/tournaments/bracket-layout";
@@ -582,8 +583,8 @@ function ReportDialog({ m, names, onClose }: { m: Match; names: Map<string, stri
                 <Input id="station" value={station} maxLength={40} onChange={(e) => setStation(e.target.value)} placeholder="مثلاً PS5 شماره ۳" />
               </div>
               <div className="grid gap-1">
-                <Label htmlFor="when" className="text-xs">زمان بازی (تهران)</Label>
-                <Input id="when" type="datetime-local" dir="ltr" value={when} onChange={(e) => setWhen(e.target.value)} />
+                <Label htmlFor="when" className="text-xs">زمان بازی (به وقت ایران)</Label>
+                <JalaliDateTimeInput id="when" value={when} onChange={setWhen} placeholder="انتخاب زمان" />
               </div>
             </div>
             <Button type="button" size="sm" variant="outline" className="justify-self-start" disabled={pending} onClick={() => run(() => setMatchDetails(m.id, { station, scheduledAt: tehranInputToIso(when) }), false)}>

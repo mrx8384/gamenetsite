@@ -21,13 +21,15 @@ import { mediaUrl } from "@/lib/media";
 import { normalizePersian } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { resizeForUpload } from "./resize-image";
+import { CATALOG_SORT_LABELS, sortCatalogGames } from "@/features/game-catalog/sort";
 
 export function GameList({ platform, games, categoryNames }: { platform: Platform; games: AdminCatalogGame[]; categoryNames: string[] }) {
   const [query, setQuery] = React.useState("");
   const [onlyRename, setOnlyRename] = React.useState(false);
+  const [sort, setSort] = React.useState<"newest" | "az">("newest");
   const renameCount = games.filter((g) => g.needsRename).length;
   const q = normalizePersian(query).toLowerCase();
-  const shown = games.filter((g) => (!onlyRename || g.needsRename) && (!q || normalizePersian(`${g.name} ${g.categoryName}`).toLowerCase().includes(q)));
+  const shown = sortCatalogGames(games, sort).filter((g) => (!onlyRename || g.needsRename) && (!q || normalizePersian(`${g.name} ${g.categoryName}`).toLowerCase().includes(q)));
 
   return (
     <Card>
@@ -39,6 +41,14 @@ export function GameList({ platform, games, categoryNames }: { platform: Platfor
               <Badge variant={onlyRename ? "strong" : "warning"}>{formatNumber(renameCount)} مورد نیاز به تغییر نام</Badge>
             </button>
           ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="ترتیب نمایش">
+          <span className="text-xs text-muted-foreground">ترتیب:</span>
+          {(["newest", "az"] as const).map((k) => (
+            <button key={k} type="button" aria-pressed={sort === k} onClick={() => setSort(k)} className={cn("cursor-pointer rounded-full border px-3 py-1 text-xs font-medium", sort === k ? "border-brand-black bg-brand-black text-brand-cream" : "hover:bg-secondary")}>
+              {CATALOG_SORT_LABELS[k]}
+            </button>
+          ))}
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { JalaliDateTimeInput } from "@/components/ui/jalali-datetime-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { createTournament, updateTournament } from "@/features/tournaments/actions";
@@ -130,8 +131,8 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
             <Input id="t-platform" value={v.platform} onChange={text("platform")} maxLength={40} placeholder="PS5" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="t-start">زمان شروع — به وقت تهران (اختیاری)</Label>
-            <Input id="t-start" type="datetime-local" dir="ltr" value={v.startsAtLocal} onChange={text("startsAtLocal")} aria-invalid={!!errors.startsAt} />
+            <Label htmlFor="t-start">زمان شروع — تقویم شمسی، به وقت ایران (اختیاری)</Label>
+            <JalaliDateTimeInput id="t-start" value={v.startsAtLocal} onChange={(x) => set("startsAtLocal", x)} aria-invalid={!!errors.startsAt} />
             {err("startsAt")}
           </div>
           <div className="grid gap-1.5">

@@ -12,6 +12,36 @@ import { formatNumber } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import { normalizePersian } from "@/lib/text";
 import { cn } from "@/lib/utils";
+import { CATALOG_SORT_LABELS, CATALOG_SORTS, type CatalogSort, isCatalogSort, sortCatalogGames } from "@/features/game-catalog/sort";
+
+const SORT_KEY = "catalog-sort";
+
+// The visitor's last order choice is remembered on this device (server render = «دسته‌بندی»).
+const sortListeners = new Set<() => void>();
+function subscribeSort(cb: () => void) {
+  sortListeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    sortListeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+let memorySort: CatalogSort = "category";
+function readSort(): CatalogSort {
+  try {
+    const saved = localStorage.getItem(SORT_KEY);
+    return isCatalogSort(saved) ? saved : memorySort;
+  } catch {
+    return memorySort;
+  }
+}
+function setSort(s: CatalogSort) {
+  memorySort = s;
+  try {
+    localStorage.setItem(SORT_KEY, s);
+  } catch {}
+  sortListeners.forEach((cb) => cb());
+}
 
 const POLL_MS = 30_000;
 
@@ -26,6 +56,7 @@ export function CatalogBrowser({ platform, categories, games }: Props) {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState<number | null>(null);
   const [openIndex, setOpenIndex] = React.useState<number | null>(null);
+  const sort = React.useSyncExternalStore(subscribeSort, readSort, () => "category" as const);
   useLiveRefresh(platform);
 
   const counts = React.useMemo(() => {
@@ -38,10 +69,21 @@ export function CatalogBrowser({ platform, categories, games }: Props) {
   const category = activeCategory !== null && visibleCategories.some((c) => c.id === activeCategory) ? activeCategory : null;
 
   const q = normalizePersian(query).toLowerCase();
-  const groups = visibleCategories
-    .filter((c) => category === null || c.id === category)
-    .map((c) => ({ ...c, games: games.filter((g) => g.categoryId === c.id && (!q || normalizePersian(g.name).toLowerCase().includes(q))) }))
-    .filter((g) => g.games.length > 0);
+  const matches = (g: CatalogGameView) => !q || normalizePersian(g.name).toLowerCase().includes(q);
+  // «دسته‌بندی»: one section per category in the original order; A–Z / newest: one list across categories.
+  const groups =
+    sort === "category"
+      ? visibleCategories
+          .filter((c) => category === null || c.id === category)
+          .map((c) => ({ id: c.id, name: c.name, games: games.filter((g) => g.categoryId === c.id && matches(g)) }))
+          .filter((g) => g.games.length > 0)
+      : [
+          {
+            id: -1,
+            name: `${category === null ? "همهٔ بازی‌ها" : (visibleCategories.find((c) => c.id === category)?.name ?? "")} — ${CATALOG_SORT_LABELS[sort]}`,
+            games: sortCatalogGames(games.filter((g) => (category === null || g.categoryId === category) && matches(g)), sort),
+          },
+        ].filter((g) => g.games.length > 0);
   // Lightbox navigates through what is on screen, in display order.
   const flat = groups.flatMap((g) => g.games);
   const indexOf = new Map(flat.map((g, i) => [g.id, i]));
@@ -71,6 +113,20 @@ export function CatalogBrowser({ platform, categories, games }: Props) {
                 aria-label="جستجوی نام بازی"
                 className="ps-9"
               />
+            </div>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="ترتیب نمایش">
+              <span className="text-xs font-medium text-muted-foreground">ترتیب نمایش:</span>
+              {CATALOG_SORTS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={sort === k}
+                  onClick={() => setSort(k)}
+                  className={cn("cursor-pointer rounded-lg border px-3 py-1 text-xs font-semibold transition-colors", sort === k ? "border-brand-green bg-primary text-primary-foreground" : "bg-surface hover:bg-secondary")}
+                >
+                  {CATALOG_SORT_LABELS[k]}
+                </button>
+              ))}
             </div>
             {visibleCategories.length > 1 ? (
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="فیلتر دسته‌بندی">

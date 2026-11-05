@@ -1,5 +1,12 @@
 # Progress Log
 
+## 2026-11-05 (61) — Catalog sort order + Shamsi date picker for tournaments (owner request)
+
+- **Game Catalog order:** public pages (`/game-catalog/ps4|ps5`) get «ترتیب نمایش»: دسته‌بندی (original grouped view) / الفبا (A تا Z) / جدیدترین. A–Z and newest show one list across categories (category chips still filter); the visitor's choice is remembered on the device (`useSyncExternalStore` + localStorage, server render = category). Admin game list: «جدیدترین» (default, as before) / «الفبا». Pure helper `src/features/game-catalog/sort.ts` (Intl.Collator en+fa, numeric; "newest" by `position` = insertion order, so batch imports don't tie).
+- **Tournament times in Shamsi:** new `JalaliDateTimeInput` (`src/components/ui/jalali-datetime-input.tsx`, Radix popover): Persian month grid (week starts Saturday, Fridays red, today marked), hour/minute selects, «امروز», clear. Used for the tournament start time and the per-match time. Value format unchanged ("yyyy-MM-ddTHH:mm", Iran time +03:30), so server code is unchanged. Conversion `src/lib/jalali.ts` (jalaali algorithm), checked day by day against the browser's `fa-IR-u-ca-persian` calendar for 2015–2040.
+
+Verified: typecheck, lint, 503 unit tests (new `jalali.test.ts`, `catalog-sort.test.ts`), build; browser: catalog A–Z / newest / remembered choice / lightbox, admin sort; tournament form picked «جمعه ۲۰ آذر ۱۴۰۵ — ساعت ۲۰:۳۰» → stored 17:00 UTC and shown the same after saving. Test data removed.
+
 ## 2026-11-05 (60) — Tournaments: Challonge-style phase 3 (community features)
 
 - **Co-organizers** (`TournamentCoOrganizer`): the owner (admin / organizing partner) adds any active account by email or mobile (max 10). `permissions.ts` now has roles: `owner` (everything) and `co` (results, participants, check-in, disqualify, start/reset, Swiss/leaderboard, exports). Settings, publish/draft/cancel, delete, payments card and the co-organizer list need `manageableTournament(user, id, "owner")`. Co-organizers work from **«حساب کاربری ← تورنومنت‌های من»** (`/account/tournaments`, `/account/tournaments/[id]`), which also lists the user's own registrations and waiting-list places.
