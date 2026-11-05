@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Handshake, Search } from "lucide-react";
+import { Gamepad2, Handshake, Search } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,11 @@ type SP = { status?: string; q?: string; page?: string };
 export default function PartnersAdminPage({ searchParams }: PageProps<"/admin/partners">) {
   return (
     <>
-      <AdminPageHeader title="همکاران" description="بررسی درخواست‌های همکاری، تأیید، رد و تعلیق همکاران." />
+      <AdminPageHeader
+        title="همکاران"
+        description="بررسی درخواست‌های همکاری، تأیید، رد و تعلیق همکاران."
+        actions={<Button asChild variant="outline"><Link href="/partner/gamepad-tester"><Gamepad2 /> تست دسته</Link></Button>}
+      />
       <Suspense fallback={<LoadingRows rows={6} />}>
         <PartnerList searchParams={searchParams as Promise<SP>} />
       </Suspense>

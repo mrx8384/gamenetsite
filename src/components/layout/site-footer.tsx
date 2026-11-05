@@ -21,7 +21,7 @@ async function CopyrightYear() {
 const serviceLinks = [
   { href: "/game-catalog/ps5", label: "بازی‌های PS5" },
   { href: "/game-catalog/ps4", label: "بازی‌های PS4" },
-  { href: "/tournaments/gamepad-tester", label: "تست دسته" },
+  { href: "/partner/gamepad-tester", label: "تست دسته (همکاران)" },
   { href: "/partners", label: "درخواست همکاری" },
 ];
 

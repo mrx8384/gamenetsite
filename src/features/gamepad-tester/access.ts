@@ -12,7 +12,7 @@ export function canUseGamepadTester(access: GamepadAccess): boolean {
 
 export type GamepadAccess = "anonymous" | "admin" | "no-application" | "pending" | "rejected" | "suspended" | "no-subscription" | "granted";
 
-/** Server-side access state for /tournaments/gamepad-tester. The only gate is `hasEntitlement`. */
+/** Server-side access state for /partner/gamepad-tester (partner area). The only gate is `hasEntitlement`. */
 export async function getGamepadAccess(user: { id: string; role: string } | null): Promise<GamepadAccess> {
   if (!user) return "anonymous";
   if (await hasEntitlement(user.id, "GAMEPAD_TESTER")) return "granted";

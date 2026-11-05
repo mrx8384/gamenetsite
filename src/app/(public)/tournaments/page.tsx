@@ -3,11 +3,10 @@ import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { CalendarDays, Gamepad, Trophy, Users } from "lucide-react";
+import { CalendarDays, Trophy, Users } from "lucide-react";
 import { SectionGate } from "@/components/layout/section-gate";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSiteSettings } from "@/features/settings/site";
 import { FORMAT_LABELS, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
@@ -28,7 +27,6 @@ async function TournamentsPageContent() {
             تورنومنت‌ها
           </h1>
         </div>
-        <Button asChild variant="outline"><Link href="/tournaments/gamepad-tester"><Gamepad /> تست دسته (ویژهٔ همکاران)</Link></Button>
       </div>
       <Suspense fallback={<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}</div>}>
         <TournamentSections empty={t.comingSoon} />

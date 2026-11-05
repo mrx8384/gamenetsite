@@ -1,5 +1,12 @@
 # Progress Log
 
+## 2026-11-05 (57) — Gamepad tester moved from Tournaments to the partner area (owner request)
+
+- `/tournaments/gamepad-tester` page removed; the tester lives only at `/partner/gamepad-tester` (partner area, partner's own look while subscribed; access unchanged: partners with the entitlement + admins). Old links get a permanent redirect (`redirects()` in `next.config.ts`); the tester CSP rule now targets `/partner/gamepad-tester` only.
+- Removed: the «تست دسته» button on `/tournaments`, the sitemap entry (private page now), the special case in `visibleLinks` and the smoke-test URL. Footer «خدمات» link → `/partner/gamepad-tester` («تست دسته (همکاران)»). Admin → همکاران has a «تست دسته» button.
+
+Verified: typecheck, lint, 457 unit tests, build; old URL → 308 to the new one, guests → login, `/tournaments` and the sitemap no longer mention the old page; browser (admin): Admin → همکاران → تست دسته opens the tester, simulated DS4 connects, Xbox tab works, no errors. Test data removed.
+
 ## 2026-11-04 (56) — PlayStation tool rebuilt as part of the site (owner request: «مثل تست دسته xbox باشه جزو سایت باشه»)
 
 - New native screen `src/components/gamepad-tester/playstation/ps-tool.tsx` (site components, Persian): connect over WebHID (USB only — Bluetooth refused, clones and outdated DualSense firmware lock calibration, Edge/VR2 notices, unsaved-changes notice), controller info (+ «نمایش همه»), NVS status, battery, live controller drawing (`ControllerPicture`), stick dials with normal / 10× zoom / circularity (`stick-dials.tsx`, drawn by the original `stick-renderer.js`), centre calibration (four-step wizard; DualSense also «کالیبرهٔ سریع»), range calibration (4 turns per stick, Done after ≤ 15 s, «keep rotating» hint), failed-range detection, «ذخیرهٔ دائمی» (Edge progress), reboot with confirmation, auto-reset when the cable is pulled. Same steps and order as the original's core.js / calib-center-modal.js / calib-range-modal.js; the DualSense calibration snapshot (`FinetuneHistory.save`) is still taken on connect so «Restore calibration» keeps working.

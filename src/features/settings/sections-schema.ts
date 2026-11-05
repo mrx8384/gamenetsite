@@ -24,8 +24,6 @@ export type SectionVisibility = Record<SectionKey, boolean>;
 export function visibleLinks<T extends { href: string }>(links: readonly T[], visibility: SectionVisibility): T[] {
   return links.filter((l) => {
     const owner = SECTION_DEFS.find((s) => l.href === s.href || l.href.startsWith(`${s.href}/`));
-    // The gamepad tester lives under /tournaments but stays available for partners.
-    if (owner?.key === "tournaments" && l.href.startsWith("/tournaments/gamepad-tester")) return true;
     return !owner || visibility[owner.key];
   });
 }

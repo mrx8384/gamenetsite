@@ -22,8 +22,8 @@ describe("section visibility", () => {
 
   it("keeps the gamepad tester when tournaments are hidden", () => {
     const v = sectionVisibilitySchema.parse({ tournaments: false });
-    const hrefs = visibleLinks([{ href: "/tournaments", label: "" }, { href: "/tournaments/gamepad-tester", label: "" }], v).map((l) => l.href);
-    expect(hrefs).toEqual(["/tournaments/gamepad-tester"]);
+    const hrefs = visibleLinks([{ href: "/tournaments", label: "" }, { href: "/partner/gamepad-tester", label: "" }], v).map((l) => l.href);
+    expect(hrefs).toEqual(["/partner/gamepad-tester"]);
   });
 
   it("does not confuse /partner-like prefixes", () => {

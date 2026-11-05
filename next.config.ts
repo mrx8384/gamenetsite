@@ -79,6 +79,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // The gamepad tester moved from the tournaments section to the partner area (owner request 2026-11-05).
+  async redirects() {
+    return [{ source: "/tournaments/gamepad-tester", destination: "/partner/gamepad-tester", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
@@ -93,7 +97,7 @@ const nextConfig: NextConfig = {
       { source: "/atom-world/:file(sw\\.js|offline-manifest\\.json)", headers: [{ key: "Cache-Control", value: "no-cache" }] },
       { source: "/atom-world/sw.js", headers: [{ key: "Service-Worker-Allowed", value: "/atom-world" }] },
       // Gamepad tester: the pages frame /gamepad-tools/… (same origin, WebHID allowed by `allow="hid"`).
-      { source: "/:area(partner|tournaments)/gamepad-tester", headers: [{ key: "Content-Security-Policy", value: toolsHostCsp }] },
+      { source: "/partner/gamepad-tester", headers: [{ key: "Content-Security-Policy", value: toolsHostCsp }] },
       { source: "/gamepad-tools/:path*", headers: [{ key: "Content-Security-Policy", value: toolCsp }, { key: "X-Frame-Options", value: "SAMEORIGIN" }] },
     ];
   },

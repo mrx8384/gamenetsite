@@ -14,7 +14,7 @@ ATOM GAME CLUB is a Persian-first (fa-IR, RTL) gaming platform:
 - Existing **Game Catalog** (Python, from `game-catalog.zip`) integrated under `/game-catalog`
 - Tournaments (Challonge-style, owner request 2026-10-23): single elimination (+ third place), double elimination (grand final + reset), round robin (single/double), groups + knockout. Organized by admins and by partners whose subscription includes `TOURNAMENT_HOST`; online sign-up and manual names; results entered by the organizer only
 - Online support chat (owner request 2026-10-25): floating widget for logged-in users, answered by ADMIN or the new `SUPPORT` role in `/admin/support`; badge + sound, SMS to staff, SMS/email to offline customers
-- Gamepad Tester at `/tournaments/gamepad-tester`: browser input tester (Gamepad API), for approved partners with an active subscription and admins
+- Gamepad Tester at `/partner/gamepad-tester` (moved from /tournaments 2026-11-05, old URL redirects): PlayStation calibration/tests + Xbox test, for approved partners with an active subscription and admins
 - One centralized admin panel at `/admin`
 
 Communication with the owner: **Persian**. Code, comments, technical docs: **English**.
@@ -51,7 +51,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Online subscription purchase + tournament entry fees (owner request 2026-11-04): **done** — `src/features/subscriptions/purchase*.ts`, `Tournament.entryFee`, model `TournamentEntry` (participant created only after payment; REFUND_NEEDED when it can't be), `src/features/tournaments/entries.ts`, admin `/admin/tournaments/payments` (refunds, per-organizer totals for partner settlement: money goes to the site's gateway account). PROGRESS 51.
 - White-label partner area + partner logo approval + automatic product codes (owner request 2026-11-04): **done** — route group `src/app/(partner)` (`partner-shell.tsx`, `getPartnerBranding`): subscribed partners see their own logo/name and no Atom logo in `/partner/**`; logo sent by the partner, used after admin approval (`logo-actions.ts`); SKU empty → `ATM-00001…`. PROGRESS 52.
 - Partner prices (owner request 2026-11-04): **done** — `Product.partnerPrice`, `PartnerProfile.showPartnerPrices` (asked at approval, switch on the partner page; not tied to subscriptions); shown per request only (`src/features/partners/pricing.ts`, never in cached output) and charged in cart/checkout via `effectiveUnitPrice`. PROGRESS 53.
-- Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54.
+- Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54–56; moved to the partner area — PROGRESS 57.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

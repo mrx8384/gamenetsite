@@ -15,7 +15,10 @@ export const metadata: Metadata = { title: "تست دسته", robots: { index: f
 export default function PartnerGamepadTesterPage() {
   return (
     <Container className="space-y-6 py-8 sm:py-12">
-      <h1 className="text-2xl font-black">تست دسته</h1>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-black">تست دسته</h1>
+        <p className="max-w-2xl text-sm leading-7 text-muted-foreground">تست و کالیبرهٔ دسته‌های پلی‌استیشن و تست دسته‌های ایکس‌باکس و سایر دسته‌ها — ویژهٔ همکاران دارای اشتراک فعال.</p>
+      </div>
       <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
         <Tester />
       </Suspense>
