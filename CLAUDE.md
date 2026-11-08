@@ -54,6 +54,7 @@ Communication with the owner: **Persian**. Code, comments, technical docs: **Eng
 - Full PlayStation calibration tool + Xbox test (owner request 2026-11-04): **done** — PROGRESS 54–56; moved to the partner area — PROGRESS 57.
 - Tournaments Challonge parity (owner request 2026-11-05): **phase 1 done** (match underway/station/time, set scores, forfeits, disqualification with auto-forfeit, check-in, bracket with connector lines, TV/print) — PROGRESS 58; **phase 2 done** (Swiss with Buchholz, leaderboard/points-per-round format, grand-final reset/single/none, tie-break order) — PROGRESS 59; **phase 3 done** (co-organizers, teams, sign-up questions, waiting list, player reports with confirmation, predictions, CSV export, embed `/embed/tournaments/[slug]`) — PROGRESS 60.
 - Catalog sort (category / A–Z / newest) and Shamsi date-time picker for tournament times (owner request 2026-11-05): **done** — PROGRESS 61. Date/time inputs on the site use `JalaliDateTimeInput` (not `<input type="datetime-local">`).
+- Server status dashboard (owner request 2026-11-08): **done** — Admin → وضعیت سرور (`/admin/server`): live CPU/RAM/disk/network/processes from `/proc` + per-minute history (`ServerMetric`, sampler started in `src/instrumentation.ts`, 31-day retention in `pnpm maintenance`). PROGRESS 62.
 - Code is on GitHub: `mrx8384/gamenetsite` (branch `main`).
 
 ### Owner decisions (2026-10-22)

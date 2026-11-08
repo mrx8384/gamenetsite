@@ -1,13 +1,16 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Handshake, Headset, Mail, Newspaper, PackageCheck, Receipt, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
+import { Cpu, HardDrive, Handshake, Headset, Mail, MemoryStick, Newspaper, PackageCheck, Receipt, Server, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
 import { requireRole } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { formatNumber, formatToman } from "@/lib/format";
+import { formatPct } from "@/features/server-status/format";
+import { levelOf, THRESHOLDS } from "@/features/server-status/parse";
+import { cn } from "@/lib/utils";
 
 function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 3600 * 1000);
@@ -89,6 +92,34 @@ async function Stats() {
         ))}
       </div>
       <p className="text-sm text-muted-foreground">{formatNumber(newThisWeek)} کاربر جدید در ۷ روز گذشته.</p>
+      <ServerStrip />
     </div>
+  );
+}
+
+/** Latest per-minute server sample (Admin → وضعیت سرور), so a full disk or busy server is noticed early. */
+async function ServerStrip() {
+  const m = await db.serverMetric.findFirst({ orderBy: { createdAt: "desc" } });
+  if (!m) return null;
+  const pct = (a: bigint, b: bigint) => (b > BigInt(0) ? (Number(a) / Number(b)) * 100 : 0);
+  const items = [
+    { label: "پردازنده", icon: Cpu, value: m.cpu, level: levelOf(m.cpu, THRESHOLDS.cpu) },
+    { label: "رم", icon: MemoryStick, value: pct(m.memUsed, m.memTotal), level: levelOf(pct(m.memUsed, m.memTotal), THRESHOLDS.memory) },
+    { label: "دیسک", icon: HardDrive, value: pct(m.diskUsed, m.diskTotal), level: levelOf(pct(m.diskUsed, m.diskTotal), THRESHOLDS.disk) },
+  ];
+  const levelText = { ok: "", high: "زیاد", critical: "بحرانی" } as const;
+  return (
+    <Link href="/admin/server" className="block">
+      <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5 transition-shadow hover:shadow-lg">
+        <p className="flex items-center gap-2 font-bold"><Server className="size-5" aria-hidden /> وضعیت سرور</p>
+        {items.map(({ label, icon: Icon, value, level }) => (
+          <p key={label} className={cn("flex items-center gap-1.5 text-sm", level === "critical" ? "font-bold text-destructive" : level === "high" ? "font-bold text-warning" : "text-muted-foreground")}>
+            <Icon className="size-4" aria-hidden /> {label}: <span className="font-bold text-foreground">{formatPct(value)}</span>
+            {levelText[level] ? <span>({levelText[level]})</span> : null}
+          </p>
+        ))}
+        <span className="ms-auto text-xs font-semibold text-link">جزئیات و نمودارها ←</span>
+      </Card>
+    </Link>
   );
 }

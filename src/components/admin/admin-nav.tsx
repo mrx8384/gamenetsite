@@ -15,6 +15,7 @@ import {
   Package,
   Receipt,
   Repeat,
+  Server,
   Settings,
   Trophy,
   Truck,
@@ -51,6 +52,7 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/tournaments", label: "تورنومنت", icon: Trophy },
   { href: "/admin/game-rewards", label: "دستاوردها و جوایز", icon: Gift },
   { href: "/admin/settings", label: "تنظیمات سایت", icon: Settings },
+  { href: "/admin/server", label: "وضعیت سرور", icon: Server },
 ];
 
 /** Short two-tone chime via Web Audio (no audio file). Browsers allow it after the first click on the page. */

@@ -1279,3 +1279,31 @@ model TournamentPrediction {
   @@index([tournamentId, userId])
   @@map("tournament_predictions")
 }
+
+/// Server resources, one row per minute, taken by the site itself (src/features/server-status/sampler.ts,
+/// started from src/instrumentation.ts). Shown in Admin → وضعیت سرور; rows older than 31 days are pruned
+/// by `pnpm maintenance`.
+model ServerMetric {
+  id        BigInt   @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  /// Length of the measured interval in seconds (normally 60).
+  seconds   Int
+  /// Busy share of all CPU cores over the interval, 0–100.
+  cpu       Float
+  load1     Float
+  memUsed   BigInt
+  memTotal  BigInt
+  swapUsed  BigInt
+  swapTotal BigInt
+  /// Root filesystem ("/").
+  diskUsed  BigInt
+  diskTotal BigInt
+  /// Bytes received / sent during the interval (all real network interfaces).
+  netRx     BigInt
+  netTx     BigInt
+  /// Memory of the site's own Node.js process.
+  appRss    BigInt
+
+  @@index([createdAt])
+  @@map("server_metrics")
+}

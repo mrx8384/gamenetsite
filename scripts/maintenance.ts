@@ -7,7 +7,8 @@
  *
  * Routine: expired sessions, old one-time codes, finished rate-limit windows, expired guest carts,
  * unpaid orders past their payment window (stock returned), ACTIVE subscriptions past their end
- * date → EXPIRED; accounts without activity for the period set in Admin → کاربران (off by default).
+ * date → EXPIRED; accounts without activity for the period set in Admin → کاربران (off by default);
+ * server resource samples older than 31 days.
  */
 import { readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -71,6 +72,16 @@ async function main() {
     async () => (await db.partnerSubscription.updateMany({ where: { status: "ACTIVE", endsAt: { lt: now } }, data: { status: "EXPIRED" } })).count,
     () => db.partnerSubscription.count({ where: { status: "ACTIVE", endsAt: { lt: now } } }),
   );
+
+  // Server resource samples (Admin → وضعیت سرور) are kept for 31 days.
+  {
+    const metricCutoff = new Date(now.getTime() - 31 * DAY);
+    await count(
+      "oldServerMetrics",
+      async () => (await db.serverMetric.deleteMany({ where: { createdAt: { lt: metricCutoff } } })).count,
+      () => db.serverMetric.count({ where: { createdAt: { lt: metricCutoff } } }),
+    );
+  }
 
   // «حذف خودکار حساب‌های بدون فعالیت» (Admin → کاربران). Off unless the admin chose a period.
   {

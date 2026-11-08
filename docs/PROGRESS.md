@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-11-08 (62) — Server status dashboard in the admin panel (owner request: «داشبورد رم، CPU، حافظه… روی سرور نه، توی جای دیگه»)
+
+- **Admin → وضعیت سرور** (`/admin/server`, ADMIN only, new nav item; mobile-friendly): the site measures the server it runs on, so the owner sees it in any browser without logging into the server. Nothing extra to install: the normal update command is enough.
+  - Live (every 5 s while the tab is visible; pause button): CPU % (+ per core, load average), RAM (used = total − available, cache, swap), every real disk (df-style %), network down/up rate and totals since boot, the 8 biggest programs grouped by name (RAM + CPU share; names only — never command lines), site process memory/uptime, database size/latency/connections/version, uploaded files total, backups folder size and last database backup. Coloured meters with text labels (عادی / زیاد / بحرانی), thresholds in `parse.ts` (`THRESHOLDS`).
+  - History: `ServerMetric` (migration `server_metrics`), one row per minute written by `src/features/server-status/sampler.ts`, started once per server process from `src/instrumentation.ts` (Node runtime only, skipped during `next build`; timer unref'd; failures logged once). Charts for 1 h / 24 h / 7 d / 30 d (buckets via `date_bin`, ≤ 400 points): CPU, RAM, disk, network — hand-written SVG (`components/admin/server/charts.tsx`, no chart library): hairline grid, 2 px lines, gaps drawn where the site was down, crosshair readout on hover/touch/arrow keys, table view under each chart. Colours from new `--chart-*` tokens (series pair validated for colour-blind separation).
+  - Admin dashboard: a «وضعیت سرور» strip with the latest CPU/RAM/disk sample.
+  - `pnpm maintenance` deletes samples older than 31 days. API: `/api/admin/server?part=live|details|history&range=` (ADMIN, `no-store`). Parsers are pure (`parse.ts`, `chart-math.ts`, `format.ts`) and unit-tested.
+
+Verified: typecheck, lint, unit tests (new `server-status.test.ts`), build (no file-tracing warnings; sampler does not run during the build); on the running build the sampler stored a real row after one minute, anonymous API 403 / page → login; browser (desktop 1360 + 1280, mobile 390): tiles, live updates every 5 s, sparklines, range switch, hover + keyboard readouts, table view, no overflow. Temporary `[TEST]` admin and synthetic samples removed.
+
 ## 2026-11-05 (61) — Catalog sort order + Shamsi date picker for tournaments (owner request)
 
 - **Game Catalog order:** public pages (`/game-catalog/ps4|ps5`) get «ترتیب نمایش»: دسته‌بندی (original grouped view) / الفبا (A تا Z) / جدیدترین. A–Z and newest show one list across categories (category chips still filter); the visitor's choice is remembered on the device (`useSyncExternalStore` + localStorage, server render = category). Admin game list: «جدیدترین» (default, as before) / «الفبا». Pure helper `src/features/game-catalog/sort.ts` (Intl.Collator en+fa, numeric; "newest" by `position` = insertion order, so batch imports don't tie).
