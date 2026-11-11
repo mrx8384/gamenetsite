@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-11 (65) — A wrong GameNet setting no longer takes the site down
+
+- Live incident: `GAMENET_APP_DOWNLOAD_URL` held placeholder text → env validation threw inside the instrumentation hook → every request answered "Internal Server Error". Fix in `src/lib/env.ts`: the GameNet settings are "optional feature" values — an invalid one (or only one of URL/KEY) is ignored with a warning in the log (`[env] … is ignored`, value never printed) and the GameNet section stays off; required settings still fail fast.
+
+Verified: unit tests (new `env-optional.test.ts`), typecheck, lint, build; production build started with a placeholder download URL → homepage 200 and the warning in the log.
+
 ## 2026-11-11 (64) — GameNet software account via the license server API (owner's patch)
 
 - Applied the owner's patch «Partner area: GameNet software account via the license server API» (from the session that built the license server; replaces an earlier admin-login approach that would not work with the panel's two-step login): features `GAMENET_APP` / `GAMENET_REMOTE`, `src/features/gamenet-license/` (API-key client for `/api/v1`, partner card to create the app account with own username/password and change it, sync after purchase/grant/cancel/approve/suspend and daily in `pnpm maintenance`). Env `GAMENET_LICENSE_API_URL` + `GAMENET_LICENSE_API_KEY` (`gnk_…`), optional `GAMENET_APP_DOWNLOAD_URL`.

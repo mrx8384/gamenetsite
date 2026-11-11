@@ -8,6 +8,19 @@ import { z } from "zod";
 /** Treat empty strings from .env files as "not set". */
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
+/**
+ * An optional add-on setting: an invalid value only disables that add-on (with a warning in the log)
+ * instead of stopping the whole site. The value itself is never logged (it may be a key).
+ */
+function optionalFeature(name: string, schema: z.ZodType<string>) {
+  return z.preprocess((v) => {
+    if (v === "" || v === undefined) return undefined;
+    if (schema.safeParse(v).success) return v;
+    console.warn(`[env] ${name} is invalid and is ignored (the related feature stays off). Fix it in .env.`);
+    return undefined;
+  }, z.string().optional());
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.url().refine((v) => v.startsWith("postgres"), "DATABASE_URL must be a PostgreSQL URL"),
@@ -48,10 +61,10 @@ const envSchema = z.object({
    * «نرم‌افزار مدیریت گیم‌نت»: سرور لایسنس (مثلاً https://license.atomgclub.ir) و کلید API ساخته‌شده در
    * پنل مدیریت آن (امنیت ← کلیدهای API). تا هر دو تنظیم نشوند، بخش نرم‌افزار در پنل همکار نمایش داده نمی‌شود.
    */
-  GAMENET_LICENSE_API_URL: z.preprocess(emptyToUndefined, z.url().optional()),
-  GAMENET_LICENSE_API_KEY: z.preprocess(emptyToUndefined, z.string().startsWith("gnk_", "GAMENET_LICENSE_API_KEY must start with gnk_").optional()),
+  GAMENET_LICENSE_API_URL: optionalFeature("GAMENET_LICENSE_API_URL", z.url()),
+  GAMENET_LICENSE_API_KEY: optionalFeature("GAMENET_LICENSE_API_KEY", z.string().startsWith("gnk_")),
   /** Optional download page or file for the Windows app, shown to partners who have an account. */
-  GAMENET_APP_DOWNLOAD_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  GAMENET_APP_DOWNLOAD_URL: optionalFeature("GAMENET_APP_DOWNLOAD_URL", z.url()),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -76,7 +89,10 @@ function loadEnv(): Env {
     throw new Error("MAIL_PROVIDER=smtp requires SMTP_URL or SMTP_HOST + SMTP_USER + SMTP_PASSWORD");
   }
   if (!!env.GAMENET_LICENSE_API_URL !== !!env.GAMENET_LICENSE_API_KEY) {
-    throw new Error("GAMENET_LICENSE_API_URL and GAMENET_LICENSE_API_KEY must be set together");
+    // Only one of the pair: the GameNet section stays off instead of taking the whole site down.
+    console.warn("[env] GAMENET_LICENSE_API_URL and GAMENET_LICENSE_API_KEY must be set together — GameNet software section disabled.");
+    env.GAMENET_LICENSE_API_URL = undefined;
+    env.GAMENET_LICENSE_API_KEY = undefined;
   }
   if (env.NODE_ENV === "production") {
     if (env.SMS_PROVIDER === "log") console.warn("[env] SMS_PROVIDER=log in production: SMS will not be sent.");
