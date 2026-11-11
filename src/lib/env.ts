@@ -44,6 +44,14 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.preprocess(emptyToUndefined, z.string().optional()),
   /** Sender shown to users, e.g. "اتم گیم کلاب <info@atomgclub.ir>". Defaults to SMTP_USER. */
   MAIL_FROM: z.preprocess(emptyToUndefined, z.string().optional()),
+  /**
+   * «نرم‌افزار مدیریت گیم‌نت»: سرور لایسنس (مثلاً https://license.atomgclub.ir) و کلید API ساخته‌شده در
+   * پنل مدیریت آن (امنیت ← کلیدهای API). تا هر دو تنظیم نشوند، بخش نرم‌افزار در پنل همکار نمایش داده نمی‌شود.
+   */
+  GAMENET_LICENSE_API_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  GAMENET_LICENSE_API_KEY: z.preprocess(emptyToUndefined, z.string().startsWith("gnk_", "GAMENET_LICENSE_API_KEY must start with gnk_").optional()),
+  /** Optional download page or file for the Windows app, shown to partners who have an account. */
+  GAMENET_APP_DOWNLOAD_URL: z.preprocess(emptyToUndefined, z.url().optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -66,6 +74,9 @@ function loadEnv(): Env {
   }
   if (env.MAIL_PROVIDER === "smtp" && !env.SMTP_URL && !(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD)) {
     throw new Error("MAIL_PROVIDER=smtp requires SMTP_URL or SMTP_HOST + SMTP_USER + SMTP_PASSWORD");
+  }
+  if (!!env.GAMENET_LICENSE_API_URL !== !!env.GAMENET_LICENSE_API_KEY) {
+    throw new Error("GAMENET_LICENSE_API_URL and GAMENET_LICENSE_API_KEY must be set together");
   }
   if (env.NODE_ENV === "production") {
     if (env.SMS_PROVIDER === "log") console.warn("[env] SMS_PROVIDER=log in production: SMS will not be sent.");

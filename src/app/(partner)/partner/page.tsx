@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Gamepad, Handshake, ImageIcon, Lock, ShieldCheck, Trophy } from "lucide-react";
+import { Gamepad, Handshake, ImageIcon, Lock, MonitorSmartphone, ShieldCheck, Trophy } from "lucide-react";
 import { PartnerLogoCard } from "@/components/partners/partner-logo-card";
+import { GamenetAppCard } from "@/components/partners/gamenet-app-card";
+import { getGamenetSection } from "@/features/gamenet-license/queries";
 import { mediaUrl } from "@/lib/media";
 import { Container } from "@/components/layout/container";
 import { PartnerForm } from "@/components/partners/partner-form";
@@ -107,7 +109,7 @@ async function PartnerContent({ searchParams }: { searchParams: Promise<Record<s
     );
   }
 
-  const [plans, gamepad, host] = await Promise.all([getVisiblePlans(), hasEntitlement(user.id, "GAMEPAD_TESTER"), hasEntitlement(user.id, "TOURNAMENT_HOST")]);
+  const [plans, gamepad, host, gamenet] = await Promise.all([getVisiblePlans(), hasEntitlement(user.id, "GAMEPAD_TESTER"), hasEntitlement(user.id, "TOURNAMENT_HOST"), getGamenetSection(profile.id)]);
   const sub = currentSubscription(profile);
   const next = upcomingSubscription(profile);
 
@@ -160,6 +162,15 @@ async function PartnerContent({ searchParams }: { searchParams: Promise<Record<s
           </CardContent>
         </Card>
       </div>
+
+      {gamenet ? (
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><MonitorSmartphone className="size-5" /> نرم‌افزار مدیریت گیم‌نت</CardTitle></CardHeader>
+          <CardContent>
+            <GamenetAppCard entitled={gamenet.entitled} account={gamenet.account} unavailable={gamenet.unavailable} downloadUrl={gamenet.downloadUrl} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ImageIcon className="size-5" /> لوگوی شما</CardTitle></CardHeader>

@@ -8,7 +8,7 @@
  * Routine: expired sessions, old one-time codes, finished rate-limit windows, expired guest carts,
  * unpaid orders past their payment window (stock returned), ACTIVE subscriptions past their end
  * date → EXPIRED; accounts without activity for the period set in Admin → کاربران (off by default);
- * server resource samples older than 31 days.
+ * server resource samples older than 31 days; GameNet software accounts re-synced with subscriptions.
  */
 import { readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -145,6 +145,30 @@ async function main() {
     };
     await walk(root);
     report.strayFiles = strayFiles;
+  }
+
+  // نرم‌افزار گیم‌نت: تاریخ پایان و وضعیت حساب‌های نرم‌افزار را با اشتراک‌ها هماهنگ کن
+  // (اگر بعد از خرید یا تغییر، سرور لایسنس در دسترس نبود، اینجا جبران می‌شود)
+  {
+    const { gamenetConfigured } = await import("../src/features/gamenet-license/client");
+    if (gamenetConfigured()) {
+      const partners = await db.partnerProfile.findMany({
+        where: { subscriptions: { some: { plan: { features: { has: "GAMENET_APP" } } } } },
+        select: { id: true },
+      });
+      if (dryRun) report.gamenetLicensesToSync = partners.length;
+      else {
+        const { syncGamenetLicense } = await import("../src/features/gamenet-license/sync");
+        let updated = 0, failed = 0;
+        for (const p of partners) {
+          const r = await syncGamenetLicense(p.id);
+          if (r === "updated") updated++;
+          else if (r === "failed") failed++;
+        }
+        report.gamenetLicensesSynced = updated;
+        if (failed) report.gamenetLicenseSyncFailures = failed;
+      }
+    }
   }
 
   console.log(`${dryRun ? "[dry-run] " : ""}maintenance ${now.toISOString()}`);

@@ -8,6 +8,7 @@ import { fail, isUniqueViolation, ok, zodFieldErrors, type ActionResult } from "
 import { getRequestInfo } from "@/lib/request-info";
 import { nextGrantStart } from "./entitlement-rules";
 import { grantSchema, planSchema } from "./schemas";
+import { syncGamenetLicenseLater } from "@/features/gamenet-license/sync";
 
 async function admin() {
   try {
@@ -101,6 +102,7 @@ export async function grantSubscription(partnerId: string, input: unknown): Prom
 
   const { ip } = await getRequestInfo();
   await audit({ actorId: actor.id, action: "subscriptions.granted", entity: "partner", entityId: partnerId, ip, meta: { subscriptionId: result.id, plan: result.plan, days: durationDays, startsAt: result.startsAt.toISOString(), endsAt: result.endsAt.toISOString() } });
+  syncGamenetLicenseLater(partnerId);
   revalidatePath(`/admin/partners/${partnerId}`);
   revalidatePath("/admin/subscriptions");
   return ok({ startsAt: result.startsAt.toISOString(), endsAt: result.endsAt.toISOString() }, "اشتراک اعطا شد.");
@@ -116,7 +118,10 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
   const sub = await db.partnerSubscription.findUnique({ where: { id: subscriptionId }, select: { partnerId: true } });
   const { ip } = await getRequestInfo();
   await audit({ actorId: actor.id, action: "subscriptions.cancelled", entity: "partner", entityId: sub?.partnerId ?? null, ip, meta: { subscriptionId } });
-  if (sub) revalidatePath(`/admin/partners/${sub.partnerId}`);
+  if (sub) {
+    syncGamenetLicenseLater(sub.partnerId);
+    revalidatePath(`/admin/partners/${sub.partnerId}`);
+  }
   revalidatePath("/admin/subscriptions");
   return ok(undefined, "اشتراک لغو شد.");
 }

@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { nextGrantStart } from "./entitlement-rules";
+import { syncGamenetLicenseLater } from "@/features/gamenet-license/sync";
 
 /** How long a started subscription payment stays payable. */
 export const SUBSCRIPTION_PAYMENT_MINUTES = 20;
@@ -26,7 +27,7 @@ export async function applySubscriptionPayment(paymentId: string, result: Result
     return changed ? "failed" : "already_processed";
   }
 
-  return db.$transaction(async (tx) => {
+  const outcome = await db.$transaction(async (tx) => {
     const c = await tx.payment.updateMany({
       where: { id: paymentId, status: "INITIATED" },
       data: { status: "SUCCEEDED", referenceId: result.referenceId, cardPanMasked: result.cardPanMasked ?? null, raw: (result.raw ?? {}) as Prisma.InputJsonValue },
@@ -42,6 +43,9 @@ export async function applySubscriptionPayment(paymentId: string, result: Result
     await tx.partnerSubscription.update({ where: { id: sub.id }, data: { status: "ACTIVE", startsAt, endsAt, note: `خرید آنلاین — کد پیگیری ${result.referenceId}`.slice(0, 500) } });
     return "paid" as const;
   });
+  // نرم‌افزار گیم‌نت: تاریخ پایان حساب نرم‌افزار را با اشتراک جدید هماهنگ کن
+  if (outcome === "paid") syncGamenetLicenseLater(sub.partnerId);
+  return outcome;
 }
 
 /** Unpaid purchases older than the window are cancelled (maintenance + before a new purchase). */

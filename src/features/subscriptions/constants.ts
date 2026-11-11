@@ -8,6 +8,8 @@ export const SUBSCRIPTION_PURCHASE_ENABLED = true as boolean;
 export const ENTITLEMENTS = {
   GAMEPAD_TESTER: "تست دسته (Gamepad Tester)",
   TOURNAMENT_HOST: "برگزاری تورنومنت",
+  GAMENET_APP: "نرم‌افزار مدیریت گیم‌نت",
+  GAMENET_REMOTE: "ریموت موبایل نرم‌افزار گیم‌نت",
 } as const;
 export type EntitlementKey = keyof typeof ENTITLEMENTS;
 export const ENTITLEMENT_KEYS = Object.keys(ENTITLEMENTS) as EntitlementKey[];
