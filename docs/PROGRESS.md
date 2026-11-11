@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-11 (63) — Server status page: less server detail, no pause button (owner request)
+
+- Removed from Admin → وضعیت سرور (page and API): host name, OS, kernel, boot uptime, CPU model, Node.js and PostgreSQL versions. Removed the «توقف» button (it only paused the page's refresh, but looked like it could stop the server); live updates simply run while the page is open. Empty charts show a dashed placeholder instead of grid lines.
+
+Verified: typecheck, lint, unit tests, build; browser: no pause button, API returns only `host.cores`, no OS/version text on the page.
+
 ## 2026-11-08 (62) — Server status dashboard in the admin panel (owner request: «داشبورد رم، CPU، حافظه… روی سرور نه، توی جای دیگه»)
 
 - **Admin → وضعیت سرور** (`/admin/server`, ADMIN only, new nav item; mobile-friendly): the site measures the server it runs on, so the owner sees it in any browser without logging into the server. Nothing extra to install: the normal update command is enough.

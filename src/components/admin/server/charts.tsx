@@ -130,7 +130,7 @@ export function TimeChart({ title, summary, times, series, domain, gapMs, yMax, 
         onFocus={() => hover === null && times.length && setHover(times.length - 1)}
         onBlur={() => setHover(null)}
       >
-        {width > 0 ? (
+        {width > 0 && hasData ? (
           <svg width={width} height={H} className="block overflow-visible" aria-hidden>
             {yTicks.map((v) => (
               <g key={v}>
@@ -182,7 +182,7 @@ export function TimeChart({ title, summary, times, series, domain, gapMs, yMax, 
             ) : null}
           </svg>
         ) : null}
-        {!hasData ? <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-muted-foreground" dir="rtl">{emptyText}</p> : null}
+        {!hasData ? <p className="absolute inset-0 flex items-center justify-center rounded-lg border border-dashed px-6 text-center text-sm text-muted-foreground" dir="rtl">{emptyText}</p> : null}
         {readout !== null ? (
           <div
             dir="rtl"

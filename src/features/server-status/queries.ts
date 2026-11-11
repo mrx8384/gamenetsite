@@ -36,7 +36,7 @@ export async function getHistory(range: HistoryRange): Promise<History> {
 }
 
 export interface ServerDetails {
-  database: { sizeBytes: number; connections: number; latencyMs: number; version: string } | null;
+  database: { sizeBytes: number; connections: number; latencyMs: number } | null;
   uploads: { bytes: number; files: number };
   backups: { dir: string; bytes: number; files: number; latestAt: number | null } | null;
 }
@@ -67,11 +67,10 @@ export async function getServerDetails(): Promise<ServerDetails> {
       const t0 = performance.now();
       await db.$queryRaw`SELECT 1`;
       const latencyMs = performance.now() - t0;
-      const [info] = await db.$queryRaw<{ size: number; connections: number; version: string }[]>`
+      const [info] = await db.$queryRaw<{ size: number; connections: number }[]>`
         SELECT pg_database_size(current_database())::float8 AS size,
-               (SELECT count(*)::int FROM pg_stat_activity WHERE datname = current_database()) AS connections,
-               current_setting('server_version') AS version`;
-      return { sizeBytes: info.size, connections: info.connections, latencyMs, version: info.version };
+               (SELECT count(*)::int FROM pg_stat_activity WHERE datname = current_database()) AS connections`;
+      return { sizeBytes: info.size, connections: info.connections, latencyMs };
     } catch {
       return null;
     }

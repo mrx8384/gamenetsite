@@ -102,18 +102,10 @@ export async function readRootDisk(): Promise<DiskInfo | null> {
   return diskAt("/", "");
 }
 
-let osName: string | null = null;
-async function readOsName(): Promise<string> {
-  if (osName === null) {
-    const text = await read("/etc/os-release");
-    osName = (text && /^PRETTY_NAME="?([^"\n]+)"?/m.exec(text)?.[1]) || `${os.type()} ${os.release()}`;
-  }
-  return osName;
-}
 
 export interface LiveSnapshot {
   takenAt: number;
-  host: { name: string; os: string; kernel: string; uptimeSec: number; cores: number; cpuModel: string; nodeVersion: string };
+  host: { cores: number };
   cpu: { percent: number | null; cores: number[]; load: [number, number, number] };
   memory: { total: number; used: number; available: number; cache: number; free: number; swapTotal: number; swapUsed: number };
   disks: DiskInfo[];
@@ -137,7 +129,7 @@ export async function getLiveSnapshot(): Promise<LiveSnapshot> {
   }
   lastLive = cur;
   const seconds = Math.max(0.001, (cur.at - prev.at) / 1000);
-  const [mem, disks, osPretty] = await Promise.all([readMemory(), readDisks(), readOsName()]);
+  const [mem, disks] = await Promise.all([readMemory(), readDisks()]);
   const cpus = os.cpus();
 
   const cpu = cur.cpu && prev.cpu ? { percent: cpuPercent(prev.cpu.all, cur.cpu.all), cores: cur.cpu.cores.map((c, i) => (prev.cpu!.cores[i] ? cpuPercent(prev.cpu!.cores[i], c) : 0)) } : { percent: null, cores: [] };
@@ -166,7 +158,7 @@ export async function getLiveSnapshot(): Promise<LiveSnapshot> {
   const usage = process.memoryUsage();
   return {
     takenAt: cur.at,
-    host: { name: os.hostname(), os: osPretty, kernel: os.release(), uptimeSec: os.uptime(), cores: cpus.length || 1, cpuModel: cpus[0]?.model?.trim() ?? "", nodeVersion: process.version },
+    host: { cores: cpus.length || 1 },
     cpu: { ...cpu, load: os.loadavg() as [number, number, number] },
     memory: { total: mem.total, used: Math.max(0, mem.total - mem.available), available: mem.available, cache: mem.cache, free: mem.free, swapTotal: mem.swapTotal, swapUsed: Math.max(0, mem.swapTotal - mem.swapFree) },
     disks,

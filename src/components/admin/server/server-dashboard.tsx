@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Activity, AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Cpu, Database, HardDrive, MemoryStick, Network, OctagonAlert, Pause, Play, Server } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Activity, AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Cpu, Database, HardDrive, MemoryStick, Network, OctagonAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LiveSnapshot } from "@/features/server-status/collect";
 import { niceByteTicks } from "@/features/server-status/chart-math";
@@ -39,12 +38,11 @@ export function ServerDashboard({ initial }: { initial: { live: LiveSnapshot; de
   const [live, setLive] = React.useState(initial.live);
   const [buffer, setBuffer] = React.useState<LivePoint[]>(() => [toPoint(initial.live)]);
   const [details, setDetails] = React.useState(initial.details);
-  const [paused, setPaused] = React.useState(false);
   const [state, setState] = React.useState<"ok" | "error" | "forbidden">("ok");
 
-  // Live readings every 5 s while the tab is visible (paused on request or when the session ended).
+  // Live readings every 5 s while the tab is visible (stops when the session ended).
   React.useEffect(() => {
-    if (paused || state === "forbidden") return;
+    if (state === "forbidden") return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     const loop = async () => {
@@ -65,18 +63,18 @@ export function ServerDashboard({ initial }: { initial: { live: LiveSnapshot; de
       stop = true;
       clearTimeout(timer);
     };
-  }, [paused, state]);
+  }, [state]);
 
   // Database, uploads and backups change slowly: once a minute.
   React.useEffect(() => {
-    if (paused || state === "forbidden") return;
+    if (state === "forbidden") return;
     const id = setInterval(async () => {
       if (document.visibilityState !== "visible") return;
       const data = await getJson<ServerDetails>("/api/admin/server?part=details");
       if (data && data !== "forbidden") setDetails(data);
     }, 60_000);
     return () => clearInterval(id);
-  }, [paused, state]);
+  }, [state]);
 
   const mem = live.memory;
   const memPct = mem.total ? (mem.used / mem.total) * 100 : 0;
@@ -84,33 +82,18 @@ export function ServerDashboard({ initial }: { initial: { live: LiveSnapshot; de
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-sm">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-          <Server className="size-4" aria-hidden />
-          <span className="font-semibold text-foreground">{live.host.name}</span>
-          <span>· {live.host.os}</span>
-          <span>· روشن از {formatDuration(live.host.uptimeSec)} پیش</span>
-        </p>
-        <div className="flex items-center gap-3">
-          <p className="flex items-center gap-1.5 text-xs" role="status">
-            {state === "forbidden" ? (
-              <span className="font-semibold text-destructive">نشست شما تمام شده؛ صفحه را دوباره باز کنید.</span>
-            ) : paused ? (
-              <span className="text-muted-foreground">متوقف · آخرین به‌روزرسانی {formatClockSeconds(live.takenAt)}</span>
-            ) : state === "error" ? (
-              <span className="font-semibold text-warning">ارتباط با سرور برقرار نشد؛ دوباره تلاش می‌شود…</span>
-            ) : (
-              <>
-                <span className="size-2 animate-pulse rounded-full bg-brand-green" aria-hidden />
-                <span className="text-muted-foreground">زنده · هر ۵ ثانیه · {formatClockSeconds(live.takenAt)}</span>
-              </>
-            )}
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPaused((p) => !p)} aria-pressed={paused}>
-            {paused ? <Play /> : <Pause />} {paused ? "ادامه" : "توقف"}
-          </Button>
-        </div>
-      </div>
+      <p className="flex items-center gap-1.5 text-xs" role="status">
+        {state === "forbidden" ? (
+          <span className="font-semibold text-destructive">نشست شما تمام شده؛ صفحه را دوباره باز کنید.</span>
+        ) : state === "error" ? (
+          <span className="font-semibold text-warning">ارتباط با سرور برقرار نشد؛ دوباره تلاش می‌شود…</span>
+        ) : (
+          <>
+            <span className="size-2 animate-pulse rounded-full bg-brand-green" aria-hidden />
+            <span className="text-muted-foreground">زنده · هر ۵ ثانیه · {formatClockSeconds(live.takenAt)}</span>
+          </>
+        )}
+      </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile icon={Cpu} label="پردازنده (CPU)" value={live.cpu.percent === null ? "—" : formatPct(live.cpu.percent)} pct={live.cpu.percent ?? undefined} thresholds={THRESHOLDS.cpu} sub={`${formatNum1(live.host.cores)} هسته · بار سیستم ${formatNum1(live.cpu.load[0])}`} spark={buffer.map((p) => p.cpu)} sparkMax={100} />
@@ -137,13 +120,12 @@ export function ServerDashboard({ initial }: { initial: { live: LiveSnapshot; de
         </StatTile>
       </div>
 
-      <HistorySection initial={initial.history} fetchedAt={initial.fetchedAt} paused={paused || state === "forbidden"} />
+      <HistorySection initial={initial.history} fetchedAt={initial.fetchedAt} paused={state === "forbidden"} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Cpu className="size-4" aria-hidden /> هسته‌های پردازنده</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground" dir="ltr">{live.host.cpuModel}</p>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {live.cpu.cores.map((c, i) => (
                 <li key={i} className="space-y-1">
@@ -239,10 +221,8 @@ export function ServerDashboard({ initial }: { initial: { live: LiveSnapshot; de
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <Row label="رم مصرفی سایت" value={formatBytes(live.app.rss)} />
               <Row label="سایت روشن از" value={`${formatDuration(live.app.uptimeSec)} پیش`} />
-              <Row label="نسخهٔ Node.js" value={live.host.nodeVersion} ltr />
               <Row label="پاسخ دیتابیس" value={details.database ? `${formatNum1(Math.round(details.database.latencyMs * 10) / 10)} میلی‌ثانیه` : "در دسترس نیست"} />
               <Row label="اتصال‌های دیتابیس" value={details.database ? formatNum1(details.database.connections) : "—"} />
-              <Row label="نسخهٔ PostgreSQL" value={details.database?.version.split(" ")[0] ?? "—"} ltr />
             </dl>
           </CardContent>
         </Card>
