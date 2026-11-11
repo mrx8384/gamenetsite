@@ -27,7 +27,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   if (!gamenetConfigured()) throw new GamenetApiError("not_configured", "اتصال به سرور نرم‌افزار تنظیم نشده است.", 0);
   let res: Response;
   try {
-    res = await fetch(`${env.GAMENET_LICENSE_API_URL!.replace(/\/+$/, "")}/api/v1${path}`, {
+    // Accept the base address with or without the trailing /api/v1.
+    const base = env.GAMENET_LICENSE_API_URL!.replace(/\/+$/, "").replace(/\/api\/v1$/, "");
+    res = await fetch(`${base}/api/v1${path}`, {
       method,
       headers: { Authorization: `Bearer ${env.GAMENET_LICENSE_API_KEY}`, ...(body ? { "Content-Type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,

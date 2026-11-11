@@ -1,5 +1,12 @@
 # Progress Log
 
+## 2026-11-11 (64) — GameNet software account via the license server API (owner's patch)
+
+- Applied the owner's patch «Partner area: GameNet software account via the license server API» (from the session that built the license server; replaces an earlier admin-login approach that would not work with the panel's two-step login): features `GAMENET_APP` / `GAMENET_REMOTE`, `src/features/gamenet-license/` (API-key client for `/api/v1`, partner card to create the app account with own username/password and change it, sync after purchase/grant/cancel/approve/suspend and daily in `pnpm maintenance`). Env `GAMENET_LICENSE_API_URL` + `GAMENET_LICENSE_API_KEY` (`gnk_…`), optional `GAMENET_APP_DOWNLOAD_URL`.
+- Small additions after reading the API documentation: the base URL may be given with or without `/api/v1`; the daily sync waits ~1 s between partners (2 requests each; server limit 120/min).
+
+Verified: typecheck, lint, unit tests, build; client + sync against a stub server built from the API documentation (create, `external_exists`, password, renewal end date, cancel → expired, partner suspended → suspended, partner card data). Not yet tested against the real license server (its `/api/v1` is not on GitHub yet).
+
 ## 2026-11-11 (63) — Server status page: less server detail, no pause button (owner request)
 
 - Removed from Admin → وضعیت سرور (page and API): host name, OS, kernel, boot uptime, CPU model, Node.js and PostgreSQL versions. Removed the «توقف» button (it only paused the page's refresh, but looked like it could stop the server); live updates simply run while the page is open. Empty charts show a dashed placeholder instead of grid lines.

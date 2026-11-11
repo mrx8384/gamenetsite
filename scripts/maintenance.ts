@@ -160,7 +160,9 @@ async function main() {
       else {
         const { syncGamenetLicense } = await import("../src/features/gamenet-license/sync");
         let updated = 0, failed = 0;
-        for (const p of partners) {
+        for (const [i, p] of partners.entries()) {
+          // Each sync is 2 requests; the license server allows 120 per minute.
+          if (i > 0) await new Promise((r) => setTimeout(r, 1100));
           const r = await syncGamenetLicense(p.id);
           if (r === "updated") updated++;
           else if (r === "failed") failed++;
