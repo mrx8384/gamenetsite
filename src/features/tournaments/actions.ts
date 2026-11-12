@@ -290,6 +290,23 @@ export async function removeParticipant(participantId: string): Promise<ActionRe
   return ok(undefined, "شرکت‌کننده حذف شد.");
 }
 
+/** Swaps the places of two participants before the start (changes who meets whom). */
+export async function swapParticipants(aId: unknown, bId: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof aId !== "string" || typeof bId !== "string" || aId === bId) return fail(DENIED);
+  const [a, b] = await Promise.all([db.tournamentParticipant.findUnique({ where: { id: aId } }), db.tournamentParticipant.findUnique({ where: { id: bId } })]);
+  if (!a || !b || a.tournamentId !== b.tournamentId) return fail(DENIED);
+  const r = await editableParticipants(user, a.tournamentId);
+  if ("error" in r) return fail(r.error ?? DENIED);
+  const list = (await db.tournamentParticipant.findMany({ where: { tournamentId: a.tournamentId }, orderBy: { seed: "asc" }, select: { id: true } })).map((x) => x.id);
+  const i = list.indexOf(a.id);
+  const j = list.indexOf(b.id);
+  [list[i], list[j]] = [list[j], list[i]];
+  await renumber(a.tournamentId, list);
+  changed(user.id, "participants_swapped", a.tournamentId, { a: a.name, b: b.name });
+  return ok(undefined, `جای «${a.name}» و «${b.name}» عوض شد.`);
+}
+
 export async function moveParticipant(participantId: string, direction: "up" | "down"): Promise<ActionResult<undefined>> {
   const user = await actor();
   const p = typeof participantId === "string" ? await db.tournamentParticipant.findUnique({ where: { id: participantId } }) : null;

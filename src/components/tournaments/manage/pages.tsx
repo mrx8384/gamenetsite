@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { Plus, Trophy } from "lucide-react";
 import { TournamentBoard } from "@/components/tournaments/board";
 import { ParticipantsManager, StatusControls } from "@/components/tournaments/manage/controls";
+import { StartPreviewCard } from "@/components/tournaments/manage/start-preview";
+import { startPreview } from "@/features/tournaments/preview";
 import { TournamentEntriesCard } from "@/components/tournaments/manage/entries";
 import { emptyTournament, TournamentForm, type TournamentFormValues } from "@/components/tournaments/manage/tournament-form";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +112,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
   const priv = await getTournamentPrivate(t.id);
   const started = t.status === "IN_PROGRESS" || t.status === "COMPLETED";
   const editable = t.status === "DRAFT" || t.status === "REGISTRATION";
+  const preview = editable ? startPreview(t, t.participants.map((p) => p.id)) : null;
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -129,6 +132,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
         </section>
       ) : null}
       {owner ? <TournamentEntriesCard tournamentId={t.id} isAdmin={user.role === "ADMIN"} /> : null}
+      {preview ? <StartPreviewCard preview={preview} names={Object.fromEntries(t.participants.map((p) => [p.id, p.name]))} checkIn={t.checkInMinutes !== null} /> : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader><CardTitle className="text-base">شرکت‌کنندگان</CardTitle></CardHeader>

@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-12 (66) — Tournaments: preview the draw and swap players before the start (owner request)
+
+- Organizer page, while the tournament is draft / registration open: «پیش‌نمایش جدول و جابه‌جایی بازیکنان» shows exactly what the start will build from the current participant order — first-round pairs for single/double elimination (with byes), round-1 pairs + bye for Swiss, group members for groups + knockout (round robin / leaderboard have nothing to arrange). Tap one player, then another, to swap their places (`swapParticipants` action: same tournament, organizer/co-organizer rights, only before the start, audited). Pure `src/features/tournaments/preview.ts` uses the same engine functions as `startTournament`.
+
+Verified: unit tests (`tournament-preview.test.ts`), typecheck, lint, build; DB scenario for all four formats — after a swap, the real start produced exactly the previewed pairs / groups; browser: swap two players from the card, toast, updated pairs, mobile width OK. Test data removed.
+
 ## 2026-11-11 (65) — A wrong GameNet setting no longer takes the site down
 
 - Live incident: `GAMENET_APP_DOWNLOAD_URL` held placeholder text → env validation threw inside the instrumentation hook → every request answered "Internal Server Error". Fix in `src/lib/env.ts`: the GameNet settings are "optional feature" values — an invalid one (or only one of URL/KEY) is ignored with a warning in the log (`[env] … is ignored`, value never printed) and the GameNet section stays off; required settings still fail fast.
