@@ -4,16 +4,16 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function TournamentBand({ title, subtitle }: { title: string; subtitle: string }) {
+export function TournamentBand({ badge, title, subtitle, button }: { badge: string; title: string; subtitle: string; button: string }) {
   return (
     <section className="bg-brand-black text-brand-cream">
       <Container className="grid items-center gap-8 py-14 sm:py-16 md:grid-cols-[1fr_auto]">
         <div className="space-y-4">
-          <Badge variant="accent">به‌زودی</Badge>
+          {badge ? <Badge variant="accent">{badge}</Badge> : null}
           <h2 className="text-2xl font-black sm:text-3xl">{title}</h2>
           <p className="max-w-2xl leading-8 text-brand-cream/70">{subtitle}</p>
           <Button asChild variant="default" className="mt-2">
-            <Link href="/tournaments">مشاهدهٔ تورنومنت‌ها</Link>
+            <Link href="/tournaments">{button}</Link>
           </Button>
         </div>
         <div className="relative mx-auto hidden size-40 items-center justify-center md:flex" aria-hidden>

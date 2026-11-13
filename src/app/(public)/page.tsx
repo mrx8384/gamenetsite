@@ -78,7 +78,7 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {show.tournaments ? <TournamentBand title={c.tournamentsTitle} subtitle={c.tournamentsSubtitle} /> : null}
+      {show.tournaments ? <TournamentBand badge={c.tournamentsBadge} title={c.tournamentsTitle} subtitle={c.tournamentsSubtitle} button={c.tournamentsButton} /> : null}
 
       {show.partners ? (
       <Container className="py-14 sm:py-20">

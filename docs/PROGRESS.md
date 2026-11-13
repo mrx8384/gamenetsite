@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-13 (68) — Homepage tournaments band: editable badge and button (owner request)
+
+- The yellow «به‌زودی» badge and the «مشاهدهٔ تورنومنت‌ها» button text of the homepage tournaments band were fixed in code. Now Admin → تنظیمات سایت → صفحهٔ اصلی has «برچسب زرد بالای بخش تورنومنت» (default empty = no badge, since tournaments are live) and «متن دکمهٔ بخش تورنومنت»; the default band text no longer says the section is being prepared.
+
+Verified: typecheck, lint, tests, build; browser: no badge by default, after saving a badge and button text in the admin they show on the homepage. Test data removed.
+
 ## 2026-11-13 (67) — Tournaments: registration open / close dates (owner request)
 
 - `Tournament.registrationOpensAt` / `registrationClosesAt` (both optional; migration `tournament_registration_window`), set with the Shamsi date picker in the tournament form (validated: close after open, not after the start). `registrationPhase()` (pure, `constants.ts`) gates every online sign-up path (free, paid, waiting list) on the server with a clear message; the public page shows «ثبت‌نام از … تا …», hides the form before the window («ثبت‌نام از … شروع می‌شود») and after it («مهلت ثبت‌نام تمام شده است»); registered / waitlisted players still see their own status; the tournaments list shows «ثبت‌نام تا …». Organizers can still add players by hand at any time before the start.
