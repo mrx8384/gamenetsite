@@ -81,6 +81,8 @@ function formValues(t: TournamentView): TournamentFormValues {
     entryFeeNote: t.entryFeeNote ?? "",
     entryFeeToman: BigInt(t.entryFee) > BigInt(0) ? (BigInt(t.entryFee) / BigInt(10)).toString() : "",
     startsAtLocal: isoToTehranInput(t.startsAt),
+    regOpensLocal: isoToTehranInput(t.registrationOpensAt),
+    regClosesLocal: isoToTehranInput(t.registrationClosesAt),
     format: t.format,
     maxParticipants: t.maxParticipants?.toString() ?? "",
     checkInMinutes: t.checkInMinutes?.toString() ?? "",

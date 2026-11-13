@@ -32,6 +32,8 @@ export interface TournamentView {
   /** Online registration fee in Rials, as a string (0 = free). */
   entryFee: string;
   startsAt: string | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
   format: TournamentFormatKey;
   status: TournamentStatusKey;
   maxParticipants: number | null;
@@ -80,6 +82,8 @@ function toView(t: Row): TournamentView {
     entryFeeNote: t.entryFeeNote,
     entryFee: t.entryFee.toString(),
     startsAt: t.startsAt?.toISOString() ?? null,
+    registrationOpensAt: t.registrationOpensAt?.toISOString() ?? null,
+    registrationClosesAt: t.registrationClosesAt?.toISOString() ?? null,
     format: t.format,
     status: t.status,
     maxParticipants: t.maxParticipants,
@@ -122,6 +126,8 @@ export interface TournamentCard {
   format: TournamentFormatKey;
   status: TournamentStatusKey;
   startsAt: string | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
   participantCount: number;
   maxParticipants: number | null;
   organizerName: string;
@@ -148,6 +154,8 @@ export async function getPublicTournaments(): Promise<TournamentCard[]> {
     format: t.format,
     status: t.status,
     startsAt: t.startsAt?.toISOString() ?? null,
+    registrationOpensAt: t.registrationOpensAt?.toISOString() ?? null,
+    registrationClosesAt: t.registrationClosesAt?.toISOString() ?? null,
     participantCount: t._count.participants,
     maxParticipants: t.maxParticipants,
     organizerName: t.organizer?.role === "PARTNER" ? (t.organizer.partnerProfile?.businessName ?? t.organizer.name) : "اتم گیم کلاب",

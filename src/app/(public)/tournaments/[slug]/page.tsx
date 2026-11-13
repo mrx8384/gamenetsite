@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { ArrowRight, CalendarDays, Gift, Ticket, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardList, Gift, Ticket, Users } from "lucide-react";
 import { TournamentBoard } from "@/components/tournaments/board";
 import { LiveRefresh, RegistrationBox } from "@/components/tournaments/public-widgets";
 import { PredictionsPanel } from "@/components/tournaments/predictions-panel";
@@ -13,7 +13,7 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { checkInOpen, FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
+import { checkInOpen, registrationPhase, FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
 import { getPublicTournament, type TournamentView } from "@/features/tournaments/queries";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { formatDateTime, formatNumber, formatToman } from "@/lib/format";
@@ -68,6 +68,12 @@ async function TournamentContent({ params, searchParams }: { params: Promise<{ s
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <span className="flex items-center gap-1.5"><Users className="size-4 text-muted-foreground" /> {formatNumber(t.participants.length)}{t.maxParticipants ? ` / ${formatNumber(t.maxParticipants)}` : ""} {t.teamSize ? `تیم (${formatNumber(t.teamSize)} نفره)` : "شرکت‌کننده"}{t.waitlistCount ? ` · ${formatNumber(t.waitlistCount)} نفر در لیست انتظار` : ""}</span>
           {t.startsAt ? <span className="flex items-center gap-1.5"><CalendarDays className="size-4 text-muted-foreground" /> {formatDateTime(new Date(t.startsAt))}</span> : null}
+          {t.status === "REGISTRATION" && (t.registrationOpensAt || t.registrationClosesAt) ? (
+            <span className="flex items-center gap-1.5">
+              <ClipboardList className="size-4 text-muted-foreground" />
+              ثبت‌نام{t.registrationOpensAt ? ` از ${formatDateTime(new Date(t.registrationOpensAt))}` : ""}{t.registrationClosesAt ? ` تا ${formatDateTime(new Date(t.registrationClosesAt))}` : ""}
+            </span>
+          ) : null}
           {t.prize ? <span className="flex items-center gap-1.5"><Gift className="size-4 text-muted-foreground" /> {t.prize}</span> : null}
           {hasFee(t) ? <span className="flex items-center gap-1.5 font-semibold"><Ticket className="size-4 text-muted-foreground" /> هزینهٔ ثبت‌نام: {formatToman(BigInt(t.entryFee))} (پرداخت آنلاین)</span> : null}
           {t.entryFeeNote ? <span className="flex items-center gap-1.5"><Ticket className="size-4 text-muted-foreground" /> {t.entryFeeNote}</span> : null}
@@ -110,7 +116,14 @@ async function TournamentContent({ params, searchParams }: { params: Promise<{ s
 async function Registration({ t }: { t: TournamentView }) {
   const user = await getCurrentUser();
   const feeLabel = BigInt(t.entryFee) > BigInt(0) ? formatToman(BigInt(t.entryFee)) : undefined;
-  if (!user) return <RegistrationBox tournamentId={t.id} slug={t.slug} state="guest" defaultName="" />;
+  const phase = registrationPhase(t);
+  const windowNotice =
+    phase === "before" ? (
+      <p className="text-sm font-medium text-info">ثبت‌نام از {formatDateTime(new Date(t.registrationOpensAt!))} شروع می‌شود.</p>
+    ) : phase === "closed" ? (
+      <p className="text-sm font-medium text-warning">مهلت ثبت‌نام تمام شده است.</p>
+    ) : null;
+  if (!user) return windowNotice ?? <RegistrationBox tournamentId={t.id} slug={t.slug} state="guest" defaultName="" />;
   // Read live (the tournament view is cached): a payment may have just added this player.
   const [mine, refund, waiting] = await Promise.all([
     db.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: user.id }, select: { name: true, checkedInAt: true, paidEntry: { select: { status: true } } } }),
@@ -126,6 +139,7 @@ async function Registration({ t }: { t: TournamentView }) {
     const position = (await db.tournamentWaitlist.count({ where: { tournamentId: t.id, createdAt: { lt: waiting.createdAt } } })) + 1;
     return <RegistrationBox tournamentId={t.id} slug={t.slug} state="waitlisted" defaultName="" waitlistPosition={position} />;
   }
+  if (windowNotice) return windowNotice;
   const full = t.maxParticipants !== null && t.participants.length >= t.maxParticipants;
   const waitlist = full && t.waitlistEnabled && !feeLabel;
   return (

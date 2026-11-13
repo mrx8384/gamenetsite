@@ -12,7 +12,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { slugify } from "@/lib/text";
 import { BULK_MAX_LINES, parseBulkNames, participantKey } from "./bulk";
-import { checkInOpen, RESERVED_SLUGS } from "./constants";
+import { checkInOpen, registrationPhase, RESERVED_SLUGS } from "./constants";
+import { formatDateTime } from "@/lib/format";
 import { canCreateTournament, manageableTournament } from "./permissions";
 import { matchDetailsSchema, participantNameSchema, readSignupQuestions, scoreSchema, signupSchema, tournamentSchema } from "./schemas";
 import * as service from "./service";
@@ -56,6 +57,8 @@ function toData(v: ReturnType<typeof tournamentSchema.parse>) {
     entryFeeNote: v.entryFeeNote || null,
     entryFee: v.entryFeeToman,
     startsAt: v.startsAt ? new Date(v.startsAt) : null,
+    registrationOpensAt: v.registrationOpensAt ? new Date(v.registrationOpensAt) : null,
+    registrationClosesAt: v.registrationClosesAt ? new Date(v.registrationClosesAt) : null,
     format: v.format,
     maxParticipants: v.maxParticipants ?? null,
     checkInMinutes: v.checkInMinutes ?? null,
@@ -391,6 +394,9 @@ export async function registerForTournament(tournamentId: string, input: unknown
       await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
       const t = await tx.tournament.findUnique({ where: { id: tournamentId } });
       if (!t || t.status !== "REGISTRATION" || !t.allowSelfRegistration) throw new service.TournamentError("ثبت‌نام این تورنومنت باز نیست.");
+      const phase = registrationPhase(t);
+      if (phase === "before") throw new service.TournamentError(`ثبت‌نام از ${formatDateTime(t.registrationOpensAt!)} شروع می‌شود.`);
+      if (phase === "closed") throw new service.TournamentError("مهلت ثبت‌نام این تورنومنت تمام شده است.");
       const count = await tx.tournamentParticipant.count({ where: { tournamentId } });
       if (t.maxParticipants && count >= t.maxParticipants) {
         if (!t.waitlistEnabled) throw new service.TournamentError("ظرفیت تورنومنت تکمیل است.");
@@ -432,6 +438,9 @@ async function registerPaid(user: { id: string; role: string; phone: string | nu
       await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
       const t = await tx.tournament.findUnique({ where: { id: tournamentId } });
       if (!t || t.status !== "REGISTRATION" || !t.allowSelfRegistration) throw new service.TournamentError("ثبت‌نام این تورنومنت باز نیست.");
+      const phase = registrationPhase(t);
+      if (phase === "before") throw new service.TournamentError(`ثبت‌نام از ${formatDateTime(t.registrationOpensAt!)} شروع می‌شود.`);
+      if (phase === "closed") throw new service.TournamentError("مهلت ثبت‌نام این تورنومنت تمام شده است.");
       if (await tx.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } })) throw new service.TournamentError("شما قبلاً در این تورنومنت ثبت‌نام کرده‌اید.");
       // A new attempt replaces the player's earlier unpaid one.
       await tx.tournamentEntry.updateMany({ where: { tournamentId, userId: user.id, status: "AWAITING_PAYMENT" }, data: { status: "CANCELLED", note: "جایگزین با تلاش جدید" } });

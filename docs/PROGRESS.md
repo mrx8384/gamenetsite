@@ -1,5 +1,11 @@
 # Progress Log
 
+## 2026-11-13 (67) — Tournaments: registration open / close dates (owner request)
+
+- `Tournament.registrationOpensAt` / `registrationClosesAt` (both optional; migration `tournament_registration_window`), set with the Shamsi date picker in the tournament form (validated: close after open, not after the start). `registrationPhase()` (pure, `constants.ts`) gates every online sign-up path (free, paid, waiting list) on the server with a clear message; the public page shows «ثبت‌نام از … تا …», hides the form before the window («ثبت‌نام از … شروع می‌شود») and after it («مهلت ثبت‌نام تمام شده است»); registered / waitlisted players still see their own status; the tournaments list shows «ثبت‌نام تا …». Organizers can still add players by hand at any time before the start.
+
+Verified: unit tests (`tournament-registration-window.test.ts`), typecheck, lint, build; browser: notice and no form before the window, dates shown in the form, clearing the open date → form appears and a player registers, list label. Test data removed.
+
 ## 2026-11-12 (66) — Tournaments: preview the draw and swap players before the start (owner request)
 
 - Organizer page, while the tournament is draft / registration open: «پیش‌نمایش جدول و جابه‌جایی بازیکنان» shows exactly what the start will build from the current participant order — first-round pairs for single/double elimination (with byes), round-1 pairs + bye for Swiss, group members for groups + knockout (round robin / leaderboard have nothing to arrange). Tap one player, then another, to swap their places (`swapParticipants` action: same tournament, organizer/co-organizer rights, only before the start, audited). Pure `src/features/tournaments/preview.ts` uses the same engine functions as `startTournament`.

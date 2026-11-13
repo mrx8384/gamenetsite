@@ -30,6 +30,9 @@ export const tournamentSchema = z
       }),
     /** ISO string (the browser converts the local date/time) or empty. */
     startsAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "تاریخ معتبر نیست"),
+    /** Online sign-up window (ISO strings or empty). */
+    registrationOpensAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "تاریخ معتبر نیست"),
+    registrationClosesAt: z.string().trim().max(40).default("").refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "تاریخ معتبر نیست"),
     format: z.enum(TOURNAMENT_FORMATS, "نوع تورنومنت را انتخاب کنید"),
     maxParticipants: optionalInt(2, MAX_PARTICIPANTS, `ظرفیت باید بین ۲ و ${MAX_PARTICIPANTS.toLocaleString("fa-IR")} باشد`),
     allowSelfRegistration: z.boolean().default(true),
@@ -67,6 +70,10 @@ export const tournamentSchema = z
       if (v.groupCount && v.advancePerGroup && v.groupCount * v.advancePerGroup < 2) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "حداقل ۲ نفر باید به مرحلهٔ حذفی صعود کنند" });
     }
     if (v.entryFeeToman > BigInt(0) && !v.allowSelfRegistration) ctx.addIssue({ code: "custom", path: ["entryFeeToman"], message: "هزینهٔ آنلاین فقط وقتی معنا دارد که ثبت‌نام آنلاین باز باشد" });
+    const opens = v.registrationOpensAt ? Date.parse(v.registrationOpensAt) : null;
+    const closes = v.registrationClosesAt ? Date.parse(v.registrationClosesAt) : null;
+    if (opens !== null && closes !== null && closes <= opens) ctx.addIssue({ code: "custom", path: ["registrationClosesAt"], message: "پایان ثبت‌نام باید بعد از شروع ثبت‌نام باشد" });
+    if (closes !== null && v.startsAt && closes > Date.parse(v.startsAt)) ctx.addIssue({ code: "custom", path: ["registrationClosesAt"], message: "پایان ثبت‌نام نباید بعد از شروع تورنومنت باشد" });
     if (v.checkInMinutes && !v.startsAt) ctx.addIssue({ code: "custom", path: ["checkInMinutes"], message: "برای چک‌این، زمان شروع را مشخص کنید" });
     if (v.pointsWin < v.pointsDraw) ctx.addIssue({ code: "custom", path: ["pointsWin"], message: "امتیاز برد باید از امتیاز مساوی کمتر نباشد" });
   });

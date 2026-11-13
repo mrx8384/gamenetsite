@@ -804,6 +804,9 @@ model Tournament {
   leaderboardRounds     Int?
   /// Check-in opens this many minutes before startsAt (null = no check-in). Not checked in at start → removed.
   checkInMinutes        Int?
+  /// Online sign-up window (both optional): before opens / after closes, the sign-up form is closed.
+  registrationOpensAt   DateTime?
+  registrationClosesAt  DateTime?
   /// Team tournaments: players per team incl. the captain (null = individual).
   teamSize              Int?
   /// Extra sign-up questions: [{ label, required }] (max 5).

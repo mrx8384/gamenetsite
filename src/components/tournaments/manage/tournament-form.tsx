@@ -27,6 +27,9 @@ export interface TournamentFormValues {
   /** Toman, digits only (empty = free). */
   entryFeeToman: string;
   startsAtLocal: string; // yyyy-MM-ddTHH:mm in Tehran time
+  /** Online sign-up window, same format (empty = no limit). */
+  regOpensLocal: string;
+  regClosesLocal: string;
   format: TournamentFormatKey;
   maxParticipants: string;
   /** Minutes before the start (empty = no check-in). */
@@ -63,6 +66,8 @@ export const emptyTournament: TournamentFormValues = {
   entryFeeNote: "",
   entryFeeToman: "",
   startsAtLocal: "",
+  regOpensLocal: "",
+  regClosesLocal: "",
   format: "SINGLE_ELIMINATION",
   maxParticipants: "16",
   checkInMinutes: "",
@@ -97,8 +102,8 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const { startsAtLocal, ...rest } = v;
-    const payload = { ...rest, startsAt: tehranInputToIso(startsAtLocal) };
+    const { startsAtLocal, regOpensLocal, regClosesLocal, ...rest } = v;
+    const payload = { ...rest, startsAt: tehranInputToIso(startsAtLocal), registrationOpensAt: tehranInputToIso(regOpensLocal), registrationClosesAt: tehranInputToIso(regClosesLocal) };
     startTransition(async () => {
       const res = id ? await updateTournament(id, payload) : await createTournament(payload);
       if (!res.ok) {
@@ -134,6 +139,16 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
             <Label htmlFor="t-start">زمان شروع — تقویم شمسی، به وقت ایران (اختیاری)</Label>
             <JalaliDateTimeInput id="t-start" value={v.startsAtLocal} onChange={(x) => set("startsAtLocal", x)} aria-invalid={!!errors.startsAt} />
             {err("startsAt")}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="t-reg-open">شروع ثبت‌نام آنلاین (اختیاری)</Label>
+            <JalaliDateTimeInput id="t-reg-open" value={v.regOpensLocal} onChange={(x) => set("regOpensLocal", x)} placeholder="از همین حالا" aria-invalid={!!errors.registrationOpensAt} />
+            {err("registrationOpensAt")}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="t-reg-close">پایان ثبت‌نام آنلاین (اختیاری)</Label>
+            <JalaliDateTimeInput id="t-reg-close" value={v.regClosesLocal} onChange={(x) => set("regClosesLocal", x)} placeholder="تا شروع تورنومنت" aria-invalid={!!errors.registrationClosesAt} />
+            {err("registrationClosesAt")}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="t-max">ظرفیت (اختیاری)</Label>

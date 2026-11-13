@@ -67,6 +67,7 @@ async function TournamentSections({ empty }: { empty: string }) {
                 <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Users className="size-3.5" /> {formatNumber(x.participantCount)}{x.maxParticipants ? ` / ${formatNumber(x.maxParticipants)}` : ""}</span>
                   {x.startsAt ? <span className="flex items-center gap-1"><CalendarDays className="size-3.5" /> {formatDateTime(new Date(x.startsAt))}</span> : null}
+                  {x.status === "REGISTRATION" && x.registrationClosesAt ? <span className="font-medium text-foreground">ثبت‌نام تا {formatDateTime(new Date(x.registrationClosesAt))}</span> : null}
                 </div>
                 <p className="text-xs text-muted-foreground">برگزارکننده: {x.organizerName}{x.prize ? ` — جایزه: ${x.prize}` : ""}</p>
               </Link>

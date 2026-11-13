@@ -76,3 +76,12 @@ export const groupName = (i: number) => `گروه ${"ABCDEFGHIJKLMNOP"[i] ?? i +
 export function checkInOpen(startsAt: Date, minutes: number, now = new Date()): boolean {
   return now.getTime() >= startsAt.getTime() - minutes * 60_000;
 }
+
+/** Where `now` falls in the optional online sign-up window. Pure. */
+export function registrationPhase(t: { registrationOpensAt: Date | string | null; registrationClosesAt: Date | string | null }, now = new Date()): "before" | "open" | "closed" {
+  const opens = t.registrationOpensAt ? new Date(t.registrationOpensAt).getTime() : null;
+  const closes = t.registrationClosesAt ? new Date(t.registrationClosesAt).getTime() : null;
+  if (opens !== null && now.getTime() < opens) return "before";
+  if (closes !== null && now.getTime() >= closes) return "closed";
+  return "open";
+}
