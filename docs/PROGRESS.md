@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-11-14 (69) — Tournaments: required fields for hand-added players, settled status, paid reserve list, live page (owner request)
+
+- **Hand-added players** (organizer form «افزودن بازیکن (ثبت‌نام حضوری)») now get the same fields as online sign-up: team members and every sign-up question, required ones enforced on the server (`signupSchema`); the edit dialog can fill answers too. Players with a missing required answer show «اطلاعات ناقص». The bulk paste list stays name-only and is flagged the same way.
+- **Settled status**: `TournamentParticipant.settledAt`; each hand-added player has a «تسویه نشده / تسویه شده» switch (`setParticipantSettled`, organizer rights, audited); players who paid online show «پرداخت آنلاین».
+- **Paid reserve list** (`Tournament.reserveEnabled`, `TournamentEntry.kind = "RESERVE"`): the start dialog asks «لیست رزرو با پرداخت را فعال کنم؟» (only with an online entry fee; also a checkbox in the form). While it is on, the public page offers «رزرو» (during the tournament, or when registration is full); a reserve pays the entry fee through the normal gateway path but does not join or take a place (`takenPlaces` counts only PARTICIPANT entries). Organizer card «لیست رزرو با پرداخت»: «جایگزین کن» puts a reserve in a player's place (the participant row keeps its bracket position and gets the reserve's name/account/answers; the replaced player's paid entry becomes REFUND_NEEDED), «افزودن به شرکت‌کنندگان» before the start when there is room. Reserves still unused when the tournament completes become REFUND_NEEDED automatically (cancel/delete already did); they appear with a «رزرو» badge in Admin → پرداخت‌های تورنومنت, where the owner refunds them.
+- **Live page** `/tournaments/[slug]/live` (noindex): LIVE badge, organizer notice (`Tournament.liveNotice`, set in the organizer's «لینک لایو تورنومنت» card with copy/open buttons), group tables with qualifiers, bracket, matches and results, refreshed every 15 s. The tournament page shows the button «لینک لایو تورنومنت {name}» once it has started.
+- Migration `tournament_reserve_settle_live`.
+
+Verified: unit tests (`tournament-reserve.test.ts`), typecheck, lint, build; DB scenario: two reserves paid through `applyEntryPayment` stayed reserves without taking a place, a third one became REFUND_NEEDED when the tournament completed; browser: hand-add blocked without the required phone (browser and server), settled switch, reserve admitted before the start, start dialog question → reserve list on, reserve replaced a player, live notice, public live button → live page shows notice and updated bracket, no horizontal overflow on mobile. Test data removed.
+
 ## 2026-11-13 (68) — Homepage tournaments band: editable badge and button (owner request)
 
 - The yellow «به‌زودی» badge and the «مشاهدهٔ تورنومنت‌ها» button text of the homepage tournaments band were fixed in code. Now Admin → تنظیمات سایت → صفحهٔ اصلی has «برچسب زرد بالای بخش تورنومنت» (default empty = no badge, since tournaments are live) and «متن دکمهٔ بخش تورنومنت»; the default band text no longer says the section is being prepared.

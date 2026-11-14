@@ -9,17 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { checkInToTournament, registerForTournament, withdrawFromTournament } from "@/features/tournaments/actions";
 import { leaveWaitlist } from "@/features/tournaments/community-actions";
+import { registerReserve } from "@/features/tournaments/actions";
 
-/** Re-renders the page every 30 s while a tournament is running (new results appear without reload). */
-export function LiveRefresh({ active }: { active: boolean }) {
+/** Re-renders the page every 30 s (or `seconds`) while a tournament is running (new results appear without reload). */
+export function LiveRefresh({ active, seconds = 30 }: { active: boolean; seconds?: number }) {
   const router = useRouter();
   React.useEffect(() => {
     if (!active) return;
     const t = window.setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
-    }, 30_000);
+    }, seconds * 1000);
     return () => window.clearInterval(t);
-  }, [active, router]);
+  }, [active, router, seconds]);
   return null;
 }
 
@@ -38,7 +39,8 @@ export function RegistrationBox({
 }: {
   tournamentId: string;
   /** "waitlist" = full, but new sign-ups join the waiting list; "waitlisted" = this user is on it. */
-  state: "guest" | "open" | "registered" | "full" | "waitlist" | "waitlisted";
+  /** "reserve": pay to join the paid reserve list. */
+  state: "guest" | "open" | "registered" | "full" | "waitlist" | "waitlisted" | "reserve";
   defaultName: string;
   entryName?: string;
   slug: string;
@@ -148,7 +150,7 @@ export function RegistrationBox({
       onSubmit={(e) => {
         e.preventDefault();
         startTransition(async () => {
-          const res = await registerForTournament(tournamentId, { name, members, answers });
+          const res = state === "reserve" ? await registerReserve(tournamentId, { name, members, answers }) : await registerForTournament(tournamentId, { name, members, answers });
           if (!res.ok) {
             setError(res.error);
             return void toast.error(res.error);
@@ -160,6 +162,7 @@ export function RegistrationBox({
         });
       }}
     >
+      {state === "reserve" ? <p className="text-sm leading-7 text-muted-foreground">با پرداخت {feeLabel} در لیست رزرو قرار می‌گیرید. اگر بازیکنی انصراف دهد یا کنار برود، برگزارکننده شما را جای او می‌گذارد؛ اگر جایی خالی نشد، مبلغ برگردانده می‌شود.</p> : null}
       {state === "waitlist" ? <p className="text-sm font-medium text-warning">ظرفیت پر است؛ با ثبت‌نام در لیست انتظار قرار می‌گیرید و اگر جایی خالی شود خودکار اضافه می‌شوید.</p> : null}
       <Label htmlFor="reg-name">{teamSize ? "نام تیم" : "نام شما در جدول (گیمرتگ)"}</Label>
       <Input id="reg-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} aria-invalid={!!error} aria-describedby={error ? "reg-error" : undefined} />
@@ -180,7 +183,7 @@ export function RegistrationBox({
         </div>
       ))}
       {questions.length ? <p className="text-xs text-muted-foreground">پاسخ‌ها فقط به برگزارکننده نمایش داده می‌شود.</p> : null}
-      <Button type="submit" loading={pending}>{state === "waitlist" ? "ثبت در لیست انتظار" : feeLabel ? `ثبت‌نام و پرداخت ${feeLabel}` : "ثبت‌نام"}</Button>
+      <Button type="submit" loading={pending}>{state === "reserve" ? `رزرو و پرداخت ${feeLabel}` : state === "waitlist" ? "ثبت در لیست انتظار" : feeLabel ? `ثبت‌نام و پرداخت ${feeLabel}` : "ثبت‌نام"}</Button>
       {feeLabel ? <p className="text-xs leading-6 text-muted-foreground">هزینهٔ ثبت‌نام آنلاین پرداخت می‌شود؛ بعد از پرداخت، نام شما به فهرست شرکت‌کنندگان اضافه می‌شود.</p> : null}
       {error ? <p id="reg-error" role="alert" className="text-xs font-medium text-destructive">{error}</p> : null}
     </form>

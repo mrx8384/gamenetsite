@@ -20,6 +20,7 @@ export interface EntryRow {
   amount: bigint;
   status: TournamentEntryStatus;
   isTest: boolean;
+  kind: string;
   note: string | null;
   paidAt: Date | null;
   tournamentName: string;
@@ -33,6 +34,7 @@ export const entrySelect = {
   amount: true,
   status: true,
   isTest: true,
+  kind: true,
   note: true,
   paidAt: true,
   tournamentName: true,
@@ -65,6 +67,7 @@ export function EntriesTable({ entries, isAdmin, showTournament = false }: { ent
             <TableCell>
               <span className="inline-flex flex-wrap items-center gap-1">
                 <Badge variant={ENTRY_STATUS[e.status][1]}>{ENTRY_STATUS[e.status][0]}</Badge>
+                {e.kind === "RESERVE" ? <Badge variant="outline">رزرو</Badge> : null}
                 {e.isTest ? <Badge variant="outline">آزمایشی</Badge> : null}
               </span>
               {e.note && e.status === "REFUND_NEEDED" ? <p className="mt-1 text-xs text-muted-foreground">{e.note}</p> : null}

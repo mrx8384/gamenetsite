@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FORMAT_LABELS, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
 import { tournamentRole } from "@/features/tournaments/permissions";
 import { env } from "@/lib/env";
-import { CoOrganizersCard, ShareCard, WaitlistCard } from "@/components/tournaments/manage/community";
+import { CoOrganizersCard, LiveCard, ReserveCard, ShareCard, WaitlistCard } from "@/components/tournaments/manage/community";
 import { isoToTehranInput } from "@/features/tournaments/time";
 import { getManagedTournaments, getTournamentForManage, getTournamentPrivate, type TournamentView } from "@/features/tournaments/queries";
 import { formatDateTime, formatNumber } from "@/lib/format";
@@ -103,6 +103,7 @@ function formValues(t: TournamentView): TournamentFormValues {
     allowPlayerReports: t.allowPlayerReports,
     allowPredictions: t.allowPredictions,
     waitlistEnabled: t.waitlistEnabled,
+    reserveEnabled: t.reserveEnabled,
   };
 }
 
@@ -123,7 +124,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
           <Badge variant={STATUS_BADGE[t.status]}>{STATUS_LABELS[t.status]}</Badge>
           <span className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format]} · {t.game}</span>
         </div>
-        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} owner={owner} notCheckedIn={t.checkInMinutes !== null ? t.participants.filter((p) => !p.checkedInAt).length : null} />
+        <StatusControls id={t.id} slug={t.slug} status={t.status} participantCount={t.participants.length} basePath={basePath} owner={owner} hasFee={BigInt(t.entryFee) > BigInt(0)} reserveEnabled={t.reserveEnabled} notCheckedIn={t.checkInMinutes !== null ? t.participants.filter((p) => !p.checkedInAt).length : null} />
         {t.status === "DRAFT" ? <p className="text-sm text-muted-foreground">پیش‌نویس در سایت نمایش داده نمی‌شود. با «انتشار» ثبت‌نام باز و تورنومنت در صفحهٔ تورنومنت‌ها دیده می‌شود.</p> : null}
       </div>
       {started ? (
@@ -138,7 +139,7 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader><CardTitle className="text-base">شرکت‌کنندگان</CardTitle></CardHeader>
-          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} checkIn={t.checkInMinutes !== null} inProgress={t.status === "IN_PROGRESS"} teamSize={t.teamSize} answers={priv.answers} /></CardContent>
+          <CardContent><ParticipantsManager tournamentId={t.id} participants={t.participants} editable={editable} max={t.maxParticipants} checkIn={t.checkInMinutes !== null} inProgress={t.status === "IN_PROGRESS"} teamSize={t.teamSize} answers={priv.answers} questions={t.signupQuestions} payment={priv.payment} /></CardContent>
         </Card>
         <div className="space-y-6">
           {owner ? (
@@ -150,6 +151,10 @@ export async function ManageTournament({ id, user, basePath }: { id: string; use
             <p className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">شما همکار برگزاری این تورنومنت هستید. تنظیمات، انتشار، لغو و حذف با برگزارکنندهٔ اصلی است.</p>
           )}
           {editable && (priv.waitlist.length > 0 || t.maxParticipants) ? <WaitlistCard list={priv.waitlist} enabled={t.waitlistEnabled} isFree={BigInt(t.entryFee) === BigInt(0)} /> : null}
+          {t.status !== "DRAFT" && t.status !== "CANCELLED" ? <LiveCard tournamentId={t.id} url={`${env.APP_URL.replace(/\/$/, "")}/tournaments/${encodeURIComponent(t.slug)}/live`} notice={t.liveNotice} /> : null}
+          {t.reserveEnabled || priv.reserves.length ? (
+            <ReserveCard reserves={priv.reserves} participants={t.participants.map((p) => ({ id: p.id, name: p.name }))} canAdmit={editable && (!t.maxParticipants || t.participants.length < t.maxParticipants)} enabled={t.reserveEnabled} />
+          ) : null}
           {owner ? <CoOrganizersCard tournamentId={t.id} list={priv.coOrganizers} /> : null}
           <ShareCard tournamentId={t.id} slug={t.slug} published={t.status !== "DRAFT"} origin={env.APP_URL.replace(/\/$/, "")} />
         </div>

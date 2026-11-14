@@ -13,7 +13,7 @@ import { getRequestInfo } from "@/lib/request-info";
 import { MAX_CO_ORGANIZERS } from "./constants";
 import { manageableTournament } from "./permissions";
 import { predictionSummary, predictorName } from "./predictions";
-import { claimSchema, participantNameSchema } from "./schemas";
+import { claimSchema, participantNameSchema, readSignupQuestions } from "./schemas";
 import * as service from "./service";
 
 /**
@@ -85,16 +85,26 @@ export async function removeCoOrganizer(tournamentId: unknown, userId: unknown):
 const participantEditSchema = z.object({
   name: participantNameSchema,
   members: z.array(z.string().trim().min(2, "نام هر عضو حداقل ۲ کاراکتر").max(60, "حداکثر ۶۰ کاراکتر")).max(9, "حداکثر ۹ عضو").default([]),
+  /** Answers in the order of the tournament's sign-up questions (omitted = keep the stored ones). */
+  answers: z.array(z.string().trim().max(500, "حداکثر ۵۰۰ کاراکتر")).max(10).optional(),
 });
 
 export async function updateParticipant(participantId: unknown, input: unknown): Promise<ActionResult<undefined>> {
   const user = await actor();
   const p = typeof participantId === "string" ? await db.tournamentParticipant.findUnique({ where: { id: participantId }, select: { id: true, tournamentId: true } }) : null;
-  if (!user || !p || !(await manageableTournament(user, p.tournamentId))) return fail(DENIED);
+  const t = user && p ? await manageableTournament(user, p.tournamentId) : null;
+  if (!user || !p || !t) return fail(DENIED);
   const parsed = participantEditSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.");
+  let answers: { q: string; a: string }[] | undefined;
+  if (parsed.data.answers) {
+    const questions = readSignupQuestions(t.signupQuestions);
+    const missing = questions.find((q, i) => q.required && !parsed.data.answers![i]);
+    if (missing) return fail(`به «${missing.label}» پاسخ دهید.`);
+    answers = questions.map((q, i) => ({ q: q.label, a: parsed.data.answers![i] ?? "" })).filter((x) => x.a);
+  }
   try {
-    await db.tournamentParticipant.update({ where: { id: p.id }, data: { name: parsed.data.name, members: parsed.data.members.filter(Boolean) } });
+    await db.tournamentParticipant.update({ where: { id: p.id }, data: { name: parsed.data.name, members: parsed.data.members.filter(Boolean), ...(answers ? { answers } : {}) } });
   } catch (e) {
     if (isUniqueViolation(e)) return fail("این نام قبلاً در تورنومنت ثبت شده است.");
     throw e;
@@ -211,4 +221,16 @@ export async function removeFromWaitlist(entryId: unknown): Promise<ActionResult
   await db.tournamentWaitlist.delete({ where: { id: w.id } });
   changed(user.id, "waitlist_removed", w.tournamentId, { name: w.name });
   return ok(undefined, "از لیست انتظار حذف شد.");
+}
+
+// ───────────── Settlement of players added by hand ─────────────
+
+/** Organizer marks whether a player (usually added by hand, paying in person) has settled the fee. */
+export async function setParticipantSettled(participantId: unknown, settled: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  const p = typeof participantId === "string" ? await db.tournamentParticipant.findUnique({ where: { id: participantId }, select: { id: true, tournamentId: true, name: true } }) : null;
+  if (!user || !p || typeof settled !== "boolean" || !(await manageableTournament(user, p.tournamentId))) return fail(DENIED);
+  await db.tournamentParticipant.update({ where: { id: p.id }, data: { settledAt: settled ? new Date() : null } });
+  changed(user.id, settled ? "participant_settled" : "participant_unsettled", p.tournamentId, { name: p.name });
+  return ok(undefined, settled ? `«${p.name}» تسویه شد.` : `تسویهٔ «${p.name}» برداشته شد.`);
 }

@@ -12,7 +12,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { slugify } from "@/lib/text";
 import { BULK_MAX_LINES, parseBulkNames, participantKey } from "./bulk";
-import { checkInOpen, registrationPhase, RESERVED_SLUGS } from "./constants";
+import { checkInOpen, registrationPhase, reserveOpen, RESERVED_SLUGS } from "./constants";
 import { formatDateTime } from "@/lib/format";
 import { canCreateTournament, manageableTournament } from "./permissions";
 import { matchDetailsSchema, participantNameSchema, readSignupQuestions, scoreSchema, signupSchema, tournamentSchema } from "./schemas";
@@ -72,6 +72,7 @@ function toData(v: ReturnType<typeof tournamentSchema.parse>) {
     allowPlayerReports: v.allowPlayerReports,
     allowPredictions: v.allowPredictions,
     waitlistEnabled: v.waitlistEnabled,
+    reserveEnabled: v.reserveEnabled,
     grandFinal: v.grandFinal,
     tiebreak: v.tiebreak,
     swissRounds: v.format === "SWISS" ? (v.swissRounds ?? null) : null,
@@ -148,9 +149,15 @@ export async function deleteTournament(id: string): Promise<ActionResult<undefin
   return ok(undefined, "تورنومنت حذف شد.");
 }
 
-export async function startTournament(id: string): Promise<ActionResult<undefined>> {
+export async function startTournament(id: string, opts?: { reserve?: unknown }): Promise<ActionResult<undefined>> {
   const user = await actor();
-  if (!user || !(await manageableTournament(user, id))) return fail(DENIED);
+  const mt = user ? await manageableTournament(user, id) : null;
+  if (!user || !mt) return fail(DENIED);
+  // Asked in the start dialog: open the paid reserve list during the tournament?
+  if (typeof opts?.reserve === "boolean" && opts.reserve !== mt.reserveEnabled) {
+    if (opts.reserve && mt.entryFee <= BigInt(0)) return fail("لیست رزرو با پرداخت فقط برای تورنومنتی که هزینهٔ ثبت‌نام آنلاین دارد فعال می‌شود.");
+    await db.tournament.update({ where: { id }, data: { reserveEnabled: opts.reserve } });
+  }
   let removed = 0;
   try {
     removed = (await service.startTournament(id)).removed;
@@ -192,18 +199,23 @@ async function editableParticipants(user: Awaited<ReturnType<typeof actor>>, tou
   return { t } as const;
 }
 
-export async function addParticipant(tournamentId: string, name: unknown): Promise<ActionResult<undefined>> {
+/**
+ * Organizer adds a player by hand (in-person sign-up). Asks for the same things as the online form:
+ * team members and the sign-up questions (required ones included).
+ */
+export async function addParticipant(tournamentId: string, input: unknown): Promise<ActionResult<undefined>> {
   const user = await actor();
   const r = await editableParticipants(user, tournamentId);
   if (!user || "error" in r) return fail(r.error ?? DENIED);
-  const n = participantNameSchema.safeParse(name);
-  if (!n.success) return fail(n.error.issues[0]?.message ?? "نام نامعتبر است.");
+  const parsed = signupSchema({ teamSize: r.t.teamSize, questions: readSignupQuestions(r.t.signupQuestions) }).safeParse(typeof input === "string" ? { name: input } : input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.", zodFieldErrors(parsed.error.issues));
+  const n = { data: parsed.data.name };
   const count = await db.tournamentParticipant.count({ where: { tournamentId } });
   if (r.t.maxParticipants && count >= r.t.maxParticipants) return fail("ظرفیت تورنومنت تکمیل است.");
   try {
-    await db.tournamentParticipant.create({ data: { tournamentId, name: n.data, seed: count + 1 } });
+    await db.tournamentParticipant.create({ data: { tournamentId, name: n.data, seed: count + 1, members: parsed.data.members, answers: parsed.data.answers } });
   } catch (e) {
-    if (isUniqueViolation(e)) return fail("شرکت‌کننده‌ای با این نام وجود دارد.");
+    if (isUniqueViolation(e)) return fail("شرکت‌کننده‌ای با این نام وجود دارد.", { name: "این نام قبلاً ثبت شده است." });
     throw e;
   }
   changed(user.id, "participant_added", tournamentId, { name: n.data });
@@ -668,4 +680,112 @@ export async function finishLeaderboard(tournamentId: unknown, finish: unknown):
   if (err) return fail(err);
   changed(user.id, finish ? "leaderboard_finished" : "leaderboard_reopened", tournamentId);
   return ok(undefined, finish ? "تورنومنت پایان یافت و رتبه‌ها بر اساس جمع امتیاز ثبت شد." : "تورنومنت دوباره باز شد.");
+}
+
+// ───────────── Paid reserve list ─────────────
+
+/** A player pays the entry fee to wait in the reserve list (refunded by the organizer if never used). */
+export async function registerReserve(tournamentId: unknown, input: unknown): Promise<ActionResult<{ redirectTo?: string }>> {
+  const user = await actor();
+  if (!user) return fail("برای رزرو ابتدا وارد حساب کاربری شوید.");
+  if (typeof tournamentId !== "string") return fail("درخواست نامعتبر است.");
+  if (!(await rateLimit(`tournament-reserve:${user.id}`, 20, 60 * 60)).allowed) return fail(RATE_LIMIT_ERROR);
+  const info = await db.tournament.findUnique({ where: { id: tournamentId }, select: { teamSize: true, signupQuestions: true } });
+  if (!info) return fail("رزرو این تورنومنت باز نیست.");
+  const parsed = signupSchema({ teamSize: info.teamSize, questions: readSignupQuestions(info.signupQuestions) }).safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.", zodFieldErrors(parsed.error.issues));
+  const provider = getPaymentProvider();
+  if (!provider) return fail("پرداخت آنلاین در حال حاضر فعال نیست.");
+  if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
+  await expireStaleEntries();
+  let created: { paymentId: string; entryId: string; amount: bigint; tournamentName: string };
+  try {
+    created = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${tournamentId} FOR UPDATE`;
+      const t = await tx.tournament.findUniqueOrThrow({ where: { id: tournamentId } });
+      const count = await tx.tournamentParticipant.count({ where: { tournamentId } });
+      if (!reserveOpen(t, count)) throw new service.TournamentError("لیست رزرو این تورنومنت باز نیست.");
+      if (await tx.tournamentParticipant.findFirst({ where: { tournamentId, userId: user.id }, select: { id: true } })) throw new service.TournamentError("شما از قبل در این تورنومنت هستید.");
+      if (await tx.tournamentEntry.findFirst({ where: { tournamentId, userId: user.id, kind: "RESERVE", status: "PAID", participantId: null }, select: { id: true } })) throw new service.TournamentError("شما در لیست رزرو هستید.");
+      await tx.tournamentEntry.updateMany({ where: { tournamentId, userId: user.id, status: "AWAITING_PAYMENT" }, data: { status: "CANCELLED", note: "جایگزین با تلاش جدید" } });
+      const payment = await tx.payment.create({ data: { provider: provider.key, amount: t.entryFee }, select: { id: true } });
+      const entry = await tx.tournamentEntry.create({
+        data: {
+          tournamentId,
+          tournamentName: t.name,
+          userId: user.id,
+          kind: "RESERVE",
+          name: parsed.data.name,
+          members: parsed.data.members,
+          answers: parsed.data.answers,
+          amount: t.entryFee,
+          paymentId: payment.id,
+          isTest: provider.testMode === true,
+          paymentDeadline: new Date(Date.now() + ENTRY_PAYMENT_MINUTES * 60_000),
+        },
+        select: { id: true },
+      });
+      return { paymentId: payment.id, entryId: entry.id, amount: t.entryFee, tournamentName: t.name };
+    });
+  } catch (e) {
+    if (e instanceof service.TournamentError) return fail(e.message);
+    throw e;
+  }
+  changed(user.id, "reserve_payment_started", tournamentId, { entryId: created.entryId });
+  try {
+    const redirectTo = await openGatewayPayment(created.paymentId, { amount: created.amount, description: `رزرو تورنومنت ${created.tournamentName} — ${parsed.data.name}`, mobile: user.phone });
+    return ok({ redirectTo });
+  } catch (e) {
+    console.error("[tournaments] reserve payment start failed", e);
+    await db.$transaction([
+      db.payment.update({ where: { id: created.paymentId }, data: { status: "CANCELLED" } }),
+      db.tournamentEntry.update({ where: { id: created.entryId }, data: { status: "CANCELLED", note: "خطا در اتصال به درگاه" } }),
+    ]);
+    return fail("اتصال به درگاه پرداخت ناموفق بود؛ لطفاً دوباره تلاش کنید.");
+  }
+}
+
+async function managedReserve(entryId: unknown) {
+  const user = await actor();
+  const e = typeof entryId === "string" ? await db.tournamentEntry.findUnique({ where: { id: entryId }, select: { id: true, tournamentId: true, kind: true } }) : null;
+  if (!user || !e?.tournamentId || e.kind !== "RESERVE" || !(await manageableTournament(user, e.tournamentId))) return null;
+  return { user, entryId: e.id, tournamentId: e.tournamentId };
+}
+
+/** Organizer: put a paid reserve in the place of a player who dropped out. */
+export async function replaceWithReserve(entryId: unknown, participantId: unknown): Promise<ActionResult<undefined>> {
+  const r = await managedReserve(entryId);
+  if (!r || typeof participantId !== "string") return fail(DENIED);
+  try {
+    const res = await service.replaceWithReserve(r.entryId, participantId);
+    changed(r.user.id, "reserve_replaced", r.tournamentId, res);
+    return ok(undefined, `«${res.reserve}» جای «${res.replaced}» را گرفت.`);
+  } catch (e) {
+    if (e instanceof service.TournamentError) return fail(e.message);
+    throw e;
+  }
+}
+
+/** Organizer: before the start, with a free place, add a reserve as a participant. */
+export async function admitReserve(entryId: unknown): Promise<ActionResult<undefined>> {
+  const r = await managedReserve(entryId);
+  if (!r) return fail(DENIED);
+  try {
+    const res = await service.admitReserve(r.entryId);
+    changed(r.user.id, "reserve_admitted", r.tournamentId, res);
+    return ok(undefined, `«${res.name}» به شرکت‌کنندگان اضافه شد.`);
+  } catch (e) {
+    if (e instanceof service.TournamentError) return fail(e.message);
+    throw e;
+  }
+}
+
+/** Organizer: short notice shown on the live page (empty clears it). */
+export async function setLiveNotice(tournamentId: unknown, text: unknown): Promise<ActionResult<undefined>> {
+  const user = await actor();
+  if (!user || typeof tournamentId !== "string" || typeof text !== "string" || !(await manageableTournament(user, tournamentId))) return fail(DENIED);
+  const notice = text.trim().slice(0, 500);
+  await db.tournament.update({ where: { id: tournamentId }, data: { liveNotice: notice || null } });
+  changed(user.id, "live_notice", tournamentId);
+  return ok(undefined, notice ? "اطلاعیهٔ لایو به‌روز شد." : "اطلاعیهٔ لایو برداشته شد.");
 }

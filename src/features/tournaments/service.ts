@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { isEliminationStage } from "./constants";
-import { markEntryForRefund } from "./entries";
+import { markEntryForRefund, refundUnusedReserves } from "./entries";
 import {
   applyResult,
   BracketError,
@@ -207,6 +207,7 @@ export async function finishLeaderboard(tournamentId: string, finish: boolean) {
       const pts = await tx.tournamentPoints.findMany({ where: { tournamentId } });
       for (const [pid, rank] of leaderboardRanks(participants, pts)) await tx.tournamentParticipant.update({ where: { id: pid }, data: { finalRank: rank } });
       await tx.tournament.update({ where: { id: tournamentId }, data: { status: "COMPLETED", completedAt: new Date() } });
+      await refundUnusedReserves(tx, tournamentId, "تورنومنت تمام شد و رزرو استفاده نشد");
     } else {
       if (t.status !== "COMPLETED") throw new TournamentError("تورنومنت پایان نیافته است.");
       await tx.tournamentParticipant.updateMany({ where: { tournamentId }, data: { finalRank: null } });
@@ -498,7 +499,10 @@ async function refreshCompletion(tx: Tx, id: string) {
   }
   const ranks = computeRanks(t, participants, matches);
   for (const [pid, rank] of ranks) await tx.tournamentParticipant.update({ where: { id: pid }, data: { finalRank: rank } });
-  if (t.status !== "COMPLETED") await tx.tournament.update({ where: { id }, data: { status: "COMPLETED", completedAt: new Date() } });
+  if (t.status !== "COMPLETED") {
+    await tx.tournament.update({ where: { id }, data: { status: "COMPLETED", completedAt: new Date() } });
+    await refundUnusedReserves(tx, id, "تورنومنت تمام شد و رزرو استفاده نشد");
+  }
 }
 
 type RankMatch = { player2Bye: boolean; stage: string; round: number; status: string; player1Id: string | null; player2Id: string | null; winnerSlot: number | null; groupIndex: number | null; score1: number | null; score2: number | null; forfeit?: boolean };
@@ -700,5 +704,52 @@ export async function predict(matchId: string, userId: string, participantId: st
       create: { tournamentId: m.tournamentId, matchId, userId, participantId },
       update: { participantId, createdAt: new Date() },
     });
+  });
+}
+
+// ───────────── Paid reserve list ─────────────
+
+/**
+ * Puts a paid reserve in the place of a participant who dropped out (before or during the tournament):
+ * the participant row keeps its place in the bracket and takes the reserve's name, account, team and
+ * answers. The replaced player's online payment (if any) is marked for refund.
+ */
+export async function replaceWithReserve(entryId: string, participantId: string) {
+  return db.$transaction(async (tx) => {
+    const entry = await tx.tournamentEntry.findUnique({ where: { id: entryId } });
+    if (!entry || entry.kind !== "RESERVE" || entry.status !== "PAID" || entry.participantId || !entry.tournamentId) throw new TournamentError("این رزرو در دسترس نیست.");
+    const t = await lockTournament(tx, entry.tournamentId);
+    if (t.status === "COMPLETED" || t.status === "CANCELLED") throw new TournamentError("تورنومنت تمام یا لغو شده است.");
+    const p = await tx.tournamentParticipant.findFirst({ where: { id: participantId, tournamentId: t.id } });
+    if (!p) throw new TournamentError("شرکت‌کننده پیدا نشد.");
+    if (await tx.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: entry.userId, NOT: { id: p.id } }, select: { id: true } })) throw new TournamentError("این شخص از قبل در تورنومنت است.");
+    let name = entry.name;
+    for (let k = 2; await tx.tournamentParticipant.findFirst({ where: { tournamentId: t.id, name, NOT: { id: p.id } }, select: { id: true } }); k++) name = `${entry.name.slice(0, 55)} (${k})`;
+    await markEntryForRefund(tx, p.id, `جای خود را به رزرو «${entry.name}» داد`);
+    await tx.tournamentEntry.updateMany({ where: { participantId: p.id }, data: { participantId: null } });
+    await tx.tournamentParticipant.update({
+      where: { id: p.id },
+      data: { name, userId: entry.userId, members: entry.members, answers: entry.answers ?? undefined, checkedInAt: new Date(), settledAt: null, disqualifiedAt: null },
+    });
+    await tx.tournamentEntry.update({ where: { id: entry.id }, data: { participantId: p.id, note: `جایگزین «${p.name}» شد` } });
+    return { replaced: p.name, reserve: name, tournamentId: t.id };
+  });
+}
+
+/** Before the start, with a free place: the reserve joins as a new participant at the end of the list. */
+export async function admitReserve(entryId: string) {
+  return db.$transaction(async (tx) => {
+    const entry = await tx.tournamentEntry.findUnique({ where: { id: entryId } });
+    if (!entry || entry.kind !== "RESERVE" || entry.status !== "PAID" || entry.participantId || !entry.tournamentId) throw new TournamentError("این رزرو در دسترس نیست.");
+    const t = await lockTournament(tx, entry.tournamentId);
+    if (t.status !== "DRAFT" && t.status !== "REGISTRATION") throw new TournamentError("بعد از شروع، رزرو فقط جای یک بازیکن را می‌گیرد.");
+    const count = await tx.tournamentParticipant.count({ where: { tournamentId: t.id } });
+    if (t.maxParticipants && count >= t.maxParticipants) throw new TournamentError("ظرفیت پر است؛ رزرو را جای یکی از بازیکنان بگذارید.");
+    if (await tx.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: entry.userId }, select: { id: true } })) throw new TournamentError("این شخص از قبل در تورنومنت است.");
+    let name = entry.name;
+    for (let k = 2; await tx.tournamentParticipant.findFirst({ where: { tournamentId: t.id, name }, select: { id: true } }); k++) name = `${entry.name.slice(0, 55)} (${k})`;
+    const p = await tx.tournamentParticipant.create({ data: { tournamentId: t.id, userId: entry.userId, name, seed: count + 1, members: entry.members, answers: entry.answers ?? undefined } });
+    await tx.tournamentEntry.update({ where: { id: entry.id }, data: { participantId: p.id, note: "از رزرو به شرکت‌کنندگان اضافه شد" } });
+    return { name, tournamentId: t.id };
   });
 }

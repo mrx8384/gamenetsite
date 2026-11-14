@@ -59,6 +59,8 @@ export const tournamentSchema = z
     allowPlayerReports: z.boolean().default(false),
     allowPredictions: z.boolean().default(false),
     waitlistEnabled: z.boolean().default(true),
+    /** Paid reserve list (entry fee required). */
+    reserveEnabled: z.boolean().default(false),
     pointsWin: intField(0, 10, "امتیاز برد معتبر نیست").default(3),
     pointsDraw: intField(0, 10, "امتیاز مساوی معتبر نیست").default(1),
     pointsLoss: intField(0, 10, "امتیاز باخت معتبر نیست").default(0),
@@ -69,6 +71,7 @@ export const tournamentSchema = z
       if (!v.advancePerGroup) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "تعداد صعودکننده از هر گروه را وارد کنید" });
       if (v.groupCount && v.advancePerGroup && v.groupCount * v.advancePerGroup < 2) ctx.addIssue({ code: "custom", path: ["advancePerGroup"], message: "حداقل ۲ نفر باید به مرحلهٔ حذفی صعود کنند" });
     }
+    if (v.reserveEnabled && v.entryFeeToman <= BigInt(0)) ctx.addIssue({ code: "custom", path: ["reserveEnabled"], message: "لیست رزرو با پرداخت به هزینهٔ ثبت‌نام آنلاین نیاز دارد" });
     if (v.entryFeeToman > BigInt(0) && !v.allowSelfRegistration) ctx.addIssue({ code: "custom", path: ["entryFeeToman"], message: "هزینهٔ آنلاین فقط وقتی معنا دارد که ثبت‌نام آنلاین باز باشد" });
     const opens = v.registrationOpensAt ? Date.parse(v.registrationOpensAt) : null;
     const closes = v.registrationClosesAt ? Date.parse(v.registrationClosesAt) : null;

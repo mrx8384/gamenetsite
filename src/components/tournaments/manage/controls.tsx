@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Ban, Check, ExternalLink, ListPlus, Megaphone, Play
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,6 +27,7 @@ import {
 } from "@/features/tournaments/actions";
 import { BULK_MAX_LINES, parseBulkNames } from "@/features/tournaments/bulk";
 import { Answers, EditParticipantButton } from "./community";
+import { setParticipantSettled } from "@/features/tournaments/community-actions";
 import type { TournamentStatusKey } from "@/features/tournaments/constants";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -45,9 +47,10 @@ function useAction() {
 
 type Confirm = { title: string; description: string; label: string; destructive?: boolean; fn: () => Promise<ActionResult<unknown>>; after?: () => void };
 
-export function StatusControls({ id, slug, status, participantCount, basePath, owner = true, notCheckedIn = null }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string; owner?: boolean; notCheckedIn?: number | null }) {
+export function StatusControls({ id, slug, status, participantCount, basePath, owner = true, notCheckedIn = null, hasFee = false, reserveEnabled = false }: { id: string; slug: string; status: TournamentStatusKey; participantCount: number; basePath: string; owner?: boolean; notCheckedIn?: number | null; hasFee?: boolean; reserveEnabled?: boolean }) {
   const { pending, run, router } = useAction();
   const [confirm, setConfirm] = React.useState<Confirm | null>(null);
+  const [startOpen, setStartOpen] = React.useState(false);
   const started = status === "IN_PROGRESS" || status === "COMPLETED";
   return (
     <div className="flex flex-wrap gap-2">
@@ -58,14 +61,7 @@ export function StatusControls({ id, slug, status, participantCount, basePath, o
         <Button
           variant={status === "REGISTRATION" ? "default" : "outline"}
           disabled={participantCount < 2}
-          onClick={() =>
-            setConfirm({
-              title: "شروع تورنومنت؟",
-              description: `ثبت‌نام بسته و جدول بازی‌ها بر اساس ترتیب فعلی شرکت‌کنندگان ساخته می‌شود. فهرست شرکت‌کنندگان بعد از شروع قفل است.${notCheckedIn ? ` ${notCheckedIn.toLocaleString("fa-IR")} نفر حضورشان را تأیید نکرده‌اند و حذف می‌شوند.` : ""}`,
-              label: "شروع و ساخت جدول",
-              fn: () => startTournament(id),
-            })
-          }
+          onClick={() => setStartOpen(true)}
         >
           <Play /> شروع تورنومنت
         </Button>
@@ -91,6 +87,7 @@ export function StatusControls({ id, slug, status, participantCount, basePath, o
       {status !== "DRAFT" ? (
         <Button asChild variant="ghost"><Link href={`/tournaments/${slug}`} target="_blank"><ExternalLink /> مشاهده در سایت</Link></Button>
       ) : null}
+      {startOpen ? <StartDialog id={id} hasFee={hasFee} reserveEnabled={reserveEnabled} notCheckedIn={notCheckedIn} onClose={() => setStartOpen(false)} /> : null}
       <ConfirmDialog
         open={confirm !== null}
         onOpenChange={(o) => !o && setConfirm(null)}
@@ -122,6 +119,8 @@ export function ParticipantsManager({
   inProgress = false,
   teamSize = null,
   answers = {},
+  questions = [],
+  payment = {},
 }: {
   tournamentId: string;
   participants: ManagedParticipant[];
@@ -134,24 +133,44 @@ export function ParticipantsManager({
   teamSize?: number | null;
   /** Sign-up answers per participant id (organizers only). */
   answers?: Record<string, { q: string; a: string }[]>;
+  /** The tournament's sign-up questions (asked for players added by hand too). */
+  questions?: { label: string; required: boolean }[];
+  /** Fee status per participant id. */
+  payment?: Record<string, { paidOnline: boolean; settled: boolean }>;
 }) {
   const { pending, run, router } = useAction();
   const [dq, setDq] = React.useState<ManagedParticipant | null>(null);
   const [name, setName] = React.useState("");
+  const extraMembers = teamSize ? teamSize - 1 : 0;
+  const [members, setMembers] = React.useState<string[]>(() => Array.from({ length: extraMembers }, () => ""));
+  const [qa, setQa] = React.useState<string[]>(() => questions.map(() => ""));
+  const missing = (id: string) => questions.some((q) => q.required && !answers[id]?.some((x) => x.q === q.label && x.a));
   const fa = (n: number) => n.toLocaleString("fa-IR");
   return (
     <div className="space-y-4">
       {editable ? (
         <>
         <form
-          className="flex gap-2"
+          className="grid gap-2 rounded-xl border p-3"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => addParticipant(tournamentId, name), () => setName(""));
+            run(() => addParticipant(tournamentId, { name, members, answers: qa }), () => {
+              setName("");
+              setMembers((m) => m.map(() => ""));
+              setQa((q) => q.map(() => ""));
+            });
           }}
         >
-          <Input aria-label="نام شرکت‌کننده" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="نام بازیکن (ثبت‌نام حضوری)" />
-          <Button type="submit" variant="strong" disabled={!name.trim() || pending}><UserPlus /> افزودن</Button>
+          <p className="text-sm font-medium">افزودن بازیکن (ثبت‌نام حضوری)</p>
+          <Input aria-label={teamSize ? "نام تیم" : "نام شرکت‌کننده"} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder={teamSize ? "نام تیم" : "نام بازیکن"} />
+          {members.map((m, i) => (
+            <Input key={i} aria-label={`هم‌تیمی ${fa(i + 1)}`} placeholder={`هم‌تیمی ${fa(i + 1)}`} value={m} maxLength={60} onChange={(e) => setMembers((x) => x.map((y, j) => (j === i ? e.target.value : y)))} />
+          ))}
+          {questions.map((q, i) => (
+            <Input key={q.label} aria-label={q.label} placeholder={`${q.label}${q.required ? " *" : " (اختیاری)"}`} value={qa[i] ?? ""} maxLength={500} required={q.required} onChange={(e) => setQa((x) => x.map((y, j) => (j === i ? e.target.value : y)))} />
+          ))}
+          {questions.some((q) => q.required) ? <p className="text-xs text-muted-foreground">موارد ستاره‌دار اجباری‌اند، مثل ثبت‌نام آنلاین.</p> : null}
+          <Button type="submit" variant="strong" className="justify-self-start" disabled={!name.trim() || pending}><UserPlus /> افزودن</Button>
         </form>
         <BulkAdd tournamentId={tournamentId} free={max ? Math.max(0, max - participants.length) : null} />
         </>
@@ -176,8 +195,23 @@ export function ParticipantsManager({
                 <p className="truncate font-medium">{p.name}</p>
                 {p.members.length ? <p className="text-xs text-muted-foreground">اعضا: {p.members.join("، ")}</p> : null}
                 <Answers answers={answers[p.id]} />
+                {missing(p.id) ? <p className="text-xs font-bold text-warning">اطلاعات ناقص — با دکمهٔ ویرایش کامل کنید</p> : null}
               </div>
-              <EditParticipantButton participant={p} teamSize={teamSize} />
+              <EditParticipantButton participant={p} teamSize={teamSize} questions={questions} answers={answers[p.id]} />
+              {payment[p.id]?.paidOnline ? (
+                <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">پرداخت آنلاین</span>
+              ) : (
+                <Button
+                  variant={payment[p.id]?.settled ? "secondary" : "outline"}
+                  size="sm"
+                  className={payment[p.id]?.settled ? "text-success" : "text-warning"}
+                  disabled={pending}
+                  onClick={() => run(() => setParticipantSettled(p.id, !payment[p.id]?.settled))}
+                  aria-label={payment[p.id]?.settled ? `برداشتن تسویهٔ ${p.name}` : `ثبت تسویهٔ ${p.name}`}
+                >
+                  {payment[p.id]?.settled ? <><Check /> تسویه شده</> : "تسویه نشده"}
+                </Button>
+              )}
               {p.userId ? <span className="text-xs text-success">ثبت‌نام آنلاین</span> : <span className="text-xs text-muted-foreground">دستی</span>}
               {p.finalRank ? <span className="text-xs font-bold">رتبهٔ {fa(p.finalRank)}</span> : null}
               {editable && checkIn ? (
@@ -298,5 +332,37 @@ function BulkAdd({ tournamentId, free }: { tournamentId: string; free: number | 
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/** Start confirmation; with an online fee it also asks whether to open the paid reserve list. */
+function StartDialog({ id, hasFee, reserveEnabled, notCheckedIn, onClose }: { id: string; hasFee: boolean; reserveEnabled: boolean; notCheckedIn: number | null; onClose: () => void }) {
+  const { pending, run } = useAction();
+  const [reserve, setReserve] = React.useState(reserveEnabled);
+  return (
+    <Dialog open onOpenChange={(o) => !o && !pending && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>شروع تورنومنت؟</DialogTitle>
+          <DialogDescription className="leading-7">
+            ثبت‌نام بسته و جدول بازی‌ها بر اساس ترتیب فعلی شرکت‌کنندگان ساخته می‌شود. فهرست شرکت‌کنندگان بعد از شروع قفل است.
+            {notCheckedIn ? ` ${notCheckedIn.toLocaleString("fa-IR")} نفر حضورشان را تأیید نکرده‌اند و حذف می‌شوند.` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {hasFee ? (
+          <label className="flex items-start gap-2 rounded-xl border p-3 text-sm">
+            <input type="checkbox" checked={reserve} onChange={(e) => setReserve(e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" />
+            <span>
+              <span className="font-semibold">لیست رزرو با پرداخت را فعال کنم؟</span>
+              <span className="block text-xs leading-6 text-muted-foreground">افراد در طول تورنومنت با پرداخت هزینهٔ ثبت‌نام رزرو می‌شوند تا اگر بازیکنی کنار رفت، جایش را بگیرند. هزینهٔ رزروهای استفاده‌نشده را خودتان برمی‌گردانید.</span>
+            </span>
+          </label>
+        ) : null}
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>انصراف</Button>
+          <Button type="button" loading={pending} onClick={() => run(() => startTournament(id, hasFee ? { reserve } : undefined), onClose)}><Play /> شروع و ساخت جدول</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

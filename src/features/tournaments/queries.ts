@@ -15,6 +15,7 @@ const include = {
   },
   points: { select: { participantId: true, round: true, points: true } },
   _count: { select: { waitlist: true } },
+  entries: { where: { kind: "RESERVE", status: "PAID", participantId: null }, select: { id: true } },
 } satisfies Prisma.TournamentInclude;
 
 type Row = Prisma.TournamentGetPayload<{ include: typeof include }>;
@@ -60,6 +61,10 @@ export interface TournamentView {
   allowPredictions: boolean;
   waitlistEnabled: boolean;
   waitlistCount: number;
+  reserveEnabled: boolean;
+  /** Paid reserves waiting. */
+  reserveCount: number;
+  liveNotice: string | null;
   /** Check-in opens this many minutes before the start (null = no check-in). */
   checkInMinutes: number | null;
   organizerId: string | null;
@@ -107,6 +112,9 @@ function toView(t: Row): TournamentView {
     allowPredictions: t.allowPredictions,
     waitlistEnabled: t.waitlistEnabled,
     waitlistCount: t._count.waitlist,
+    reserveEnabled: t.reserveEnabled,
+    reserveCount: t.entries.length,
+    liveNotice: t.liveNotice,
     checkInMinutes: t.checkInMinutes,
     organizerId: t.organizerId,
     organizerName,
@@ -180,15 +188,19 @@ export async function getTournamentForManage(id: string): Promise<TournamentView
 
 /** Organizer-only extras: sign-up answers, waiting list, co-organizers (never in the public view). */
 export async function getTournamentPrivate(id: string) {
-  const [answers, waitlist, coOrganizers] = await Promise.all([
-    db.tournamentParticipant.findMany({ where: { tournamentId: id, answers: { not: Prisma.DbNull } }, select: { id: true, answers: true } }),
+  const [answers, waitlist, coOrganizers, reserves] = await Promise.all([
+    db.tournamentParticipant.findMany({ where: { tournamentId: id }, select: { id: true, answers: true, settledAt: true, paidEntry: { select: { status: true } } } }),
     db.tournamentWaitlist.findMany({ where: { tournamentId: id }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, members: true, answers: true, createdAt: true } }),
     db.tournamentCoOrganizer.findMany({ where: { tournamentId: id }, orderBy: { createdAt: "asc" }, select: { userId: true, user: { select: { name: true, email: true, phone: true } } } }),
+    db.tournamentEntry.findMany({ where: { tournamentId: id, kind: "RESERVE", status: "PAID", participantId: null }, orderBy: { paidAt: "asc" }, select: { id: true, name: true, members: true, answers: true, paidAt: true, amount: true, user: { select: { phone: true } } } }),
   ]);
   return {
     answers: Object.fromEntries(answers.map((a) => [a.id, readAnswers(a.answers)])) as Record<string, { q: string; a: string }[]>,
+    /** Fee status per participant: paid online through the gateway, or marked settled by the organizer. */
+    payment: Object.fromEntries(answers.map((a) => [a.id, { paidOnline: a.paidEntry?.status === "PAID", settled: !!a.settledAt }])) as Record<string, { paidOnline: boolean; settled: boolean }>,
     waitlist: waitlist.map((w) => ({ id: w.id, name: w.name, members: w.members, answers: readAnswers(w.answers), createdAt: w.createdAt.toISOString() })),
     coOrganizers: coOrganizers.map((c) => ({ userId: c.userId, name: c.user.name, contact: c.user.email ?? c.user.phone ?? "" })),
+    reserves: reserves.map((r) => ({ id: r.id, name: r.name, members: r.members, answers: readAnswers(r.answers), phone: r.user.phone, paidAt: r.paidAt?.toISOString() ?? null, amount: r.amount.toString() })),
   };
 }
 

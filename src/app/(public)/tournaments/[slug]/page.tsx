@@ -13,7 +13,7 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { checkInOpen, registrationPhase, FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
+import { checkInOpen, registrationPhase, reserveOpen, FORMAT_LABELS, groupName, STATUS_BADGE, STATUS_LABELS } from "@/features/tournaments/constants";
 import { getPublicTournament, type TournamentView } from "@/features/tournaments/queries";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { formatDateTime, formatNumber, formatToman } from "@/lib/format";
@@ -39,7 +39,7 @@ function TournamentPageContent({ params, searchParams }: PageProps<"/tournaments
 }
 
 const PAYMENT_NOTICE: Record<string, { variant: "success" | "destructive" | "warning"; text: string }> = {
-  paid: { variant: "success", text: "پرداخت انجام شد و ثبت‌نام شما کامل شد." },
+  paid: { variant: "success", text: "پرداخت انجام شد. وضعیت ثبت‌نام یا رزرو شما در همین صفحه نمایش داده می‌شود." },
   failed: { variant: "destructive", text: "پرداخت انجام نشد و ثبت‌نام کامل نشد. اگر مبلغی کم شده، تا ۷۲ ساعت برمی‌گردد؛ می‌توانید دوباره ثبت‌نام کنید." },
   late_paid_needs_refund: { variant: "warning", text: "پرداخت انجام شد، اما ثبت‌نام دیگر ممکن نبود (مثلاً ظرفیت تکمیل شده بود). مبلغ توسط اتم گیم کلاب بازگردانده می‌شود." },
   error: { variant: "warning", text: "نتیجهٔ پرداخت هنوز مشخص نیست؛ چند دقیقه بعد همین صفحه را ببینید یا با پشتیبانی تماس بگیرید." },
@@ -89,6 +89,27 @@ async function TournamentContent({ params, searchParams }: { params: Promise<{ s
             </Suspense>
           </CardContent>
         </Card>
+      ) : null}
+
+      {reserveOpen(t, t.participants.length) ? (
+        <Card className="border-brand-yellow/60 print:hidden">
+          <CardHeader><CardTitle className="text-base">لیست رزرو{t.reserveCount ? ` (${formatNumber(t.reserveCount)} نفر)` : ""}</CardTitle></CardHeader>
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-10 w-64" />}>
+              <Reserve t={t} />
+            </Suspense>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {t.status === "IN_PROGRESS" || t.status === "COMPLETED" ? (
+        <Link href={`/tournaments/${encodeURIComponent(t.slug)}/live`} className="flex items-center justify-between gap-3 rounded-xl border border-brand-green/50 bg-brand-black px-5 py-4 text-brand-cream shadow-card transition-shadow hover:shadow-lg print:hidden">
+          <span className="flex items-center gap-2 font-bold">
+            <span className="size-2.5 animate-pulse rounded-full bg-brand-green" aria-hidden />
+            لینک لایو تورنومنت {t.name}
+          </span>
+          <span className="text-sm text-brand-cream/70">جدول و نتایج زنده ←</span>
+        </Link>
       ) : null}
 
       {t.status === "CANCELLED" ? <p className="rounded-xl bg-destructive-soft p-4 text-sm font-medium text-destructive">این تورنومنت لغو شده است.</p> : null}
@@ -148,6 +169,23 @@ async function Registration({ t }: { t: TournamentView }) {
       <RegistrationBox tournamentId={t.id} slug={t.slug} state={waitlist ? "waitlist" : full ? "full" : "open"} defaultName={user.name} feeLabel={feeLabel} teamSize={t.teamSize} questions={t.signupQuestions} />
     </div>
   );
+}
+
+async function Reserve({ t }: { t: TournamentView }) {
+  const user = await getCurrentUser();
+  const feeLabel = formatToman(BigInt(t.entryFee));
+  if (!user) return <RegistrationBox tournamentId={t.id} slug={t.slug} state="guest" defaultName="" />;
+  // Read live: a payment may have just added this player to the reserves.
+  const [isPlayer, mine] = await Promise.all([
+    db.tournamentParticipant.findFirst({ where: { tournamentId: t.id, userId: user.id }, select: { id: true } }),
+    db.tournamentEntry.findFirst({ where: { tournamentId: t.id, userId: user.id, kind: "RESERVE", status: "PAID", participantId: null }, select: { paidAt: true } }),
+  ]);
+  if (isPlayer) return <p className="text-sm text-muted-foreground">شما در این تورنومنت بازی می‌کنید.</p>;
+  if (mine) {
+    const position = (await db.tournamentEntry.count({ where: { tournamentId: t.id, kind: "RESERVE", status: "PAID", participantId: null, paidAt: { lt: mine.paidAt ?? new Date() } } })) + 1;
+    return <p className="text-sm font-bold text-success">شما در لیست رزرو هستید (نفر {formatNumber(position)}). اگر جایی خالی شود، برگزارکننده شما را جایگزین می‌کند؛ در غیر این صورت مبلغ برگردانده می‌شود.</p>;
+  }
+  return <RegistrationBox tournamentId={t.id} slug={t.slug} state="reserve" defaultName={user.name} feeLabel={feeLabel} teamSize={t.teamSize} questions={t.signupQuestions} />;
 }
 
 function Participants({ t }: { t: TournamentView }) {

@@ -14,7 +14,7 @@ type Result = { ok: true; referenceId: string; cardPanMasked?: string; raw?: unk
 export async function takenPlaces(tx: Tx, tournamentId: string, now = new Date()): Promise<number> {
   const [participants, holding] = await Promise.all([
     tx.tournamentParticipant.count({ where: { tournamentId } }),
-    tx.tournamentEntry.count({ where: { tournamentId, status: "AWAITING_PAYMENT", paymentDeadline: { gt: now } } }),
+    tx.tournamentEntry.count({ where: { tournamentId, kind: "PARTICIPANT", status: "AWAITING_PAYMENT", paymentDeadline: { gt: now } } }),
   ]);
   return participants + holding;
 }
@@ -51,6 +51,13 @@ export async function applyEntryPayment(paymentId: string, result: Result): Prom
     };
     if (!e.tournamentId) return refund("تورنومنت حذف شده است");
     await tx.$queryRaw`SELECT id FROM tournaments WHERE id = ${e.tournamentId} FOR UPDATE`;
+    if (e.kind === "RESERVE") {
+      // Paid reserve: waits in the reserve list until the organizer puts them in a player's place.
+      const rt = await tx.tournament.findUnique({ where: { id: e.tournamentId }, select: { status: true } });
+      if (!rt || rt.status === "COMPLETED" || rt.status === "CANCELLED") return refund("تورنومنت تمام یا لغو شده بود");
+      await tx.tournamentEntry.update({ where: { id: e.id }, data: { status: "PAID", paidAt: new Date(), note: null } });
+      return "paid" as const;
+    }
     const t = await tx.tournament.findUnique({ where: { id: e.tournamentId }, select: { status: true, maxParticipants: true } });
     if (!t || t.status !== "REGISTRATION") return refund("ثبت‌نام تورنومنت بسته شده بود");
     const count = await tx.tournamentParticipant.count({ where: { tournamentId: e.tournamentId } });
@@ -75,4 +82,10 @@ export async function expireStaleEntries(now = new Date()): Promise<number> {
 /** When a paid player leaves the tournament (removed by the organizer), their money must be returned. */
 export async function markEntryForRefund(tx: Tx, participantId: string, why: string): Promise<void> {
   await tx.tournamentEntry.updateMany({ where: { participantId, status: "PAID" }, data: { status: "REFUND_NEEDED", note: why.slice(0, 300) } });
+}
+
+/** Reserves still waiting when the tournament ends (or is cancelled) get their money back. */
+export async function refundUnusedReserves(tx: Tx, tournamentId: string, why: string): Promise<number> {
+  const { count } = await tx.tournamentEntry.updateMany({ where: { tournamentId, kind: "RESERVE", status: "PAID", participantId: null }, data: { status: "REFUND_NEEDED", note: why.slice(0, 300) } });
+  return count;
 }

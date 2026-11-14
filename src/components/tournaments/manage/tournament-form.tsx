@@ -54,6 +54,7 @@ export interface TournamentFormValues {
   allowPlayerReports: boolean;
   allowPredictions: boolean;
   waitlistEnabled: boolean;
+  reserveEnabled: boolean;
 }
 
 export const emptyTournament: TournamentFormValues = {
@@ -88,6 +89,7 @@ export const emptyTournament: TournamentFormValues = {
   allowPlayerReports: false,
   allowPredictions: false,
   waitlistEnabled: true,
+  reserveEnabled: false,
 };
 
 export function TournamentForm({ id, initial, basePath, structureLocked = false }: { id?: string; initial: TournamentFormValues; basePath: string; structureLocked?: boolean }) {
@@ -248,6 +250,7 @@ export function TournamentForm({ id, initial, basePath, structureLocked = false 
           <legend className="px-1 text-sm font-medium">ثبت‌نام و بازیکنان</legend>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.allowSelfRegistration} onChange={(e) => set("allowSelfRegistration", e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" /> ثبت‌نام آنلاین کاربران در سایت</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.waitlistEnabled} onChange={(e) => set("waitlistEnabled", e.target.checked)} className="size-4 accent-[var(--brand-green-dark)]" /> لیست انتظار وقتی ظرفیت پر شد (فقط تورنومنت رایگان)</label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={v.reserveEnabled} onChange={(e) => set("reserveEnabled", e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" /> <span>لیست رزرو با پرداخت <span className="block text-xs text-muted-foreground">وقتی ظرفیت پر شد (و در طول تورنومنت)، افراد با پرداخت همان هزینهٔ ثبت‌نام رزرو می‌شوند. اگر بازیکنی انصراف داد، رزرو را جای او می‌گذارید؛ هزینهٔ رزروهای استفاده‌نشده را خودتان برمی‌گردانید (در صفحهٔ پرداخت‌ها «نیاز به بازپرداخت» می‌شوند). فقط با هزینهٔ ثبت‌نام آنلاین.</span>{err("reserveEnabled")}</span></label>
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={v.allowPlayerReports} onChange={(e) => set("allowPlayerReports", e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" /> <span>بازیکنان نتیجهٔ بازی خودشان را گزارش کنند <span className="block text-xs text-muted-foreground">نتیجه وقتی ثبت می‌شود که حریف یا شما تأیید کنید (یا هر دو یک نتیجه را بفرستند).</span></span></label>
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={v.allowPredictions} onChange={(e) => set("allowPredictions", e.target.checked)} className="mt-1 size-4 accent-[var(--brand-green-dark)]" /> <span>پیش‌بینی نتایج توسط بازدیدکنندگان <span className="block text-xs text-muted-foreground">کاربران وارد شده برندهٔ هر بازی را قبل از شروعش پیش‌بینی می‌کنند و جدول بهترین پیش‌بینی‌کننده‌ها نمایش داده می‌شود.</span></span></label>
           <div className="grid gap-1.5 sm:max-w-xs">

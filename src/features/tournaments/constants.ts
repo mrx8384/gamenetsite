@@ -85,3 +85,13 @@ export function registrationPhase(t: { registrationOpensAt: Date | string | null
   if (closes !== null && now.getTime() >= closes) return "closed";
   return "open";
 }
+
+/**
+ * Paid reserve list is open: switched on, the tournament has an online fee, and either registration
+ * is full or the tournament is running (reserves replace players who drop out). Pure.
+ */
+export function reserveOpen(t: { reserveEnabled: boolean; entryFee: bigint | string; allowSelfRegistration: boolean; status: string; maxParticipants: number | null }, participantCount: number): boolean {
+  if (!t.reserveEnabled || !t.allowSelfRegistration || BigInt(t.entryFee) <= BigInt(0)) return false;
+  if (t.status === "IN_PROGRESS") return true;
+  return t.status === "REGISTRATION" && t.maxParticipants !== null && participantCount >= t.maxParticipants;
+}

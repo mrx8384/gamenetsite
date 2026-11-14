@@ -807,6 +807,11 @@ model Tournament {
   /// Online sign-up window (both optional): before opens / after closes, the sign-up form is closed.
   registrationOpensAt   DateTime?
   registrationClosesAt  DateTime?
+  /// Paid reserve list: when full (or during the tournament) players pay the entry fee to be reserves;
+  /// the organizer puts a reserve in place of a player who drops out and refunds unused reserves by hand.
+  reserveEnabled        Boolean          @default(false)
+  /// Short notice shown on the live page (e.g. «گروه A تمام شد»).
+  liveNotice            String?          @db.VarChar(500)
   /// Team tournaments: players per team incl. the captain (null = individual).
   teamSize              Int?
   /// Extra sign-up questions: [{ label, required }] (max 5).
@@ -865,6 +870,8 @@ model TournamentParticipant {
   checkedInAt    DateTime?
   /// Removed during the tournament: remaining matches are forfeited to the opponents.
   disqualifiedAt DateTime?
+  /// Organizer marked the entry fee as settled (manually added players who pay in person).
+  settledAt      DateTime?
   /// Team members (team tournaments; the participant name is the team name).
   members        String[]  @default([])
   /// Answers to the sign-up questions: [{ q, a }] (visible to organizers only).
@@ -911,6 +918,8 @@ model TournamentEntry {
   /// Placed while the gateway used test credentials (no money moved).
   isTest          Boolean               @default(false)
   note            String?               @db.VarChar(300)
+  /// "PARTICIPANT" (joins on payment) or "RESERVE" (paid reserve; joins only when the organizer puts them in).
+  kind            String                @default("PARTICIPANT") @db.VarChar(12)
   /// Copied to the participant after payment.
   members         String[]              @default([])
   answers         Json?
