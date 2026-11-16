@@ -28,7 +28,8 @@ export async function getVisiblePlans() {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: { id: true, name: true, description: true, price: true, durationDays: true, features: true, isActive: true },
   });
-  return plans.map((p) => ({ ...p, price: p.price.toString(), purchasable: SUBSCRIPTION_PURCHASE_ENABLED && p.isActive && p.price > BigInt(0) && getPaymentProvider() !== null }));
+  const gateway = (await getPaymentProvider()) !== null;
+  return plans.map((p) => ({ ...p, price: p.price.toString(), purchasable: SUBSCRIPTION_PURCHASE_ENABLED && p.isActive && p.price > BigInt(0) && gateway }));
 }
 
 export type VisiblePlan = Awaited<ReturnType<typeof getVisiblePlans>>[number];

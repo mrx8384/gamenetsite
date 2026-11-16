@@ -60,6 +60,7 @@ export function RegistrationBox({
   const [members, setMembers] = React.useState<string[]>(() => Array.from({ length: teamSize ? teamSize - 1 : 0 }, () => ""));
   const [answers, setAnswers] = React.useState<string[]>(() => questions.map(() => ""));
   const [error, setError] = React.useState<string | null>(null);
+  const [discountCode, setDiscountCode] = React.useState("");
   const [pending, startTransition] = React.useTransition();
 
   if (state === "guest") {
@@ -150,7 +151,7 @@ export function RegistrationBox({
       onSubmit={(e) => {
         e.preventDefault();
         startTransition(async () => {
-          const res = state === "reserve" ? await registerReserve(tournamentId, { name, members, answers }) : await registerForTournament(tournamentId, { name, members, answers });
+          const res = state === "reserve" ? await registerReserve(tournamentId, { name, members, answers }) : await registerForTournament(tournamentId, { name, members, answers, discountCode });
           if (!res.ok) {
             setError(res.error);
             return void toast.error(res.error);
@@ -183,6 +184,12 @@ export function RegistrationBox({
         </div>
       ))}
       {questions.length ? <p className="text-xs text-muted-foreground">پاسخ‌ها فقط به برگزارکننده نمایش داده می‌شود.</p> : null}
+      {feeLabel && state !== "reserve" && state !== "waitlist" ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor="reg-discount">کد تخفیف (اختیاری)</Label>
+          <Input id="reg-discount" dir="ltr" className="font-mono" value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} maxLength={40} autoComplete="off" />
+        </div>
+      ) : null}
       <Button type="submit" loading={pending}>{state === "reserve" ? `رزرو و پرداخت ${feeLabel}` : state === "waitlist" ? "ثبت در لیست انتظار" : feeLabel ? `ثبت‌نام و پرداخت ${feeLabel}` : "ثبت‌نام"}</Button>
       {feeLabel ? <p className="text-xs leading-6 text-muted-foreground">هزینهٔ ثبت‌نام آنلاین پرداخت می‌شود؛ بعد از پرداخت، نام شما به فهرست شرکت‌کنندگان اضافه می‌شود.</p> : null}
       {error ? <p id="reg-error" role="alert" className="text-xs font-medium text-destructive">{error}</p> : null}

@@ -18,6 +18,8 @@ import { canCreateTournament, manageableTournament } from "./permissions";
 import { matchDetailsSchema, participantNameSchema, readSignupQuestions, scoreSchema, signupSchema, tournamentSchema } from "./schemas";
 import * as service from "./service";
 import { getPaymentProvider } from "@/features/payments";
+import { DiscountError, lockDiscount, recordRedemption } from "@/features/discounts/service";
+import { capForGateway } from "@/features/discounts/rules";
 import { openGatewayPayment, paymentBlockedForTestMode, TEST_MODE_ERROR } from "@/features/payments/targets";
 import { ENTRY_PAYMENT_MINUTES, expireStaleEntries, markEntryForRefund, takenPlaces } from "./entries";
 
@@ -399,7 +401,10 @@ export async function registerForTournament(tournamentId: string, input: unknown
   const parsed = signupSchema({ teamSize: info.teamSize, questions: readSignupQuestions(info.signupQuestions) }).safeParse(typeof input === "string" ? { name: input } : input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.", zodFieldErrors(parsed.error.issues));
   const signup: Signup = parsed.data;
-  if (info.entryFee > BigInt(0)) return registerPaid(user, tournamentId, signup);
+  if (info.entryFee > BigInt(0)) {
+    const raw = typeof input === "object" && input !== null ? (input as { discountCode?: unknown }).discountCode : undefined;
+    return registerPaid(user, tournamentId, signup, typeof raw === "string" ? raw.trim().slice(0, 40) : "");
+  }
   let waitlisted = false;
   try {
     await db.$transaction(async (tx) => {
@@ -438,11 +443,11 @@ export async function registerForTournament(tournamentId: string, input: unknown
  * Registration with an online fee: holds a place for ENTRY_PAYMENT_MINUTES and sends the player to the
  * gateway. The participant is added only when the payment is confirmed (see entries.ts).
  */
-async function registerPaid(user: { id: string; role: string; phone: string | null }, tournamentId: string, signup: Signup): Promise<ActionResult<{ redirectTo?: string }>> {
+async function registerPaid(user: { id: string; role: string; phone: string | null }, tournamentId: string, signup: Signup, discountCode = ""): Promise<ActionResult<{ redirectTo?: string }>> {
   const name = signup.name;
-  const provider = getPaymentProvider();
+  const provider = (await getPaymentProvider());
   if (!provider) return fail("پرداخت آنلاین در حال حاضر فعال نیست؛ برای ثبت‌نام با برگزارکننده تماس بگیرید.");
-  if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
+  if (await paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
   await expireStaleEntries();
   let created: { paymentId: string; entryId: string; amount: bigint; tournamentName: string };
   try {
@@ -461,7 +466,20 @@ async function registerPaid(user: { id: string; role: string; phone: string | nu
         (await tx.tournamentParticipant.findFirst({ where: { tournamentId, name }, select: { id: true } })) ??
         (await tx.tournamentEntry.findFirst({ where: { tournamentId, name, status: "AWAITING_PAYMENT", paymentDeadline: { gt: new Date() } }, select: { id: true } }));
       if (clash) throw new service.TournamentError("این نام قبلاً ثبت شده است؛ نام دیگری انتخاب کنید.");
-      const payment = await tx.payment.create({ data: { provider: provider.key, amount: t.entryFee }, select: { id: true } });
+      let amount = t.entryFee;
+      let discountUse: { codeId: string; amount: bigint } | null = null;
+      if (discountCode) {
+        try {
+          const d = await lockDiscount(tx, { code: discountCode, scope: "TOURNAMENT", amount: t.entryFee, userId: user.id });
+          const off = capForGateway(t.entryFee, d.discount);
+          amount = t.entryFee - off;
+          discountUse = { codeId: d.id, amount: off };
+        } catch (e) {
+          if (e instanceof DiscountError) throw new service.TournamentError(`کد تخفیف: ${e.message}`);
+          throw e;
+        }
+      }
+      const payment = await tx.payment.create({ data: { provider: provider.key, amount }, select: { id: true } });
       const entry = await tx.tournamentEntry.create({
         data: {
           tournamentId,
@@ -470,14 +488,15 @@ async function registerPaid(user: { id: string; role: string; phone: string | nu
           name,
           members: signup.members,
           answers: signup.answers,
-          amount: t.entryFee,
+          amount,
           paymentId: payment.id,
           isTest: provider.testMode === true,
           paymentDeadline: new Date(Date.now() + ENTRY_PAYMENT_MINUTES * 60_000),
         },
         select: { id: true },
       });
-      return { paymentId: payment.id, entryId: entry.id, amount: t.entryFee, tournamentName: t.name };
+      if (discountUse) await recordRedemption(tx, { codeId: discountUse.codeId, userId: user.id, scope: "TOURNAMENT", amount: discountUse.amount, tournamentEntryId: entry.id });
+      return { paymentId: payment.id, entryId: entry.id, amount, tournamentName: t.name };
     });
   } catch (e) {
     if (e instanceof service.TournamentError) return fail(e.message, e.message.includes("نام") ? { name: e.message } : undefined);
@@ -694,9 +713,9 @@ export async function registerReserve(tournamentId: unknown, input: unknown): Pr
   if (!info) return fail("رزرو این تورنومنت باز نیست.");
   const parsed = signupSchema({ teamSize: info.teamSize, questions: readSignupQuestions(info.signupQuestions) }).safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "اطلاعات نامعتبر است.", zodFieldErrors(parsed.error.issues));
-  const provider = getPaymentProvider();
+  const provider = (await getPaymentProvider());
   if (!provider) return fail("پرداخت آنلاین در حال حاضر فعال نیست.");
-  if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
+  if (await paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
   await expireStaleEntries();
   let created: { paymentId: string; entryId: string; amount: bigint; tournamentName: string };
   try {

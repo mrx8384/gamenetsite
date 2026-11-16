@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 /** Static placeholder shown until the client knows the current path. */
 export function MobileNavFallback() {
   return (
-    <Button variant="ghost" size="icon" className="lg:hidden" aria-label="باز کردن منو" disabled>
+    <Button variant="ghost" size="icon" className="xl:hidden" aria-label="باز کردن منو" disabled>
       <Menu className="size-5!" />
     </Button>
   );
@@ -29,7 +29,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Trigger asChild>
-        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="باز کردن منو">
+        <Button variant="ghost" size="icon" className="xl:hidden" aria-label="باز کردن منو">
           <Menu className="size-5!" />
         </Button>
       </DialogPrimitive.Trigger>

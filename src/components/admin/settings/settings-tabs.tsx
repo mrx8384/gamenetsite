@@ -15,6 +15,7 @@ const tabs = [
   { href: "/admin/settings/tournaments", label: "تورنومنت" },
   { href: "/admin/settings/organizations", label: "سازمان‌های طرف قرارداد" },
   { href: "/admin/settings/park", label: "شهربازی اتم گیم" },
+  { href: "/admin/settings/booking", label: "رزرو" },
   { href: "/admin/settings/support", label: "پشتیبانی آنلاین" },
   { href: "/admin/settings/authNotice", label: "اطلاعیهٔ ورود و ثبت‌نام" },
   { href: "/admin/settings/sms", label: "پیامک و ایمیل" },

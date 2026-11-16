@@ -29,11 +29,6 @@ export default function SubscriptionsPage() {
         description="تعریف اشتراک‌های همکاران و امکاناتی که هر اشتراک فعال می‌کند."
         actions={<PlanDialog trigger={<Button><Plus /> اشتراک جدید</Button>} />}
       />
-      <Alert variant={getPaymentProvider() ? "info" : "warning"} className="mb-6">
-        {getPaymentProvider()
-          ? `اشتراکی که «قابل خرید آنلاین» باشد را همکاران تأییدشده از پنل همکار با ${getPaymentProvider()!.label} می‌خرند و خودکار فعال می‌شود. اشتراک رایگان را از صفحهٔ همان همکار با «اعطای اشتراک رایگان» بدهید.`
-          : "درگاه پرداخت روی سرور تنظیم نشده است؛ تا آن موقع اشتراک‌ها با «به‌زودی» نمایش داده می‌شوند. اشتراک رایگان را از صفحهٔ همکار اعطا کنید."}
-      </Alert>
       <Suspense fallback={<LoadingRows rows={5} />}>
         <SubscriptionsContent />
       </Suspense>
@@ -43,12 +38,18 @@ export default function SubscriptionsPage() {
 
 async function SubscriptionsContent() {
   await requireRole(["ADMIN"], "/admin/subscriptions");
+  const provider = await getPaymentProvider();
   const [plans, subs] = await Promise.all([
     db.subscriptionPlan.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { _count: { select: { subscriptions: true } } } }),
     db.partnerSubscription.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { plan: { select: { name: true } }, partner: { select: { id: true, businessName: true } } } }),
   ]);
   return (
     <div className="space-y-6">
+      <Alert variant={provider ? "info" : "warning"}>
+        {provider
+          ? `اشتراکی که «قابل خرید آنلاین» باشد را همکاران تأییدشده از پنل همکار با ${provider!.label} می‌خرند و خودکار فعال می‌شود. اشتراک رایگان را از صفحهٔ همان همکار با «اعطای اشتراک رایگان» بدهید.`
+          : "درگاه پرداخت روی سرور تنظیم نشده است؛ تا آن موقع اشتراک‌ها با «به‌زودی» نمایش داده می‌شوند. اشتراک رایگان را از صفحهٔ همکار اعطا کنید."}
+      </Alert>
       {plans.length === 0 ? (
         <EmptyState icon={Repeat} title="هنوز اشتراکی تعریف نشده" description="اشتراک‌ها را از همین حالا تعریف کنید؛ خرید بعداً فعال می‌شود." />
       ) : (

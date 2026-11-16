@@ -15,7 +15,7 @@ const SALES_CLOSED = "فروش آنلاین در حال حاضر فعال نیس
 
 async function salesOpen(): Promise<boolean> {
   const settings = await getCommerceSettings();
-  return settings.salesEnabled && !!getPaymentProvider();
+  return settings.salesEnabled && !!(await getPaymentProvider());
 }
 
 const addSchema = z.object({ productId: z.string().min(1).max(50), quantity: z.number().int().min(1).max(MAX_QTY_PER_ITEM) });
