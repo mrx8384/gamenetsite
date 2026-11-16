@@ -42,7 +42,7 @@ async function CheckoutContent() {
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     select: { id: true, recipientName: true, phone: true, province: true, city: true, postalCode: true, line: true, isDefault: true },
   });
-  const [provider, shippingMethods] = [getPaymentProvider()!, await getActiveShippingMethods()];
+  const [provider, shippingMethods] = [(await getPaymentProvider())!, await getActiveShippingMethods()];
   return (
     <CheckoutForm
       addresses={addresses}

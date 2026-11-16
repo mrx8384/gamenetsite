@@ -12,7 +12,7 @@ export function DesktopNav({ items }: { items: NavItem[] }) {
 /** Presentational links; `pathname = null` renders without an active item (static fallback). */
 export function DesktopNavLinks({ items, pathname }: { items: NavItem[]; pathname: string | null }) {
   return (
-    <nav aria-label="منوی اصلی" className="hidden lg:block">
+    <nav aria-label="منوی اصلی" className="hidden xl:block">
       <ul className="flex items-center gap-1">
         {items.map((item) => {
           const active = pathname !== null && isActivePath(pathname, item.href);
@@ -22,7 +22,7 @@ export function DesktopNavLinks({ items, pathname }: { items: NavItem[]; pathnam
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative rounded-lg px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-secondary hover:text-foreground",
+                  "relative whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-secondary hover:text-foreground",
                   active && "text-foreground after:absolute after:inset-x-3 after:-bottom-[3px] after:h-[3px] after:rounded-full after:bg-brand-green",
                 )}
               >

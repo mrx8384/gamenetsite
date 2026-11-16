@@ -10,6 +10,8 @@ import { fail, GENERIC_ERROR, ok, RATE_LIMIT_ERROR, zodFieldErrors, type ActionR
 import { rateLimit } from "@/lib/rate-limit";
 import { getRequestInfo } from "@/lib/request-info";
 import { getPaymentProvider } from "@/features/payments";
+import { DiscountError, lockDiscount, recordRedemption } from "@/features/discounts/service";
+import { capForGateway } from "@/features/discounts/rules";
 import { openGatewayPayment } from "@/features/payments/targets";
 import { getCommerceSettings } from "@/features/settings/commerce";
 import { findCartId } from "@/features/cart/service";
@@ -64,7 +66,7 @@ export async function deleteAddress(id: string): Promise<ActionResult<undefined>
 // ───────────── Checkout ─────────────
 
 async function startPayment(orderId: string, mobile: string | null): Promise<string> {
-  const provider = getPaymentProvider();
+  const provider = (await getPaymentProvider());
   if (!provider) throw new OrderError("no_provider");
   const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, select: { number: true, total: true } });
   const payment = await db.payment.create({ data: { orderId, provider: provider.key, amount: order.total }, select: { id: true } });
@@ -79,8 +81,8 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
   const s = await session();
   if (!s) return fail(LOGIN_REQUIRED);
   const settings = await getCommerceSettings();
-  if (!settings.salesEnabled || !getPaymentProvider()) return fail("فروش آنلاین در حال حاضر فعال نیست.");
-  if (getPaymentProvider()?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
+  if (!settings.salesEnabled || !(await getPaymentProvider())) return fail("فروش آنلاین در حال حاضر فعال نیست.");
+  if ((await getPaymentProvider())?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
   const parsed = placeOrderSchema.safeParse(input);
   if (!parsed.success) return fail("لطفاً خطاهای فرم را برطرف کنید.", zodFieldErrors(parsed.error.issues));
   const { ip } = await getRequestInfo();
@@ -135,6 +137,18 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           throw e;
         }
       }
+      let discountUse: { codeId: string; amount: bigint } | null = null;
+      if (parsed.data.discountCode && !parsed.data.rewardCode) {
+        try {
+          const d = await lockDiscount(tx, { code: parsed.data.discountCode, scope: "SHOP", amount: subtotal, userId: s.user.id });
+          // what is left (+ prepaid shipping) still goes through the gateway
+          discount = capForGateway(subtotal + shippingCost, d.discount);
+          discountUse = { codeId: d.id, amount: discount };
+        } catch (e) {
+          if (e instanceof DiscountError) throw new OrderError(`کد تخفیف: ${e.message}`);
+          throw e;
+        }
+      }
       const number = await generateOrderNumber(tx);
 
       const order = await tx.order.create({
@@ -142,7 +156,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
           number,
           userId: s.user.id,
           status: "AWAITING_PAYMENT",
-          isTest: getPaymentProvider()?.testMode === true,
+          isTest: (await getPaymentProvider())?.testMode === true,
           subtotal,
           shippingCost,
           discount,
@@ -166,6 +180,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ redirec
         select: { id: true },
       });
       if (redemptionId) await attachToOrder(tx, redemptionId, order.id);
+      if (discountUse) await recordRedemption(tx, { codeId: discountUse.codeId, userId: s.user.id, scope: "SHOP", amount: discountUse.amount, orderId: order.id });
       for (const l of lines) {
         await tx.product.update({ where: { id: l.p.id }, data: { stock: { decrement: l.quantity } } });
         await tx.inventoryMovement.create({ data: { productId: l.p.id, delta: -l.quantity, reason: "ORDER", orderId: order.id, actorId: s.user.id } });
@@ -198,8 +213,8 @@ export async function retryPayment(orderNumber: string): Promise<ActionResult<{ 
   const order = await db.order.findFirst({ where: { number: String(orderNumber), userId: s.user.id }, select: { id: true, status: true } });
   if (!order) return fail("سفارش پیدا نشد.");
   if (order.status !== "AWAITING_PAYMENT") return fail("این سفارش قابل پرداخت نیست.");
-  if (!getPaymentProvider()) return fail("درگاه پرداخت در دسترس نیست.");
-  if (getPaymentProvider()?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
+  if (!(await getPaymentProvider())) return fail("درگاه پرداخت در دسترس نیست.");
+  if ((await getPaymentProvider())?.testMode && s.user.role !== "ADMIN") return fail(TEST_MODE_ERROR);
   try {
     return ok({ redirectTo: await startPayment(order.id, s.user.phone) });
   } catch (e) {

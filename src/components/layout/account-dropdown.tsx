@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Handshake, Headset, LayoutDashboard, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
+import { Handshake, Headset, LayoutDashboard, LogOut, Package, ShieldCheck, UserRound, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,6 +39,11 @@ export function AccountDropdown({ name, role }: { name: string; role: keyof type
         <DropdownMenuItem asChild>
           <Link href="/account/orders">
             <Package /> سفارش‌های من
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/account/bookings">
+            <CalendarCheck /> رزروهای من
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

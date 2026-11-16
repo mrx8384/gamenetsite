@@ -5,13 +5,14 @@ import { env } from "@/lib/env";
 import { applyPaymentResult } from "@/features/orders/service";
 import { applySubscriptionPayment, SUBSCRIPTION_PAYMENT_MINUTES } from "@/features/subscriptions/purchase";
 import { applyEntryPayment } from "@/features/tournaments/entries";
-import { getPaymentProvider } from "./index";
+import { applyBookingPayment } from "@/features/booking/service";
+import { getPaymentProvider, getPaymentProviderByKey } from "./index";
 
 /**
- * One payment pays for exactly one thing: a store order, a partner subscription or a tournament entry.
+ * One payment pays for exactly one thing: a store order, a partner subscription, a tournament entry or a booking.
  * Gateways (callback route, Bale bot) only talk to this module, so every kind gets the same verified flow.
  */
-export type PaymentKind = "order" | "subscription" | "tournament";
+export type PaymentKind = "order" | "subscription" | "tournament" | "booking";
 
 export type GatewayResult = { ok: true; referenceId: string; cardPanMasked?: string; raw?: unknown } | { ok: false; reason: string; raw?: unknown };
 export type GatewayOutcome = "paid" | "failed" | "already_processed" | "late_paid_needs_refund";
@@ -45,6 +46,7 @@ const select = {
   order: { select: { number: true, userId: true, status: true, paymentDeadline: true } },
   subscription: { select: { status: true, plan: { select: { name: true } }, partner: { select: { userId: true } } } },
   tournamentEntry: { select: { status: true, paymentDeadline: true, tournamentName: true, userId: true, tournament: { select: { slug: true } } } },
+  booking: { select: { code: true, userId: true, status: true, paymentDeadline: true, refundStatus: true } },
 } satisfies Prisma.PaymentSelect;
 
 type Row = Prisma.PaymentGetPayload<{ select: typeof select }>;
@@ -86,6 +88,18 @@ function toTarget(p: Row, now: Date): PaymentTarget | null {
       needsRefund: e.status === "REFUND_NEEDED" || e.status === "REFUNDED",
     };
   }
+  if (p.booking && p.booking.userId) {
+    const b = p.booking;
+    return {
+      ...base,
+      kind: "booking",
+      userId: b.userId!,
+      title: `رزرو ${b.code}`,
+      open: b.status === "AWAITING_PAYMENT" && (!b.paymentDeadline || b.paymentDeadline > now),
+      returnPath: "/account/bookings",
+      needsRefund: b.refundStatus === "NEEDED" || b.refundStatus === "DONE",
+    };
+  }
   return null;
 }
 
@@ -101,6 +115,7 @@ export async function applyGatewayResult(paymentId: string, result: GatewayResul
   let outcome: GatewayOutcome;
   if (target.kind === "order") outcome = (await applyPaymentResult(paymentId, result)).result;
   else if (target.kind === "subscription") outcome = await applySubscriptionPayment(paymentId, result);
+  else if (target.kind === "booking") outcome = await applyBookingPayment(paymentId, result);
   else outcome = await applyEntryPayment(paymentId, result);
   return { result: outcome, target };
 }
@@ -110,7 +125,9 @@ export async function applyGatewayResult(paymentId: string, result: GatewayResul
  * Returns the URL to send the customer to.
  */
 export async function openGatewayPayment(paymentId: string, input: { amount: bigint; description: string; mobile: string | null }): Promise<string> {
-  const provider = getPaymentProvider();
+  // The gateway recorded on the payment row (chosen when it was created), even if the admin switched since.
+  const row = await db.payment.findUniqueOrThrow({ where: { id: paymentId }, select: { provider: true } });
+  const provider = getPaymentProviderByKey(row.provider);
   if (!provider) throw new Error("no_provider");
   const callbackUrl = new URL(`/api/payments/callback/${provider.key}`, env.APP_URL).toString();
   const { authority, redirectUrl } = await provider.createPayment({ paymentId, amount: input.amount, description: input.description, callbackUrl, mobile: input.mobile });
@@ -122,8 +139,8 @@ export async function openGatewayPayment(paymentId: string, input: { amount: big
 export const paidResult = (t: PaymentTarget) => (t.needsRefund ? "late_paid_needs_refund" : "paid");
 
 /** Test credentials move no money: only admins may pay while they are in use. */
-export function paymentBlockedForTestMode(role: string): boolean {
-  return getPaymentProvider()?.testMode === true && role !== "ADMIN";
+export async function paymentBlockedForTestMode(role: string): Promise<boolean> {
+  return (await getPaymentProvider())?.testMode === true && role !== "ADMIN";
 }
 
 export const TEST_MODE_ERROR = "درگاه پرداخت در حالت آزمایشی است و فعلاً فقط مدیر سایت می‌تواند پرداخت کند.";

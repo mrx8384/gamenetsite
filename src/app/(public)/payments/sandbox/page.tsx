@@ -6,7 +6,7 @@ import { Container } from "@/components/layout/container";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPaymentProvider } from "@/features/payments";
+import { getPaymentProviderByKey } from "@/features/payments";
 import { env } from "@/lib/env";
 import { formatToman } from "@/lib/format";
 
@@ -24,7 +24,7 @@ export default function SandboxGatewayPage({ searchParams }: PageProps<"/payment
 }
 
 async function SandboxContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (env.NODE_ENV === "production" || getPaymentProvider()?.key !== "sandbox") notFound();
+  if (env.NODE_ENV === "production" || !getPaymentProviderByKey("sandbox")) notFound();
   const sp = await searchParams;
   const authority = String(sp.authority ?? "");
   const amount = /^\d+$/.test(String(sp.amount ?? "")) ? BigInt(String(sp.amount)) : BigInt(0);

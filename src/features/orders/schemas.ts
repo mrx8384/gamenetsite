@@ -26,6 +26,8 @@ export const placeOrderSchema = z.object({
   note: z.string().trim().max(500).default(""),
   /** A discount card from the 3D world (Admin → دستاوردها و جوایز), checked again on the server. */
   rewardCode: z.string().trim().max(40).default(""),
+  /** A discount code made in Admin → کدهای تخفیف (one code per order: card or discount code). */
+  discountCode: z.string().trim().max(40).default(""),
 });
 
 export const ORDER_STATUS_LABEL = {

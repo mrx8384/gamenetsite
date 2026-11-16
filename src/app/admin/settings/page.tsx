@@ -4,7 +4,8 @@ import { CommerceSettingsForm } from "@/components/admin/orders/commerce-setting
 import { FeaturedOrder } from "@/components/admin/store/featured-order";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingRows } from "@/components/ui/states";
-import { getPaymentProvider } from "@/features/payments";
+import { configuredProviders, getPaymentProvider } from "@/features/payments";
+import { GatewaySwitch } from "@/components/admin/payments/gateway-switch";
 import { getCommerceSettings } from "@/features/settings/commerce";
 import { FEATURED_ON_HOME } from "@/features/store/queries";
 import { db } from "@/lib/db";
@@ -33,9 +34,10 @@ async function SettingsContent() {
       select: { id: true, title: true, status: true, images: { orderBy: { sortOrder: "asc" }, take: 1, select: { media: { select: { storageKey: true } } } } },
     }),
   ]);
-  const provider = getPaymentProvider();
+  const provider = (await getPaymentProvider());
   return (
     <div className="space-y-6">
+      <GatewaySwitch options={configuredProviders().map((p) => ({ key: p.key, label: p.label, testMode: p.testMode === true }))} active={provider?.key ?? null} />
       <CommerceSettingsForm
         gatewayLabel={provider?.label ?? null}
         initial={{ salesEnabled: s.salesEnabled, priceInquiryPhone: s.priceInquiryPhone }}

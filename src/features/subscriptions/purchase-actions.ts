@@ -22,8 +22,8 @@ export async function buySubscription(planId: unknown): Promise<ActionResult<{ r
   }
   const user = s.user;
   if (typeof planId !== "string" || !planId) return fail("اشتراک پیدا نشد.");
-  if (!SUBSCRIPTION_PURCHASE_ENABLED || !getPaymentProvider()) return fail("خرید آنلاین اشتراک در حال حاضر فعال نیست.");
-  if (paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
+  if (!SUBSCRIPTION_PURCHASE_ENABLED || !(await getPaymentProvider())) return fail("خرید آنلاین اشتراک در حال حاضر فعال نیست.");
+  if (await paymentBlockedForTestMode(user.role)) return fail(TEST_MODE_ERROR);
   if (!(await rateLimit(`subscription-buy:${user.id}`, 10, 60 * 60)).allowed) return fail(RATE_LIMIT_ERROR);
 
   const partner = await db.partnerProfile.findUnique({ where: { userId: user.id }, select: { id: true, status: true, businessName: true } });
@@ -36,7 +36,7 @@ export async function buySubscription(planId: unknown): Promise<ActionResult<{ r
   // One open purchase at a time: an earlier unpaid attempt is replaced.
   await db.partnerSubscription.updateMany({ where: { partnerId: partner.id, status: "INACTIVE", payment: { status: "INITIATED" } }, data: { status: "CANCELLED", note: "جایگزین با خرید جدید" } });
 
-  const provider = getPaymentProvider()!;
+  const provider = (await getPaymentProvider())!;
   const payment = await db.payment.create({ data: { provider: provider.key, amount: plan.price }, select: { id: true } });
   const sub = await db.partnerSubscription.create({ data: { partnerId: partner.id, planId: plan.id, status: "INACTIVE", paymentId: payment.id, note: "در انتظار پرداخت" }, select: { id: true } });
   const { ip } = await getRequestInfo();

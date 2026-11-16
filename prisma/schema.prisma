@@ -68,6 +68,9 @@ model User {
   gameAchievements       GameAchievementUnlock[]
   rewardRedemptions      RewardRedemption[]      @relation("RewardOwner")
   rewardsChecked         RewardRedemption[]      @relation("RewardStaff")
+  bookings               Booking[]
+  discountRedemptions    DiscountRedemption[]
+  apiKeysCreated         ApiKey[]
 
   @@index([role])
   @@map("users")
@@ -415,6 +418,7 @@ model Order {
   inventoryMovements InventoryMovement[]
   rewardRedemption   RewardRedemption?
 
+  discountRedemption DiscountRedemption?
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@map("orders")
@@ -478,8 +482,11 @@ model Payment {
   order           Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
   subscription    PartnerSubscription?
   tournamentEntry TournamentEntry?
+  bookingId       String?
+  booking         Booking?             @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@unique([provider, authority])
+  @@index([bookingId])
   @@index([orderId])
   @@map("payments")
 }
@@ -932,6 +939,7 @@ model TournamentEntry {
   payment     Payment?               @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   participant TournamentParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
+  discountRedemption DiscountRedemption?
   @@index([tournamentId, status])
   @@index([userId])
   @@index([status, paymentDeadline])
@@ -1318,4 +1326,169 @@ model ServerMetric {
 
   @@index([createdAt])
   @@map("server_metrics")
+}
+
+// ───────────── Venue booking by shift (owner request 2026-11-15) ─────────────
+
+/// A bookable time window of the whole club, repeated on the chosen weekdays.
+model BookingShift {
+  id             String   @id @default(cuid())
+  title          String   @db.VarChar(60)
+  /// Persian week days: 0 = شنبه … 6 = جمعه.
+  weekdays       Int[]
+  /// Minutes from midnight (Tehran). endMinute may pass 1440 (ends after midnight, up to 06:00 next day).
+  startMinute    Int
+  endMinute      Int
+  /// Bookings allowed at the same time (1 = the whole club for one customer).
+  capacity       Int      @default(1)
+  /// Rials.
+  price          BigInt
+  /// "ONLINE_FULL" | "DEPOSIT" | "ON_SITE"
+  paymentMode    String   @default("ON_SITE") @db.VarChar(12)
+  depositPercent Int?
+  description    String?  @db.VarChar(300)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@map("booking_shifts")
+}
+
+/// Days the club takes no bookings (holiday, private event).
+model BookingClosure {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+  reason    String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+
+  @@map("booking_closures")
+}
+
+enum BookingStatus {
+  AWAITING_PAYMENT
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  /// Tracking code shown to the customer, e.g. BK-48213.
+  code            String        @unique @db.VarChar(16)
+  userId          String?
+  name            String        @db.VarChar(80)
+  phone           String        @db.VarChar(20)
+  guests          Int?
+  note            String?       @db.VarChar(500)
+  /// Tehran calendar day of the shift start.
+  date            DateTime      @db.Date
+  shiftId         String?
+  shiftTitle      String        @db.VarChar(60)
+  startMinute     Int
+  endMinute       Int
+  price           BigInt
+  discount        BigInt        @default(0)
+  total           BigInt
+  /// Amount charged online (total, deposit or 0 for pay-at-venue).
+  payNow          BigInt        @default(0)
+  paidAmount      BigInt        @default(0)
+  paymentMode     String        @db.VarChar(12)
+  status          BookingStatus @default(AWAITING_PAYMENT)
+  paymentDeadline DateTime?
+  /// "WEB" | "ADMIN" | "API"
+  source          String        @default("WEB") @db.VarChar(8)
+  /// null | "NEEDED" | "DONE" — money to return (paid booking cancelled / paid too late).
+  refundStatus    String?       @db.VarChar(8)
+  cancelReason    String?       @db.VarChar(300)
+  adminNote       String?       @db.VarChar(500)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user               User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shift              BookingShift?       @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  payments           Payment[]
+  discountRedemption DiscountRedemption?
+
+  @@index([date, shiftId, status])
+  @@index([userId])
+  @@index([status, paymentDeadline])
+  @@map("bookings")
+}
+
+// ───────────── Discount codes (owner request 2026-11-15) ─────────────
+
+model DiscountCode {
+  id           String    @id @default(cuid())
+  /// Upper-case, unique.
+  code         String    @unique @db.VarChar(40)
+  title        String    @default("") @db.VarChar(120)
+  /// "PERCENT" (value 1–100) | "FIXED" (value in Rials)
+  kind         String    @db.VarChar(8)
+  value        BigInt
+  /// Rials; cap for percent codes.
+  maxDiscount  BigInt?
+  /// Rials; smallest purchase the code works on.
+  minAmount    BigInt    @default(0)
+  /// "SHOP" | "BOOKING" | "TOURNAMENT"
+  scopes       String[]
+  startsAt     DateTime?
+  endsAt       DateTime?
+  /// Total uses (null = unlimited).
+  usageLimit   Int?
+  /// Uses per customer account (null = unlimited).
+  perUserLimit Int?      @default(1)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  redemptions DiscountRedemption[]
+
+  @@map("discount_codes")
+}
+
+/// One use of a code. It stops counting once its order / booking / entry is cancelled.
+model DiscountRedemption {
+  id                String   @id @default(cuid())
+  codeId            String
+  userId            String?
+  scope             String   @db.VarChar(12)
+  amount            BigInt
+  orderId           String?  @unique
+  bookingId         String?  @unique
+  tournamentEntryId String?  @unique
+  createdAt         DateTime @default(now())
+
+  code            DiscountCode     @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order           Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  booking         Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  tournamentEntry TournamentEntry? @relation(fields: [tournamentEntryId], references: [id], onDelete: SetNull)
+
+  @@index([codeId])
+  @@index([userId])
+  @@map("discount_redemptions")
+}
+
+// ───────────── API keys for the owner's other apps (owner request 2026-11-15) ─────────────
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(80)
+  /// First characters of the key, shown to recognise it (atm_xxxxxxxx).
+  prefix      String    @db.VarChar(16)
+  /// SHA-256 of the full key; the key itself is shown once and never stored.
+  hash        String    @unique @db.VarChar(64)
+  scopes      String[]
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("api_keys")
 }

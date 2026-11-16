@@ -4,7 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarCheck,
   FolderTree,
+  KeyRound,
+  TicketPercent,
   Gamepad2,
   Gift,
   Handshake,
@@ -44,6 +47,8 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: FolderTree },
   { href: "/admin/orders", label: "سفارش‌ها", icon: Receipt },
   { href: "/admin/shipping", label: "روش‌های ارسال", icon: Truck },
+  { href: "/admin/booking", label: "رزرو", icon: CalendarCheck },
+  { href: "/admin/discounts", label: "کدهای تخفیف", icon: TicketPercent },
   { href: "/admin/partners", label: "همکاران", icon: Handshake },
   { href: "/admin/subscriptions", label: "اشتراک‌ها", icon: Repeat },
   { href: "/admin/news", label: "اخبار", icon: Newspaper },
@@ -53,6 +58,7 @@ export const adminNav: AdminNavItem[] = [
   { href: "/admin/game-rewards", label: "دستاوردها و جوایز", icon: Gift },
   { href: "/admin/settings", label: "تنظیمات سایت", icon: Settings },
   { href: "/admin/server", label: "وضعیت سرور", icon: Server },
+  { href: "/admin/api-keys", label: "کلیدهای API", icon: KeyRound },
 ];
 
 /** Short two-tone chime via Web Audio (no audio file). Browsers allow it after the first click on the page. */
