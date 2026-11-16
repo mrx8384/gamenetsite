@@ -53,6 +53,7 @@ export const MIN_ROUND_SECONDS: Record<string, number> = {
   "gc-city": 15,
   "gc-football": 30,
   "face-paint": 6,
+  "seated-football": 12,
 };
 /** Rounds older than this cannot be reported any more. */
 export const MAX_ROUND_SECONDS = 3 * 3600;
@@ -80,6 +81,9 @@ export function plausibleRound(game: MiniGameId, stats: Stats, elapsed: number):
       return v(stats, "deliveries") <= 1 + elapsed / 8 && v(stats, "money") <= 200 + v(stats, "deliveries") * 250 + elapsed * 5;
     case "gc-football":
       return v(stats, "goalsFor") <= 1 + elapsed / 5 && v(stats, "goalsAgainst") <= 1 + elapsed / 5;
+    case "seated-football":
+      // first to 5: a winner has exactly 5, the loser fewer; goals need time
+      return v(stats, "goals") <= 5 && v(stats, "against") <= 5 && (stats.won !== true || (v(stats, "goals") === 5 && v(stats, "against") < 5)) && v(stats, "goals") + v(stats, "against") <= 1 + elapsed / 2;
     case "face-paint": {
       const faces = v(stats, "faces");
       const [best, worst, avg] = [v(stats, "best"), v(stats, "worst"), v(stats, "avg")];
@@ -208,4 +212,5 @@ export const GAME_NAMES: Record<string, string> = {
   "gc-city": "🏙️ شهر اتم",
   "gc-football": "⚽ فوتبال اتم",
   "face-paint": "🎨 گریم صورت",
+  "seated-football": "🥅 فوتبال نشسته",
 };

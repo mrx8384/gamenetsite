@@ -19,7 +19,7 @@ export interface Achievement {
 }
 
 /** Mini-games that count for «همهٔ بازی‌ها» (the console home screen is a menu, not a game). */
-export const PLAYABLE_GAMES: MiniGameId[] = ["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football", "face-paint"];
+export const PLAYABLE_GAMES: MiniGameId[] = ["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football", "face-paint", "seated-football"];
 
 const n = (v: number | boolean | undefined) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
@@ -63,6 +63,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "paint-artist", emoji: "🎨", title: "هنرمند گریم", hint: "در گریم صورت یک طرح را دست‌کم ۸۵٪ شبیه بکشید.", game: "face-paint", points: 100, test: (g, s) => g === "face-paint" && n(s.best) >= 85 },
   { id: "paint-happy", emoji: "😊", title: "بچه‌های خوشحال", hint: "در یک دور گریم صورت هر سه بچه را دست‌کم ۶۵٪ راضی کنید.", game: "face-paint", points: 150, test: (g, s) => g === "face-paint" && n(s.faces) >= 3 && n(s.worst) >= 65 },
   { id: "paint-master", emoji: "🌟", title: "استاد گریم", hint: "یک دور بی‌نقص در سخت‌ترین حالت.", game: "face-paint", points: 250, hidden: true, test: (g, s) => g === "face-paint" && s.hard === true && n(s.faces) >= 3 && n(s.worst) >= 85 },
+  // ── seated football (FOOTBALLS table)
+  { id: "seat-first-win", emoji: "🥅", title: "اولین برد فوتبال نشسته", hint: "یک دست فوتبال نشسته را ببرید.", game: "seated-football", points: 50, test: (g, s) => g === "seated-football" && s.won === true },
+  { id: "seat-hard-win", emoji: "🦶", title: "پای سخت‌کوش", hint: "فوتبال نشسته را در سطح سخت ببرید.", game: "seated-football", points: 100, test: (g, s) => g === "seated-football" && s.won === true && s.hard === true },
+  { id: "seat-clean", emoji: "🔒", title: "قفس بسته", hint: "فوتبال نشسته را بدون گل خوردن ببرید.", game: "seated-football", points: 100, test: (g, s) => g === "seated-football" && s.won === true && n(s.against) === 0 },
+  { id: "seat-golden", emoji: "👟", title: "پای طلایی", hint: "یک برد بی‌نقص در سخت‌ترین حالت.", game: "seated-football", points: 250, hidden: true, test: (g, s) => g === "seated-football" && s.won === true && s.hard === true && n(s.against) === 0 },
   // ── the whole world
   { id: "explorer", emoji: "🧭", title: "گشت کامل اتم", hint: "دست‌کم سه مینی‌گیم مختلف را بازی کنید.", game: null, points: 100, test: (_g, _s, played) => played.size >= 3 },
   { id: "explorer-all", emoji: "🌍", title: "جهانگرد اتم", hint: "همهٔ بازی‌های دنیای اتم را امتحان کنید.", game: null, points: 200, hidden: true, test: (_g, _s, played) => PLAYABLE_GAMES.every((g) => played.has(g)) },

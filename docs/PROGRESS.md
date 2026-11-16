@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-11-16 (70) — 3D world: «فوتبال نشسته» mini-game on the FOOTBALLS table (owner request)
+
+- Owner (screenshot of the FOOTBALLS info panel): «برای این هم یه مینی گیم اوکی کن، بازی فوتبال نشسته است». Synced from
+  gameatom (phase 26): the FOOTBALLS tables on the upper floor open the new mini-game `seated-football` — seen from
+  above, you and the rival ATOM character sit at the ends of the red caged lane; slide the foot and kick, first to 5.
+  Three levels, four achievements (one hidden).
+- Site: `GAME_NAMES` row «🥅 فوتبال نشسته», minimum round time and a plausibility check for its stats in
+  `features/game-rewards/rules.ts` (a win needs exactly 5 goals). No schema change.
+- Verified: `pnpm check` ✓ (539) · `pnpm build` ✓ · smoke ✓ (0 failed) · world suites on this site: mini-games 60/60
+  (incl. seated football: foot follows the mouse, kick, win, achievement), accessibility 30/30.
+
 ## 2026-11-14 (69) — Tournaments: required fields for hand-added players, settled status, paid reserve list, live page (owner request)
 
 - **Hand-added players** (organizer form «افزودن بازیکن (ثبت‌نام حضوری)») now get the same fields as online sign-up: team members and every sign-up question, required ones enforced on the server (`signupSchema`); the edit dialog can fill answers too. Players with a missing required answer show «اطلاعات ناقص». The bulk paste list stays name-only and is flagged the same way.

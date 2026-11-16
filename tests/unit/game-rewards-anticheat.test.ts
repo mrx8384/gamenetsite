@@ -39,6 +39,9 @@ describe("game rewards: rounds must be real", () => {
     expect(plausibleRound("face-paint", { faces: 3, best: 95, worst: 88, avg: 91, hard: true }, 70)).toBe(true);
     expect(plausibleRound("face-paint", { faces: 3, best: 100, worst: 100, avg: 100 }, 7)).toBe(false);
     expect(plausibleRound("foot-pool", { cleared: true, kicks: -3 }, 60)).toBe(false);
+    expect(plausibleRound("seated-football", { won: true, hard: true, goals: 5, against: 0, seconds: 50 }, 52)).toBe(true);
+    expect(plausibleRound("seated-football", { won: true, goals: 5, against: 0 }, 5)).toBe(false); // too fast
+    expect(plausibleRound("seated-football", { won: true, goals: 3, against: 0 }, 60)).toBe(false); // a win needs 5
   });
 
   it("guest limit: one round per game by default, set by the manager", () => {

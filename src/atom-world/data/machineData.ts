@@ -7,7 +7,7 @@ import type { TravelTarget } from "../world/types";
  * machine by `id`. `price` stays null until the club records a real tariff on the site — the UI
  * then says the tariff is not registered yet (never show invented prices).
  */
-export type MiniGameId = "air-hockey" | "construction-excavator" | "foot-pool" | "gc-controller" | "gc-city" | "gc-football" | "gc-console" | "face-paint";
+export type MiniGameId = "air-hockey" | "construction-excavator" | "foot-pool" | "gc-controller" | "gc-city" | "gc-football" | "gc-console" | "face-paint" | "seated-football";
 
 export interface MachineInfo {
   id: string;
@@ -88,10 +88,10 @@ export const machines = {
     prompt: "🥅 مشاهده میز FOOTBALLS",
     emoji: "🥅",
     description:
-      "دو میز بازی FOOTBALLS در طبقهٔ دوم با بدنهٔ فلزی مشکی، قفس و تور محافظ، نشیمن‌های قرمز و تابلوی امتیاز دستی. توضیح نحوهٔ بازی پس از تأیید مجموعه تکمیل می‌شود.",
+      "دو میز بازی FOOTBALLS در طبقهٔ دوم با بدنهٔ فلزی مشکی، قفس و تور محافظ، نشیمن‌های قرمز و تابلوی امتیاز دستی. فوتبال نشسته: دو نفر روبه‌روی هم می‌نشینند و با پا توپ را داخل قفس به سمت دروازهٔ هم می‌زنند.",
     photos: [{ src: "/atom-world/photos/footballs-tables-gray-sofa.webp", alt: "میزهای FOOTBALLS و مبل خاکستری" }],
     price: null,
-    miniGame: null,
+    miniGame: "seated-football",
   },
   "shop-counter": {
     id: "shop-counter",

@@ -48,7 +48,7 @@ describe("game rewards: rounds", () => {
   });
 
   it("«play every game» counts the games already on the account", () => {
-    const played = new Set(["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football"] as const);
+    const played = new Set(["air-hockey", "construction-excavator", "foot-pool", "gc-controller", "gc-city", "gc-football", "seated-football"] as const);
     const ids = computeRound(round("face-paint"), ctx({ played: new Set(played) })).achievements.map((a) => a.id);
     expect(ids).toEqual(expect.arrayContaining(["explorer", "explorer-all"]));
     expect(computeRound(round("face-paint"), ctx({ played: new Set(played) })).firstOfGame).toBe(true);

@@ -119,6 +119,19 @@ export const MINI_GAMES: Record<MiniGameId, MiniGameMeta> = {
     difficulty: true,
     note: "در سطح آسان طرح کم‌رنگ روی صورت دیده می‌شود، در معمولی فقط خط دور آن و در سخت هیچ راهنمایی نیست.",
   },
+  "seated-football": {
+    id: "seated-football",
+    title: "فوتبال نشسته",
+    emoji: "🥅",
+    intro: "روی میز FOOTBALLS طبقهٔ دوم روبه‌روی حریف نشسته‌اید. پایتان را زیر توپ ببرید و آن را داخل قفس به دروازهٔ روبه‌رو شوت کنید. توپی که از پایتان رد شود به دروازهٔ خودتان می‌رود! اولین نفر با ۵ گل برنده است.",
+    howTo: {
+      touch: ["انگشت را روی میز چپ و راست بکشید تا پایتان جابه‌جا شود.", "با هر ضربهٔ انگشت روی صفحه، پا شوت می‌زند."],
+      desktop: ["ماوس را چپ و راست ببرید (یا کلیدهای ← → / A D) تا پایتان جابه‌جا شود.", "کلیک یا Space = شوت. Esc = توقف."],
+    },
+    difficulty: true,
+    opponent: true,
+    note: "قوانین این مینی‌گیم نمایشی است؛ بازی واقعی را روی میزهای FOOTBALLS مجموعه با دوستتان امتحان کنید.",
+  },
   "gc-console": {
     id: "gc-console",
     title: "کنسول گیم‌نت",
@@ -138,5 +151,6 @@ export const GAME_COMPONENTS: Record<MiniGameId, React.LazyExoticComponent<React
   "gc-city": lazy(() => import("./city/CityGame")),
   "gc-football": lazy(() => import("./football/FootballGame")),
   "face-paint": lazy(() => import("./facePaint/FacePaintGame")),
+  "seated-football": lazy(() => import("./seatedFootball/SeatedFootballGame")),
   "gc-console": lazy(() => import("./console/ConsoleHome")),
 };
